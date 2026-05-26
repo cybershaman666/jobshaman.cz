@@ -43,6 +43,10 @@ def run_scraper_process(name, func, results_dict):
 def run_all_parallel():
     """Run all scrapers in parallel using multiprocessing"""
     start_time = time.time()
+    try:
+        max_parallel = max(1, int(os.getenv("SCRAPER_MAX_PARALLEL_PROCESSES", "2")))
+    except ValueError:
+        max_parallel = 2
     
     # Manager for shared dictionary between processes
     manager = multiprocessing.Manager()
@@ -64,16 +68,22 @@ def run_all_parallel():
     print(f"  Start time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"{'='*70}")
     print(f"  Spawning {len(scrapers)} scraper processes...")
+    print(f"  Max concurrent processes: {max_parallel}")
     
+    active_processes = []
     for name, func in scrapers:
+        while len(active_processes) >= max_parallel:
+            oldest = active_processes.pop(0)
+            oldest.join()
         p = multiprocessing.Process(target=run_scraper_process, args=(name, func, results))
         processes.append(p)
+        active_processes.append(p)
         p.start()
         # Slight staggered start to avoid connection bursts
         time.sleep(1.5)
         
     # Wait for all processes to finish
-    for p in processes:
+    for p in active_processes:
         p.join()
         
     # Final Summary Report

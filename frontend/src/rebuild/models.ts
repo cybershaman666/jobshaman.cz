@@ -58,6 +58,10 @@ export interface Company {
   tone?: string;
   values?: string[];
   philosophy?: string;
+  website?: string;
+  websiteUrl?: string;
+  brandColor?: string;
+  accentColor?: string;
   headquarters: string;
   narrative: string;
   coverImage: string;

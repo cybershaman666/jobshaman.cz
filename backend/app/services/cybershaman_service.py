@@ -174,7 +174,11 @@ Output format ({lang_config["format_hint"]}):
 }}
 """
     payload, result = call_ai_json(prompt, temperature=0.45, timeout=45)
-    reply = str(payload.get("reply") or "").strip()
+    reply_val = payload.get("reply")
+    if isinstance(reply_val, dict) and "reply" in reply_val:
+        reply = str(reply_val.get("reply") or "").strip()
+    else:
+        reply = str(reply_val or "").strip()
     if not reply:
         raise AzureAIClientError("AI response did not include reply")
     recommendation_notes = {

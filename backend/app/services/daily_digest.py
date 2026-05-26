@@ -1449,7 +1449,7 @@ def run_daily_job_digest() -> None:
                     personalized = recommend_jobs_for_user(
                         user_id=user_id,
                         limit=max(30, _DIGEST_MAX_JOBS * 3),
-                        allow_cache=True,
+                        allow_cache=False,
                         candidate=profile_obj if isinstance(profile_obj, dict) else None,
                     )
                     digest_jobs = _pick_personalized_digest_jobs(

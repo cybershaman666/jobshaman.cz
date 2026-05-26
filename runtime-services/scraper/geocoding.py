@@ -6,6 +6,7 @@ Uses Nominatim (OpenStreetMap) with rate limiting and fallback caching
 
 import requests
 import time
+import re
 from typing import Optional, Dict, Tuple
 from dotenv import load_dotenv
 import os
@@ -119,6 +120,27 @@ MAJOR_CITIES_CACHE: Dict[str, Tuple[float, float]] = {
     'stuttgart': (48.7758, 9.1829),
     'dortmund': (51.5136, 7.4653),
     'essen': (51.4556, 7.0116),
+    # Nordics
+    'copenhagen': (55.6761, 12.5683),
+    'kobenhavn': (55.6761, 12.5683),
+    'københavn': (55.6761, 12.5683),
+    'aarhus': (56.1629, 10.2039),
+    'odense': (55.4038, 10.4024),
+    'stockholm': (59.3293, 18.0686),
+    'gothenburg': (57.7089, 11.9746),
+    'goteborg': (57.7089, 11.9746),
+    'göteborg': (57.7089, 11.9746),
+    'malmo': (55.6049, 13.0038),
+    'malmö': (55.6049, 13.0038),
+    'oslo': (59.9139, 10.7522),
+    'bergen': (60.3913, 5.3221),
+    'trondheim': (63.4305, 10.3951),
+    'helsinki': (60.1699, 24.9384),
+    'helsingfors': (60.1699, 24.9384),
+    'espoo': (60.2055, 24.6559),
+    'espo': (60.2055, 24.6559),
+    'tampere': (61.4978, 23.7610),
+    'turku': (60.4518, 22.2666),
 }
 
 # Rate limiting for Nominatim API (1 request per second)
@@ -126,9 +148,22 @@ _last_api_call_time = 0
 _call_count_per_minute = 0
 _FAILED_LOOKUP_TTL_SECONDS = 60 * 60
 _FAILED_LOOKUPS: Dict[str, float] = {}
+_SUCCESSFUL_LOOKUPS: Dict[str, Dict] = {}
+_NOMINATIM_COOLDOWN_UNTIL = 0.0
 
 _ADMIN_AREA_TOKENS = {
     'okres', 'kraj', 'region', 'district', 'venkov', 'county'
+}
+
+_NON_GEOCODABLE_LOCATION_TOKENS = {
+    "remote",
+    "worldwide",
+    "global",
+    "anywhere",
+    "emea",
+    "europe",
+    "eu",
+    "remote europe",
 }
 
 
@@ -167,6 +202,31 @@ def normalize_address(address: str) -> str:
     return normalized.strip()
 
 
+def _simplify_location_for_geocoding(location: str) -> str:
+    raw = " ".join(str(location or "").replace("\u2013", "-").replace("\u2014", "-").split())
+    if not raw:
+        return ""
+
+    # Strip house numbers / street-first prefixes when a city or district is present after comma.
+    if "," in raw:
+        parts = [part.strip() for part in raw.split(",") if part.strip()]
+        if len(parts) >= 2:
+            tail = ", ".join(parts[1:])
+            if tail:
+                raw = tail
+
+    raw = re.sub(r"\b\d{1,5}(?:/\d{1,5})?\b", " ", raw)
+    raw = re.sub(r"\s+", " ", raw).strip(" ,-")
+
+    # Prefer known city/district tail in strings like "Praha - Jinonice".
+    for marker in ["praha", "prague", "brno", "ostrava", "plzeň", "plzen", "bratislava", "stockholm", "oslo", "helsinki", "copenhagen"]:
+        idx = raw.lower().find(marker)
+        if idx >= 0:
+            return raw[idx:].strip(" ,-")
+
+    return raw
+
+
 def geocode_location(location: str) -> Optional[Dict]:
     """
     Geocode a location string to latitude/longitude
@@ -177,14 +237,25 @@ def geocode_location(location: str) -> Optional[Dict]:
     if not location or not location.strip():
         return None
 
+    lowered_raw = " ".join(str(location).strip().lower().replace("/", " ").split())
+    if lowered_raw in _NON_GEOCODABLE_LOCATION_TOKENS:
+        return None
+
+    simplified_location = _simplify_location_for_geocoding(location)
+    location_candidates = [candidate for candidate in [location, simplified_location] if candidate]
+
     # Build normalized cache keys so matching is robust to diacritics/hyphens.
     normalized_cache: Dict[str, Tuple[float, float]] = {}
     for key, coords in MAJOR_CITIES_CACHE.items():
         normalized_cache.setdefault(normalize_address(key), coords)
 
-    normalized = normalize_address(location)
-    primary_segment = normalize_address(location.split(',')[0].strip())
+    normalized = normalize_address(simplified_location or location)
+    primary_segment = normalize_address((simplified_location or location).split(',')[0].strip())
     now_ts = time.time()
+
+    cached = _SUCCESSFUL_LOOKUPS.get(normalized) or _SUCCESSFUL_LOOKUPS.get(primary_segment)
+    if cached:
+        return dict(cached)
 
     # Negative cache: repeated failing API lookups should not block the whole scrape run.
     failed_at = _FAILED_LOOKUPS.get(normalized)
@@ -194,22 +265,26 @@ def geocode_location(location: str) -> Optional[Dict]:
     # 1. Check static cache for exact match (districts/neighborhoods first)
     if normalized in normalized_cache:
         lat, lon = normalized_cache[normalized]
-        return {
+        result = {
             'lat': lat,
             'lon': lon,
             'country': 'CZ' if lat > 47 and lat < 51.5 and lon > 12 and lon < 19 else 'EU',
             'source': 'static_cache'
         }
+        _SUCCESSFUL_LOOKUPS[normalized] = dict(result)
+        return result
 
     # If full string contains additional context, try exact match on primary segment.
     if primary_segment in normalized_cache:
         lat, lon = normalized_cache[primary_segment]
-        return {
+        result = {
             'lat': lat,
             'lon': lon,
             'country': 'CZ' if lat > 47 and lat < 51.5 and lon > 12 and lon < 19 else 'EU',
             'source': 'static_cache'
         }
+        _SUCCESSFUL_LOOKUPS[normalized] = dict(result)
+        return result
 
     # 2. Conservative partial matching on PRIMARY segment only.
     # This avoids false positives like "Kuřim, okres Brno-venkov" -> Brno centrum.
@@ -236,25 +311,34 @@ def geocode_location(location: str) -> Optional[Dict]:
 
         if matched:
             lat, lon = normalized_cache[key]
-            return {
+            result = {
                 'lat': lat,
                 'lon': lon,
                 'country': 'CZ' if lat > 47 and lat < 51.5 and lon > 12 and lon < 19 else 'EU',
                 'source': 'static_cache_partial'
             }
+            _SUCCESSFUL_LOOKUPS[normalized] = dict(result)
+            return result
     
     # 3. Try Nominatim API for unknown locations
-    result = _geocode_with_nominatim(location)
-    if not result:
-        _FAILED_LOOKUPS[normalized] = now_ts
-    return result
+    for candidate in location_candidates:
+        result = _geocode_with_nominatim(candidate)
+        if result:
+            _SUCCESSFUL_LOOKUPS[normalized] = dict(result)
+            return result
+
+    _FAILED_LOOKUPS[normalized] = now_ts
+    return None
 
 
 def _geocode_with_nominatim(address: str) -> Optional[Dict]:
     """
     Call Nominatim OpenStreetMap API with rate limiting
     """
-    global _last_api_call_time, _call_count_per_minute
+    global _last_api_call_time, _call_count_per_minute, _NOMINATIM_COOLDOWN_UNTIL
+
+    if _NOMINATIM_COOLDOWN_UNTIL > time.time():
+        return None
     
     # Rate limiting: 1 request per second for Nominatim
     now = time.time()
@@ -288,6 +372,11 @@ def _geocode_with_nominatim(address: str) -> Optional[Dict]:
             timeout=6
         )
         
+        if response.status_code == 429:
+            _NOMINATIM_COOLDOWN_UNTIL = time.time() + 30
+            print(f"⚠️ Nominatim returned 429 for '{address}'")
+            return None
+
         if response.status_code != 200:
             print(f"⚠️ Nominatim returned {response.status_code} for '{address}'")
             return None

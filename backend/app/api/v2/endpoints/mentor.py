@@ -132,14 +132,33 @@ async def mentor_chat(
             recent_messages=[item.model_dump() for item in payload.recent_messages],
             job_recommendations=job_recommendations,
         )
+        logger.info(f"✅ Cybershaman reply built successfully: reply={data.get('reply', '')[:80]}")
     except ValueError as exc:
+        logger.error(f"❌ ValueError in mentor_chat: {exc}")
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except AzureAIClientError as exc:
-        logger.warning("AzureAIClientError in mentor_chat: %s", exc)
-        raise HTTPException(status_code=503, detail=f"AI mentor is unavailable: {str(exc)}") from exc
+        logger.error(f"❌ AzureAIClientError in mentor_chat: {exc}")
+        # SAFE FALLBACK odpověď pro frontend (nezhasne úplně chat, zobrazí info)
+        data = {
+            "reply": "Omlouvám se, AI agent je dočasně nedostupný. Můžeš to zkusit za chvíli, nebo kontaktovat podporu.",
+            "tone": "data_missing",
+            "suggested_prompts": [],
+            "job_recommendations": [],
+            "next_step": "",
+        }
+        logger.warning(f"🔄 Returning fallback response: {data}")
+        return {"status": "success", "data": data}
     except Exception as exc:
-        logger.exception("Unhandled exception in mentor_chat")
-        raise HTTPException(status_code=500, detail="Internal server error") from exc
+        logger.exception(f"❌ Unhandled exception in mentor_chat: {exc}")
+        data = {
+            "reply": "Nastala neočekávaná chyba při zpracování dotazu. Dej vědět supportu nebo zkus později.",
+            "tone": "data_missing",
+            "suggested_prompts": [],
+            "job_recommendations": [],
+            "next_step": "",
+        }
+        logger.warning(f"🔄 Returning fallback response after exception: {data}")
+        return {"status": "success", "data": data}
     return {"status": "success", "data": data}
 
 

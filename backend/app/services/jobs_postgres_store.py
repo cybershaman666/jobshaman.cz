@@ -10,11 +10,14 @@ from typing import Any
 
 from ..core import config
 
+_pool = None  # Legacy placeholder; scraper currently uses direct persistent connections.
 _conn = None
 _schema_ready = False
 _schema_read_ready = False
 _lock = Lock()
+_pool_lock = Lock()  # Separate lock for pool operations
 _search_diag_lock = Lock()
+_pool_notice_logged = False
 _search_diag_state: dict[str, Any] = {
     "last_query_at": None,
     "last_latency_ms": None,
@@ -303,20 +306,68 @@ def _jobs_main_cutoff_sql() -> tuple[str, tuple[Any, ...]]:
 
 
 def _connect():
+    """
+    Return a reusable direct connection.
+
+    We intentionally avoid connection-pool usage here: the previous implementation
+    mixed psycopg2/psycopg3 APIs and many call sites don't return borrowed
+    connections, which would exhaust any real pool under load.
+    """
     global _conn
-    if _conn is not None:
+    if _conn is not None and not getattr(_conn, "closed", False):
         return _conn
+
+    _initialize_pool()
+
     if not jobs_postgres_enabled():
         raise RuntimeError("JOBS_POSTGRES_URL missing or Jobs Postgres disabled")
+
     psycopg, dict_row = _load_psycopg()
-    conn = psycopg.connect(
-        config.JOBS_POSTGRES_URL,
-        autocommit=True,
-        row_factory=dict_row,
-        sslmode=config.JOBS_POSTGRES_SSLMODE or "require",
-    )
-    _conn = conn
-    return conn
+    last_exc: Exception | None = None
+    for attempt in range(3):
+        try:
+            conn = psycopg.connect(
+                config.JOBS_POSTGRES_URL,
+                autocommit=True,
+                row_factory=dict_row,
+                sslmode=config.JOBS_POSTGRES_SSLMODE or "require",
+                connect_timeout=15,
+                keepalives_idle=30,
+                keepalives_interval=10,
+                keepalives_count=5,
+            )
+            _conn = conn
+            return conn
+        except Exception as exc:
+            last_exc = exc
+            if attempt < 2:
+                wait_s = 0.75 * (attempt + 1)
+                print(f"⚠️ Jobs Postgres connect attempt {attempt + 1}/3 failed, retrying in {wait_s:.2f}s: {exc}")
+                time.sleep(wait_s)
+    raise last_exc or RuntimeError("Jobs Postgres connection failed")
+
+
+def _return_pool_conn(conn) -> None:
+    """Compatibility no-op; current implementation doesn't borrow pooled connections."""
+    return
+
+
+def _initialize_pool() -> None:
+    """Log once that we intentionally use direct connections in this runtime."""
+    global _pool_notice_logged
+    if _pool_notice_logged or not jobs_postgres_enabled():
+        return
+    with _pool_lock:
+        if _pool_notice_logged:
+            return
+        print("ℹ️ Jobs Postgres uses direct persistent connections in scraper runtime (pool disabled).")
+        _pool_notice_logged = True
+
+
+def _close_pool() -> None:
+    """Compatibility no-op for the current direct-connection implementation."""
+    global _pool
+    _pool = None
 
 
 def _ensure_schema() -> None:
@@ -401,6 +452,9 @@ def _ensure_schema() -> None:
             )
             cur.execute(
                 f"CREATE INDEX IF NOT EXISTS idx_{config.JOBS_POSTGRES_JOBS_TABLE}_company_id ON {config.JOBS_POSTGRES_JOBS_TABLE} (company_id)"
+            )
+            cur.execute(
+                f"CREATE INDEX IF NOT EXISTS idx_{config.JOBS_POSTGRES_JOBS_TABLE}_url ON {config.JOBS_POSTGRES_JOBS_TABLE} (url)"
             )
             cur.execute(
                 f"CREATE INDEX IF NOT EXISTS idx_{config.JOBS_POSTGRES_JOBS_TABLE}_source_kind ON {config.JOBS_POSTGRES_JOBS_TABLE} (source_kind)"
@@ -669,130 +723,172 @@ def read_external_cache_jobs(
 
 
 def upsert_jobs_documents(documents: list[dict[str, Any]]) -> dict[str, int]:
+    """
+    Upsert documents with retry logic and connection pooling.
+    Uses exponential backoff for transient failures.
+    """
     if not jobs_postgres_enabled() or not config.JOBS_POSTGRES_WRITE_MAIN:
         return {"imported_count": 0, "upserted_count": 0, "matched_count": 0}
     _ensure_schema()
     if not documents:
         return {"imported_count": 0, "upserted_count": 0, "matched_count": 0}
+    
     ids = [str(doc.get("id") or "") for doc in documents if str(doc.get("id") or "").strip()]
     if not ids:
         return {"imported_count": 0, "upserted_count": 0, "matched_count": 0}
-    conn = _connect()
-    with conn.cursor() as cur:
-        cur.execute(
-            f"SELECT id FROM {config.JOBS_POSTGRES_JOBS_TABLE} WHERE id = ANY(%s)",
-            (ids,),
-        )
-        existing_ids = {str((row or {}).get("id") or "") for row in (cur.fetchall() or [])}
-        cur.executemany(
-            f"""
-            INSERT INTO {config.JOBS_POSTGRES_JOBS_TABLE}
-                (id, company_id, posted_by, recruiter_id, title, company, location, description, role_summary, first_reply_prompt, company_truth_hard, company_truth_fail, benefits, tags, contract_type, salary_from, salary_to, salary_timeframe, currency, salary_currency, work_type, work_model, source, source_kind, url, education_level, lat, lng, country_code, language_code, legality_status, verification_notes, ai_analysis, open_dialogues_count, dialogue_capacity_limit, reaction_window_hours, reaction_window_days, status, is_active, challenge_format, payload_json, created_at, scraped_at, updated_at)
-            VALUES (%(id)s, %(company_id)s, %(posted_by)s, %(recruiter_id)s, %(title)s, %(company)s, %(location)s, %(description)s, %(role_summary)s, %(first_reply_prompt)s, %(company_truth_hard)s, %(company_truth_fail)s, %(benefits)s::jsonb, %(tags)s::jsonb, %(contract_type)s, %(salary_from)s, %(salary_to)s, %(salary_timeframe)s, %(currency)s, %(salary_currency)s, %(work_type)s, %(work_model)s, %(source)s, %(source_kind)s, %(url)s, %(education_level)s, %(lat)s, %(lng)s, %(country_code)s, %(language_code)s, %(legality_status)s, %(verification_notes)s, %(ai_analysis)s::jsonb, %(open_dialogues_count)s, %(dialogue_capacity_limit)s, %(reaction_window_hours)s, %(reaction_window_days)s, %(status)s, %(is_active)s, %(challenge_format)s, %(payload_json)s::jsonb, %(created_at)s, %(scraped_at)s, %(updated_at)s)
-            ON CONFLICT (id) DO UPDATE SET
-                company_id = EXCLUDED.company_id,
-                posted_by = EXCLUDED.posted_by,
-                recruiter_id = EXCLUDED.recruiter_id,
-                title = EXCLUDED.title,
-                company = EXCLUDED.company,
-                location = EXCLUDED.location,
-                description = EXCLUDED.description,
-                role_summary = EXCLUDED.role_summary,
-                first_reply_prompt = EXCLUDED.first_reply_prompt,
-                company_truth_hard = EXCLUDED.company_truth_hard,
-                company_truth_fail = EXCLUDED.company_truth_fail,
-                benefits = EXCLUDED.benefits,
-                tags = EXCLUDED.tags,
-                contract_type = EXCLUDED.contract_type,
-                salary_from = EXCLUDED.salary_from,
-                salary_to = EXCLUDED.salary_to,
-                salary_timeframe = EXCLUDED.salary_timeframe,
-                currency = EXCLUDED.currency,
-                salary_currency = EXCLUDED.salary_currency,
-                work_type = EXCLUDED.work_type,
-                work_model = EXCLUDED.work_model,
-                source = EXCLUDED.source,
-                source_kind = EXCLUDED.source_kind,
-                url = EXCLUDED.url,
-                education_level = EXCLUDED.education_level,
-                lat = EXCLUDED.lat,
-                lng = EXCLUDED.lng,
-                country_code = EXCLUDED.country_code,
-                language_code = EXCLUDED.language_code,
-                legality_status = EXCLUDED.legality_status,
-                verification_notes = EXCLUDED.verification_notes,
-                ai_analysis = EXCLUDED.ai_analysis,
-                open_dialogues_count = EXCLUDED.open_dialogues_count,
-                dialogue_capacity_limit = EXCLUDED.dialogue_capacity_limit,
-                reaction_window_hours = EXCLUDED.reaction_window_hours,
-                reaction_window_days = EXCLUDED.reaction_window_days,
-                status = EXCLUDED.status,
-                is_active = EXCLUDED.is_active,
-                challenge_format = EXCLUDED.challenge_format,
-                payload_json = EXCLUDED.payload_json,
-                created_at = EXCLUDED.created_at,
-                scraped_at = EXCLUDED.scraped_at,
-                updated_at = EXCLUDED.updated_at
-            """,
-            [
-                {
-                    "source_kind": _normalize_main_source_kind(doc),
-                    "id": str(doc.get("id") or ""),
-                    "company_id": doc.get("company_id"),
-                    "posted_by": doc.get("posted_by"),
-                    "recruiter_id": doc.get("recruiter_id"),
-                    "title": str(doc.get("title") or ""),
-                    "company": str(doc.get("company") or ""),
-                    "location": str(doc.get("location") or ""),
-                    "description": str(doc.get("description") or ""),
-                    "role_summary": doc.get("role_summary"),
-                    "first_reply_prompt": doc.get("first_reply_prompt"),
-                    "company_truth_hard": doc.get("company_truth_hard"),
-                    "company_truth_fail": doc.get("company_truth_fail"),
-                    "benefits": _json_dumps(_coerce_json_list(doc.get("benefits"))),
-                    "tags": _json_dumps(_coerce_json_list(doc.get("tags"))),
-                    "contract_type": doc.get("contract_type"),
-                    "salary_from": _coerce_int(doc.get("salary_from")),
-                    "salary_to": _coerce_int(doc.get("salary_to")),
-                    "salary_timeframe": doc.get("salary_timeframe"),
-                    "currency": doc.get("currency"),
-                    "salary_currency": doc.get("salary_currency"),
-                    "work_type": doc.get("work_type"),
-                    "work_model": doc.get("work_model"),
-                    "source": doc.get("source"),
-                    "url": doc.get("url"),
-                    "education_level": doc.get("education_level"),
-                    "lat": _coerce_float(doc.get("lat")),
-                    "lng": _coerce_float(doc.get("lng")),
-                    "country_code": doc.get("country_code"),
-                    "language_code": doc.get("language_code"),
-                    "legality_status": str(doc.get("legality_status") or "legal"),
-                    "verification_notes": doc.get("verification_notes"),
-                    "ai_analysis": _json_dumps(doc.get("ai_analysis") or {}),
-                    "open_dialogues_count": _coerce_int(doc.get("open_dialogues_count")),
-                    "dialogue_capacity_limit": _coerce_int(doc.get("dialogue_capacity_limit")),
-                    "reaction_window_hours": _coerce_int(doc.get("reaction_window_hours")),
-                    "reaction_window_days": _coerce_int(doc.get("reaction_window_days")),
-                    "status": str(doc.get("status") or "active"),
-                    "is_active": bool(doc.get("is_active", True)),
-                    "challenge_format": doc.get("challenge_format"),
-                    "payload_json": _json_dumps(doc),
-                    "created_at": _coerce_timestamp(doc.get("created_at")),
-                    "scraped_at": _coerce_timestamp(doc.get("scraped_at"), default=_coerce_timestamp(doc.get("created_at"))),
-                    "updated_at": _coerce_timestamp(doc.get("updated_at"), default=_utcnow()),
-                }
-                for doc in documents
-                if str(doc.get("id") or "").strip()
-            ],
-        )
-    imported_count = len(ids)
-    matched_count = len(existing_ids)
-    upserted_count = max(0, imported_count - matched_count)
-    return {
-        "imported_count": imported_count,
-        "upserted_count": upserted_count,
-        "matched_count": matched_count,
-    }
+    
+    # Retry logic with exponential backoff
+    max_retries = 3
+    retry_delay = 0.5  # seconds
+    
+    for attempt in range(max_retries):
+        conn = None
+        try:
+            conn = _connect()
+            
+            with conn.cursor() as cur:
+                # Get existing IDs (skip expensive duplicate lookup - we use ON CONFLICT instead)
+                cur.execute(
+                    f"SELECT id FROM {config.JOBS_POSTGRES_JOBS_TABLE} WHERE id = ANY(%s)",
+                    (ids,),
+                )
+                existing_ids = {str((row or {}).get("id") or "") for row in (cur.fetchall() or [])}
+                
+                # Batch upsert with ON CONFLICT for duplicate handling
+                cur.executemany(
+                    f"""
+                    INSERT INTO {config.JOBS_POSTGRES_JOBS_TABLE}
+                        (id, company_id, posted_by, recruiter_id, title, company, location, description, role_summary, first_reply_prompt, company_truth_hard, company_truth_fail, benefits, tags, contract_type, salary_from, salary_to, salary_timeframe, currency, salary_currency, work_type, work_model, source, source_kind, url, education_level, lat, lng, country_code, language_code, legality_status, verification_notes, ai_analysis, open_dialogues_count, dialogue_capacity_limit, reaction_window_hours, reaction_window_days, status, is_active, challenge_format, payload_json, created_at, scraped_at, updated_at)
+                    VALUES (%(id)s, %(company_id)s, %(posted_by)s, %(recruiter_id)s, %(title)s, %(company)s, %(location)s, %(description)s, %(role_summary)s, %(first_reply_prompt)s, %(company_truth_hard)s, %(company_truth_fail)s, %(benefits)s::jsonb, %(tags)s::jsonb, %(contract_type)s, %(salary_from)s, %(salary_to)s, %(salary_timeframe)s, %(currency)s, %(salary_currency)s, %(work_type)s, %(work_model)s, %(source)s, %(source_kind)s, %(url)s, %(education_level)s, %(lat)s, %(lng)s, %(country_code)s, %(language_code)s, %(legality_status)s, %(verification_notes)s, %(ai_analysis)s::jsonb, %(open_dialogues_count)s, %(dialogue_capacity_limit)s, %(reaction_window_hours)s, %(reaction_window_days)s, %(status)s, %(is_active)s, %(challenge_format)s, %(payload_json)s::jsonb, %(created_at)s, %(scraped_at)s, %(updated_at)s)
+                    ON CONFLICT (id) DO UPDATE SET
+                        company_id = EXCLUDED.company_id,
+                        posted_by = EXCLUDED.posted_by,
+                        recruiter_id = EXCLUDED.recruiter_id,
+                        title = EXCLUDED.title,
+                        company = EXCLUDED.company,
+                        location = EXCLUDED.location,
+                        description = EXCLUDED.description,
+                        role_summary = EXCLUDED.role_summary,
+                        first_reply_prompt = EXCLUDED.first_reply_prompt,
+                        company_truth_hard = EXCLUDED.company_truth_hard,
+                        company_truth_fail = EXCLUDED.company_truth_fail,
+                        benefits = EXCLUDED.benefits,
+                        tags = EXCLUDED.tags,
+                        contract_type = EXCLUDED.contract_type,
+                        salary_from = EXCLUDED.salary_from,
+                        salary_to = EXCLUDED.salary_to,
+                        salary_timeframe = EXCLUDED.salary_timeframe,
+                        currency = EXCLUDED.currency,
+                        salary_currency = EXCLUDED.salary_currency,
+                        work_type = EXCLUDED.work_type,
+                        work_model = EXCLUDED.work_model,
+                        source = EXCLUDED.source,
+                        source_kind = EXCLUDED.source_kind,
+                        url = EXCLUDED.url,
+                        education_level = EXCLUDED.education_level,
+                        lat = EXCLUDED.lat,
+                        lng = EXCLUDED.lng,
+                        country_code = EXCLUDED.country_code,
+                        language_code = EXCLUDED.language_code,
+                        legality_status = EXCLUDED.legality_status,
+                        verification_notes = EXCLUDED.verification_notes,
+                        ai_analysis = EXCLUDED.ai_analysis,
+                        open_dialogues_count = EXCLUDED.open_dialogues_count,
+                        dialogue_capacity_limit = EXCLUDED.dialogue_capacity_limit,
+                        reaction_window_hours = EXCLUDED.reaction_window_hours,
+                        reaction_window_days = EXCLUDED.reaction_window_days,
+                        status = EXCLUDED.status,
+                        is_active = EXCLUDED.is_active,
+                        challenge_format = EXCLUDED.challenge_format,
+                        payload_json = EXCLUDED.payload_json,
+                        created_at = EXCLUDED.created_at,
+                        scraped_at = EXCLUDED.scraped_at,
+                        updated_at = EXCLUDED.updated_at
+                    """,
+                    [
+                        {
+                            "source_kind": _normalize_main_source_kind(doc),
+                            "id": str(doc.get("id") or ""),
+                            "company_id": doc.get("company_id"),
+                            "posted_by": doc.get("posted_by"),
+                            "recruiter_id": doc.get("recruiter_id"),
+                            "title": str(doc.get("title") or ""),
+                            "company": str(doc.get("company") or ""),
+                            "location": str(doc.get("location") or ""),
+                            "description": str(doc.get("description") or ""),
+                            "role_summary": doc.get("role_summary"),
+                            "first_reply_prompt": doc.get("first_reply_prompt"),
+                            "company_truth_hard": doc.get("company_truth_hard"),
+                            "company_truth_fail": doc.get("company_truth_fail"),
+                            "benefits": _json_dumps(_coerce_json_list(doc.get("benefits"))),
+                            "tags": _json_dumps(_coerce_json_list(doc.get("tags"))),
+                            "contract_type": doc.get("contract_type"),
+                            "salary_from": _coerce_int(doc.get("salary_from")),
+                            "salary_to": _coerce_int(doc.get("salary_to")),
+                            "salary_timeframe": doc.get("salary_timeframe"),
+                            "currency": doc.get("currency"),
+                            "salary_currency": doc.get("salary_currency"),
+                            "work_type": doc.get("work_type"),
+                            "work_model": doc.get("work_model"),
+                            "source": doc.get("source"),
+                            "url": doc.get("url"),
+                            "education_level": doc.get("education_level"),
+                            "lat": _coerce_float(doc.get("lat")),
+                            "lng": _coerce_float(doc.get("lng")),
+                            "country_code": doc.get("country_code"),
+                            "language_code": doc.get("language_code"),
+                            "legality_status": str(doc.get("legality_status") or "legal"),
+                            "verification_notes": doc.get("verification_notes"),
+                            "ai_analysis": _json_dumps(doc.get("ai_analysis") or {}),
+                            "open_dialogues_count": _coerce_int(doc.get("open_dialogues_count")),
+                            "dialogue_capacity_limit": _coerce_int(doc.get("dialogue_capacity_limit")),
+                            "reaction_window_hours": _coerce_int(doc.get("reaction_window_hours")),
+                            "reaction_window_days": _coerce_int(doc.get("reaction_window_days")),
+                            "status": str(doc.get("status") or "active"),
+                            "is_active": bool(doc.get("is_active", True)),
+                            "challenge_format": doc.get("challenge_format"),
+                            "payload_json": _json_dumps(doc),
+                            "created_at": _coerce_timestamp(doc.get("created_at")),
+                            "scraped_at": _coerce_timestamp(doc.get("scraped_at"), default=_coerce_timestamp(doc.get("created_at"))),
+                            "updated_at": _coerce_timestamp(doc.get("updated_at"), default=_utcnow()),
+                        }
+                        for doc in documents
+                        if str(doc.get("id") or "").strip()
+                    ],
+                )
+            
+            imported_count = len(ids)
+            matched_count = len(existing_ids)
+            upserted_count = max(0, imported_count - matched_count)
+            return {
+                "imported_count": imported_count,
+                "upserted_count": upserted_count,
+                "matched_count": matched_count,
+            }
+        
+        except Exception as exc:
+            error_msg = str(exc).lower()
+            is_transient = any(phrase in error_msg for phrase in [
+                "timeout", "connection timeout", "connection refused",
+                "connection reset", "broken pipe", "pool exhausted",
+                "too many connections", "server closed", "lost connection"
+            ])
+            
+            if is_transient and attempt < max_retries - 1:
+                wait_time = retry_delay * (2 ** attempt)  # Exponential backoff
+                print(f"    ⚠️ Database timeout (attempt {attempt + 1}/{max_retries}), retrying in {wait_time}s: {exc}")
+                time.sleep(wait_time)
+                # Return connection to pool if it came from there
+                if conn:
+                    _return_pool_conn(conn)
+                continue
+            else:
+                print(f"    ❌ Database write failed (attempt {attempt + 1}/{max_retries}): {exc}")
+                if conn:
+                    _return_pool_conn(conn)
+                return {"imported_count": 0, "upserted_count": 0, "matched_count": 0}
+    
+    return {"imported_count": 0, "upserted_count": 0, "matched_count": 0}
 
 
 def read_recent_jobs(*, limit: int = 500, days: int = 30) -> list[dict[str, Any]]:

@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUp,
+  BadgeCheck,
   Building2,
   CheckCircle2,
   Clock3,
@@ -15,6 +16,7 @@ import {
   MapPin,
   Sparkles,
   Star,
+  Target,
   Users,
   X,
 } from 'lucide-react';
@@ -121,16 +123,15 @@ const ShamiGuidePanel: React.FC<{
   role: Role;
   blueprint: HandshakeBlueprint;
   company: Company;
-  t: (key: string, opts: { defaultValue: string }) => string;
+  t: (key: string, opts: { defaultValue: string } & Record<string, any>) => string;
 }> = ({ role, blueprint, company, t }) => {
-  // Build contextual guidance bullets from available role/blueprint data
   const hints: { id: string; icon: React.ReactNode; label: string; text: string }[] = [];
 
   if (role.firstStep) {
     hints.push({
       id: 'first_step',
       icon: <CheckCircle2 size={14} className="mt-0.5 shrink-0 text-[#0f95ac]" />,
-      label: t('rebuild.shami.hint_first_step', { defaultValue: 'What the first signal looks like' }),
+      label: t('rebuild.shami.hint_first_step', { defaultValue: 'První signál' }),
       text: role.firstStep,
     });
   }
@@ -138,7 +139,7 @@ const ShamiGuidePanel: React.FC<{
     hints.push({
       id: 'blueprint',
       icon: <Compass size={14} className="mt-0.5 shrink-0 text-[#0f95ac]" />,
-      label: t('rebuild.shami.hint_journey', { defaultValue: 'Journey overview' }),
+      label: t('rebuild.shami.hint_journey', { defaultValue: 'Jak probíhá výběr' }),
       text: blueprint.overview,
     });
   }
@@ -147,7 +148,7 @@ const ShamiGuidePanel: React.FC<{
     hints.push({
       id: 'reviewer',
       icon: <Users size={14} className="mt-0.5 shrink-0 text-[#0f95ac]" />,
-      label: t('rebuild.shami.hint_context', { defaultValue: 'Company context' }),
+      label: t('rebuild.shami.hint_context', { defaultValue: 'Kontext týmu' }),
       text: reviewerIntro,
     });
   }
@@ -156,43 +157,42 @@ const ShamiGuidePanel: React.FC<{
 
   return (
     <ShellCard className="overflow-hidden">
-      <div className="bg-gradient-to-br from-[rgba(18,175,203,0.07)] via-[rgba(18,175,203,0.04)] to-transparent p-6">
-        {/* Header */}
-        <div className="flex items-start gap-4">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#12AFCB] to-[#0a7a98] shadow-[0_8px_24px_-12px_rgba(18,175,203,0.55)]">
-            <Sparkles size={20} className="text-white" />
+      <div className="bg-[linear-gradient(135deg,rgba(18,175,203,0.08),rgba(255,255,255,0.84)_44%,rgba(248,250,252,0.9))] p-5 md:p-6">
+        <div className="grid gap-5 xl:grid-cols-[0.95fr_1.45fr] xl:items-start">
+          <div className="flex items-start gap-4">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#0f95ac] shadow-[0_12px_24px_-18px_rgba(15,149,172,0.7)]">
+              <Sparkles size={20} className="text-white" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#0f95ac]">Shami</div>
+              <h3 className="mt-1 text-lg font-semibold tracking-normal text-slate-900">
+                {companyName
+                  ? t('rebuild.shami.guide_title_company', { defaultValue: `Co chce ${companyName} pochopit o tobe`, company: companyName })
+                  : t('rebuild.shami.guide_title', { defaultValue: 'Co chce firma pochopit o tobe' })}
+              </h3>
+              <p className="mt-1.5 max-w-xl text-sm leading-6 text-slate-600">
+                {t('rebuild.shami.guide_subtitle', { defaultValue: 'Handshake neposuzuje CV keywordy. Hleda zpusob uvazovani, trade-offy a schopnost popsat prvni prakticky krok.' })}
+              </p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#0f95ac]">Shami</div>
-            <h3 className="mt-1 text-lg font-semibold tracking-[-0.03em] text-slate-900">
-              {companyName
-                ? t('rebuild.shami.guide_title_company', { defaultValue: `What ${companyName} wants to understand about you` })
-                : t('rebuild.shami.guide_title', { defaultValue: 'What this company wants to understand about you' })}
-            </h3>
-            <p className="mt-1.5 text-sm leading-6 text-slate-500">
-              {t('rebuild.shami.guide_subtitle', { defaultValue: 'Before you start the handshake, here is what a strong response looks like and what the team is really testing.' })}
-            </p>
-          </div>
-        </div>
-
-        {/* Hint rows */}
-        {hints.length > 0 ? (
-          <div className="mt-5 space-y-3">
-            {hints.map((hint) => (
-              <div key={hint.id} className="rounded-[18px] border border-[rgba(18,175,203,0.13)] bg-white/80 p-4 shadow-[0_2px_8px_-4px_rgba(18,175,203,0.12)]">
-                <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#0f95ac]">{hint.label}</div>
-                <div className="flex items-start gap-2">
-                  {hint.icon}
-                  <p className="text-sm leading-6 text-slate-600">{hint.text}</p>
+          {hints.length > 0 ? (
+            <div className="grid gap-3 md:grid-cols-3">
+              {hints.slice(0, 3).map((hint) => (
+                <div key={hint.id} className="rounded-lg border border-[rgba(18,175,203,0.14)] bg-white/86 p-4 shadow-sm">
+                  <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#0f95ac]">
+                    {hint.icon}
+                    {hint.label}
+                  </div>
+                  <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-600">{hint.text}</p>
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="mt-5 rounded-[18px] border border-[rgba(18,175,203,0.13)] bg-white/80 p-4 text-sm leading-6 text-slate-500">
-            {t('rebuild.shami.guide_fallback', { defaultValue: 'Read the challenge carefully. Your first response should demonstrate that you understand the core problem — not just that you are interested.' })}
-          </div>
-        )}
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-[rgba(18,175,203,0.14)] bg-white/86 p-4 text-sm leading-6 text-slate-600">
+              {t('rebuild.shami.guide_fallback', { defaultValue: 'Prečti výzvu jako realnou praci. Silna odpoved ukaze, ze rozumis problemu, ne jen ze mas zajem.' })}
+            </div>
+          )}
+        </div>
       </div>
     </ShellCard>
   );
@@ -250,6 +250,26 @@ const CompanyEncounterPanel: React.FC<{
   );
 };
 
+const SkillSignalCard: React.FC<{
+  title: string;
+  body: React.ReactNode;
+  icon: React.ReactNode;
+  tone?: 'default' | 'accent';
+}> = ({ title, body, icon, tone = 'default' }) => (
+  <div className={cn(
+    'rounded-lg border p-4',
+    tone === 'accent'
+      ? 'border-[rgba(18,175,203,0.2)] bg-[rgba(18,175,203,0.06)]'
+      : 'border-slate-200 bg-slate-50/80',
+  )}>
+    <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+      <span className="text-[#0f95ac]">{icon}</span>
+      {title}
+    </div>
+    <div className="mt-3 text-sm leading-7 text-slate-600">{body}</div>
+  </div>
+);
+
 const DetailActionPanel: React.FC<{
   role: Role;
   sourceLink?: string;
@@ -272,14 +292,15 @@ const DetailActionPanel: React.FC<{
     };
   }, [role.id, role.source]);
   const blocked = Boolean(availability && !availability.available && !availability.existingHandshakeId && !existingApplication);
+  const compensation = formatRoleCompensation(role, t('rebuild.prep.compensation_unknown', { defaultValue: 'Neuvedeno' }), i18n?.language);
   return (
-    <ShellCard className="p-6">
-      <SectionEyebrow>{role.source === 'curated' ? t('rebuild.briefing.next_step', { defaultValue: 'Next step' }) : t('rebuild.detail.external_source_title', { defaultValue: 'External source' })}</SectionEyebrow>
-      <h3 className="mt-3 text-xl font-semibold tracking-[-0.04em] text-slate-900">
+    <ShellCard className="sticky top-6 p-5 md:p-6">
+      <SectionEyebrow>{role.source === 'curated' ? t('rebuild.briefing.next_step', { defaultValue: 'Dalsi krok' }) : t('rebuild.detail.external_source_title', { defaultValue: 'External source' })}</SectionEyebrow>
+      <h3 className="mt-3 text-xl font-semibold tracking-normal text-slate-900">
         {role.source === 'curated'
           ? existingApplication
-            ? t('rebuild.briefing.open_journey', { defaultValue: 'Open submitted journey' })
-            : t('rebuild.briefing.start_journey', { defaultValue: 'Start branded journey' })
+            ? t('rebuild.briefing.open_journey', { defaultValue: 'Otevrit rozpracovany handshake' })
+            : t('rebuild.briefing.start_journey', { defaultValue: 'Zacit odpovidat' })
           : t('rebuild.prep.open_listing_title', { defaultValue: 'Original listing' })}
       </h3>
       <p className="mt-3 text-sm leading-7 text-slate-600">
@@ -287,7 +308,7 @@ const DetailActionPanel: React.FC<{
           ? role.firstStep
           : t('rebuild.prep.source_warning_body', { defaultValue: 'The imported offer may have changed terms. Before responding, open the original site and verify current text, validity, and contact.' })}
       </p>
-      <div className="mt-5 space-y-4 rounded-xl border border-slate-100 bg-slate-50/50 p-4">
+      <div className="mt-5 grid gap-2 rounded-lg border border-slate-200 bg-slate-50/70 p-3">
         <div className="flex items-center gap-3 text-sm text-slate-600">
           <MapPin size={16} className="shrink-0 text-slate-400" />
           <span className="font-medium">{role.location}</span>
@@ -298,16 +319,16 @@ const DetailActionPanel: React.FC<{
         </div>
         <div className="flex items-center gap-3 text-sm text-slate-600">
           <Coins size={16} className="shrink-0 text-slate-400" />
-          <span className="font-medium">{formatRoleCompensation(role, t('rebuild.prep.compensation_unknown', { defaultValue: 'Not specified' }), i18n?.language)}</span>
+          <span className="font-medium">{compensation}</span>
         </div>
       </div>
       {availability?.companyChallenge ? (
-        <div className="mt-4 rounded-[18px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-          {t('rebuild.briefing.slots_available', { defaultValue: 'Handshake slots' })}: <strong>{availability.companyChallenge.remaining}</strong> / {availability.companyChallenge.limit}
+        <div className="mt-4 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+          {t('rebuild.briefing.slots_available', { defaultValue: 'Handshake sloty' })}: <strong>{availability.companyChallenge.remaining}</strong> / {availability.companyChallenge.limit}
         </div>
       ) : null}
       {blocked ? (
-        <div className="mt-4 rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+        <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
           {availability?.reason === 'candidate_slots_full'
             ? t('rebuild.briefing.candidate_slots_full', { defaultValue: 'Your active handshake slots are full.' })
             : t('rebuild.briefing.company_slots_full', { defaultValue: 'This challenge is currently full.' })}
@@ -316,7 +337,7 @@ const DetailActionPanel: React.FC<{
       <div className="mt-5 flex flex-col gap-3">
         {role.source === 'curated' ? (
           <button type="button" disabled={blocked} onClick={() => navigate(`/candidate/journey/${role.id}`)} className={cn(primaryButtonClass, blocked ? 'cursor-not-allowed opacity-60' : '')}>
-            {existingApplication || availability?.existingHandshakeId ? t('rebuild.briefing.open_journey', { defaultValue: 'Open submitted journey' }) : t('rebuild.briefing.start_journey', { defaultValue: 'Start branded journey' })} <ArrowRight size={16} />
+            {existingApplication || availability?.existingHandshakeId ? t('rebuild.briefing.open_journey', { defaultValue: 'Otevrit handshake' }) : t('rebuild.briefing.start_journey', { defaultValue: 'Zacit odpovidat' })} <ArrowRight size={16} />
           </button>
         ) : sourceLink ? (
           <a href={sourceLink} target="_blank" rel="noreferrer" className={primaryButtonClass}>{t('rebuild.prep.open_listing', { defaultValue: 'Open source listing' })} <ExternalLink size={16} /></a>
@@ -935,6 +956,12 @@ export const CandidateRoleBriefingPage: React.FC<{
     MARKETPLACE_IMAGE_FALLBACK,
   ]);
   const compensation = formatRoleCompensation(role, t('rebuild.briefing.compensation_unknown', { defaultValue: 'Compensation not specified' }));
+  const overviewCopy = role.roleSummary || role.mission || role.summary || role.description;
+  const missionCopy = role.mission && role.mission !== overviewCopy ? role.mission : role.description;
+  const truthSections = [
+    { title: t('rebuild.briefing.hard_truth', { defaultValue: 'Narocna realita role' }), body: role.companyTruthHard || '' },
+    { title: t('rebuild.briefing.failure_truth', { defaultValue: 'Co znamena neuspech' }), body: role.companyTruthFail || '' },
+  ].filter((item) => item.body.trim());
   return (
     <CandidateShellSurface
       variant="role"
@@ -948,12 +975,17 @@ export const CandidateRoleBriefingPage: React.FC<{
     >
       <JobPostingSchema role={role} />
       <ShellCard className="overflow-hidden">
-        <div className="grid min-h-[22rem] bg-white lg:grid-cols-[1fr_0.78fr]">
-          <div className="flex items-center p-6 md:p-8">
+        <div className="grid min-h-[24rem] bg-white lg:grid-cols-[1fr_0.72fr]">
+          <div className="flex items-center p-6 md:p-8 lg:p-10">
             <div className="max-w-3xl">
               <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{company.name}</div>
-              <h1 className="mt-4 text-[clamp(2.2rem,5vw,4.6rem)] font-semibold leading-[0.95] tracking-[-0.06em] text-slate-950">{role.title}</h1>
-              <p className="mt-4 max-w-2xl text-base leading-8 text-slate-600">{role.summary}</p>
+              <h1 className="mt-4 text-[clamp(2.2rem,5vw,4.35rem)] font-semibold leading-[0.98] tracking-normal text-slate-950">{role.title}</h1>
+              <p className="mt-5 max-w-2xl text-base leading-8 text-slate-600">{overviewCopy}</p>
+              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                <DetailMetaPill label={t('rebuild.briefing.compensation', { defaultValue: 'Odmena' })} value={compensation} />
+                <DetailMetaPill label={t('rebuild.briefing.work_model', { defaultValue: 'Rezim' })} value={role.workModel} />
+                <DetailMetaPill label={t('rebuild.briefing.location', { defaultValue: 'Misto' })} value={role.location} />
+              </div>
             </div>
           </div>
           <div className="min-h-[16rem] border-t border-slate-200 lg:border-l lg:border-t-0">
@@ -967,61 +999,52 @@ export const CandidateRoleBriefingPage: React.FC<{
       <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-6">
           <ShellCard className="p-6">
-            <SectionEyebrow>{t('rebuild.briefing.title', { defaultValue: 'Role briefing' })}</SectionEyebrow>
+            <SectionEyebrow><Target size={12} />{t('rebuild.briefing.title', { defaultValue: 'Skill-first briefing' })}</SectionEyebrow>
+            <h2 className="mt-3 text-2xl font-semibold tracking-normal text-slate-900">{t('rebuild.briefing.native_heading', { defaultValue: 'Nejdřív pracovní realita, potom CV.' })}</h2>
+            {missionCopy ? (
+              <p className="mt-4 text-base leading-8 text-slate-600">{missionCopy}</p>
+            ) : null}
             {role.challenge ? (
-              <div className="mt-4 rounded-[20px] border border-[rgba(18,175,203,0.18)] bg-[rgba(18,175,203,0.05)] p-5">
-                <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-[#0f95ac]">
+              <div className="mt-6 rounded-lg border border-[rgba(18,175,203,0.22)] bg-[rgba(18,175,203,0.06)] p-5">
+                <div className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#0f95ac]">
+                  <BadgeCheck size={13} />
                   {t('rebuild.briefing.the_challenge', { defaultValue: 'The challenge' })}
                 </div>
                 <p className="whitespace-pre-wrap text-base leading-8 text-slate-700">{role.challenge}</p>
               </div>
             ) : null}
-            {(role.mission || role.description) ? (
-              <p className="mt-4 text-base leading-8 text-slate-600">{role.mission || role.description}</p>
-            ) : null}
-            <div className="mt-6 grid gap-4 md:grid-cols-3">
-              <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="flex items-center gap-2 text-sm font-semibold text-slate-900"><Building2 size={16} className="text-[#0f95ac]" />{t('rebuild.detail.company_signal', { defaultValue: 'Company from inside' })}</div>
-                <p className="mt-3 text-sm leading-7 text-slate-600">{company.narrative || role.companyNarrative || t('rebuild.detail.company_signal_body', { defaultValue: 'Branded Jobshaman detail connects the role, team and handshake materials so you can imagine a real working day.' })}</p>
-              </div>
-              <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="flex items-center gap-2 text-sm font-semibold text-slate-900"><Compass size={16} className="text-[#0f95ac]" />{t('rebuild.detail.fit_signal', { defaultValue: 'Fit before clicking' })}</div>
-                <p className="mt-3 text-sm leading-7 text-slate-600">{t('rebuild.detail.fit_signal_body', { defaultValue: 'JHI, salary, taxes and commute are calculated before starting the handshake, not after a wasted afternoon.' })}</p>
-              </div>
-              <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="flex items-center gap-2 text-sm font-semibold text-slate-900"><Clock3 size={16} className="text-[#0f95ac]" />{t('rebuild.detail.next_step_signal', { defaultValue: 'Next step' })}</div>
-                <p className="mt-3 text-sm leading-7 text-slate-600">{role.firstStep}</p>
-              </div>
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              <SkillSignalCard
+                tone="accent"
+                icon={<CheckCircle2 size={16} />}
+                title={t('rebuild.briefing.signal_desc', { defaultValue: 'Co bude dulezite hned na zacatku' })}
+                body={role.firstStep}
+              />
+              <SkillSignalCard
+                icon={<Compass size={16} />}
+                title={t('rebuild.briefing.blueprint', { defaultValue: 'Jak vypada vyberove rizeni' })}
+                body={blueprint.overview}
+              />
             </div>
             <div className="mt-6 grid gap-3 md:grid-cols-2">
-              <DetailMetaPill label={t('rebuild.briefing.contract', { defaultValue: 'Contract' })} value={role.contractType || t('rebuild.briefing.contract_unknown', { defaultValue: 'Not specified' })} />
-              <DetailMetaPill label={t('rebuild.briefing.compensation', { defaultValue: 'Compensation' })} value={compensation} />
-            </div>
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
-              <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
-                <div className="text-sm font-semibold text-slate-900">{t('rebuild.briefing.signal_desc', { defaultValue: 'What the first signal looks like' })}</div>
-                <p className="mt-3 text-sm leading-7 text-slate-600">{role.firstStep}</p>
-              </div>
-              <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
-                <div className="text-sm font-semibold text-slate-900">{t('rebuild.briefing.blueprint', { defaultValue: 'Journey blueprint' })}</div>
-                <p className="mt-3 text-sm leading-7 text-slate-600">{blueprint.overview}</p>
-              </div>
+              <DetailMetaPill label={t('rebuild.briefing.contract', { defaultValue: 'Typ uvazku' })} value={role.contractType || t('rebuild.briefing.contract_unknown', { defaultValue: 'Neuvedeno' })} />
+              <DetailMetaPill label={t('rebuild.detail.source', { defaultValue: 'Zdroj' })} value={t('rebuild.detail.native', { defaultValue: 'Jobshaman native' })} />
             </div>
             {role.benefits.length > 0 ? (
               <div className="mt-6">
-                <div className="text-sm font-semibold text-slate-900">{t('rebuild.briefing.benefits', { defaultValue: 'Benefits' })}</div>
+                <div className="text-sm font-semibold text-slate-900">{t('rebuild.briefing.benefits', { defaultValue: 'Benefity a podminky' })}</div>
                 <div className="mt-3 flex flex-wrap gap-2">{role.benefits.map((benefit) => <span key={benefit} className="rounded-full bg-[#12AFCB]/8 px-3 py-1.5 text-xs font-medium text-[#0f95ac]">{benefit}</span>)}</div>
               </div>
             ) : null}
             <div className="mt-6">
-              <div className="text-sm font-semibold text-slate-900">{t('rebuild.briefing.skills', { defaultValue: 'Key skills' })}</div>
+              <div className="text-sm font-semibold text-slate-900">{t('rebuild.briefing.skills', { defaultValue: 'Klicove dovednosti' })}</div>
               <div className="mt-3 flex flex-wrap gap-2">{role.skills.map((skill) => <span key={skill} className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700">{skill}</span>)}</div>
             </div>
-            <div className="mt-6 space-y-4">
-              <DetailSection title={t('rebuild.briefing.why_this_role', { defaultValue: 'Why this role matters' })} body={role.roleSummary || role.summary} />
-              <DetailSection title={t('rebuild.briefing.hard_truth', { defaultValue: 'Hard truth of the role' })} body={role.companyTruthHard || ''} />
-              <DetailSection title={t('rebuild.briefing.failure_truth', { defaultValue: 'What failure looks like' })} body={role.companyTruthFail || ''} />
-            </div>
+            {truthSections.length > 0 ? (
+              <div className="mt-6 space-y-4">
+                {truthSections.map((section) => <DetailSection key={section.title} title={section.title} body={section.body} />)}
+              </div>
+            ) : null}
             {company.gallery.length > 0 ? (
               <div className="mt-6">
                 <div className="text-sm font-semibold text-slate-900">{t('rebuild.briefing.company_gallery', { defaultValue: 'Company gallery' })}</div>

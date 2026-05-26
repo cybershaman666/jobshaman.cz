@@ -6,6 +6,7 @@ Includes geocoding support for PostGIS spatial queries
 
 import requests
 import random
+import atexit
 from bs4 import BeautifulSoup
 import json
 import time
@@ -19,6 +20,7 @@ from urllib.parse import urljoin, urlparse, urlunparse, parse_qsl, urlencode
 import re
 from datetime import datetime
 import sys
+from threading import Lock
 from typing import Optional, Dict, List, Tuple, Callable, Any
 try:
     from langdetect import detect, detect_langs, LangDetectException
@@ -67,12 +69,14 @@ except ImportError:
 try:
     from app.services.jobs_postgres_store import (
         backfill_jobs_from_documents,
+        get_job_by_id,
         get_job_by_url,
         jobs_postgres_enabled,
         jobs_postgres_main_write_enabled,
     )
 except Exception:
     backfill_jobs_from_documents = None  # type: ignore
+    get_job_by_id = None  # type: ignore
     get_job_by_url = None  # type: ignore
     jobs_postgres_enabled = None  # type: ignore
     jobs_postgres_main_write_enabled = None  # type: ignore
@@ -157,6 +161,9 @@ SCRAPER_SUPABASE_FALLBACK_ENABLED = os.getenv("SCRAPER_SUPABASE_FALLBACK_ENABLED
     "true",
     "yes",
 }
+SCRAPER_POSTGRES_BATCH_SIZE = max(1, int(os.getenv("SCRAPER_POSTGRES_BATCH_SIZE", "25") or "25"))
+_JOBS_POSTGRES_BUFFER: List[Dict[str, Any]] = []
+_JOBS_POSTGRES_BUFFER_LOCK = Lock()
 
 # Debug output
 if SUPABASE_URL:
@@ -243,6 +250,49 @@ def guess_currency(country_code: str) -> str:
     if code == 'pl':
         return 'PLN'
     return 'Kč'
+
+
+def flush_jobs_postgres_buffer(force: bool = False) -> bool:
+    if not callable(backfill_jobs_from_documents):
+        return False
+    try:
+        enabled = (
+            bool(jobs_postgres_main_write_enabled())
+            if callable(jobs_postgres_main_write_enabled)
+            else (bool(jobs_postgres_enabled()) if callable(jobs_postgres_enabled) else False)
+        )
+    except Exception:
+        enabled = False
+    if not enabled:
+        return False
+
+    with _JOBS_POSTGRES_BUFFER_LOCK:
+        if not _JOBS_POSTGRES_BUFFER:
+            return True
+        if not force and len(_JOBS_POSTGRES_BUFFER) < SCRAPER_POSTGRES_BATCH_SIZE:
+            return True
+        payload = [dict(item) for item in _JOBS_POSTGRES_BUFFER]
+
+    try:
+        result = backfill_jobs_from_documents(payload)
+        imported_count = int(result.get("imported_count") or 0)
+        matched_count = int(result.get("matched_count") or 0)
+        upserted_count = int(result.get("upserted_count") or 0)
+        if imported_count > 0 or matched_count > 0 or upserted_count > 0:
+            with _JOBS_POSTGRES_BUFFER_LOCK:
+                del _JOBS_POSTGRES_BUFFER[:len(payload)]
+            print(
+                f"    --> Batch Azure Postgres flush ok: imported={imported_count} "
+                f"upserted={upserted_count} matched={matched_count}"
+            )
+            return True
+    except Exception as exc:
+        print(f"    ⚠️ Batch Azure Postgres flush failed: {exc}")
+        return False
+    return False
+
+
+atexit.register(lambda: flush_jobs_postgres_buffer(force=True))
 
 
 def normalize_country_code(country_code: Any) -> Optional[str]:
@@ -836,8 +886,11 @@ def is_low_quality(job_data: Dict) -> bool:
     Checks if a job is low quality based on description length and blacklisted phrases.
     """
     description = job_data.get("description", "")
+    allow_short_description = bool(job_data.get("allow_short_description"))
     if not description:
         return True
+    if allow_short_description:
+        return False
     
     # 1. Length check (tune by country/source; some PL/AT sources are shorter in practice)
     country = (job_data.get("country_code") or "").lower()
@@ -851,6 +904,8 @@ def is_low_quality(job_data: Dict) -> bool:
         min_len = 450
 
     if len(description) < min_len:
+        if allow_short_description and len(description) >= 80:
+            return False
         return True
         
     # 2. Blacklisted phrases (Extendable list)
@@ -881,29 +936,80 @@ def detect_work_type(title: str, description: str, location: str) -> str:
     Returns:
         Work type string
     """
-    combined = f"{title} {description} {location}".lower()
-    
-    # Remote keywords (multi-language)
-    remote_keywords = [
-        'remote', 'vzdálená', 'vzdáleně', 'z domova', 'home office',
-        'práce z domu', 'práca z domu', 'zdalna', 'fernarbeit'
-    ]
-    
-    # Hybrid keywords
-    hybrid_keywords = [
-        'hybrid', 'hybridní', 'částečně z domova', 'částečně remote',
-        'flexible', 'flexibilní'
-    ]
-    
-    if any(kw in combined for kw in remote_keywords):
-        # Check if it's actually hybrid
-        if any(kw in combined for kw in hybrid_keywords):
-            return 'Hybrid'
-        return 'Remote'
-    elif any(kw in combined for kw in hybrid_keywords):
-        return 'Hybrid'
-    
-    return 'On-site'
+    return normalize_work_model(f"{title} {description} {location}", fallback="onsite").title()
+
+
+def build_job_id_from_url(url: str, payload: Optional[Dict[str, Any]] = None) -> str:
+    normalized_url = str(url or "").strip()
+    seed = normalized_url or json.dumps(payload or {}, sort_keys=True, default=str)
+    return str(uuid.uuid5(uuid.NAMESPACE_URL, seed))
+
+
+def normalize_work_model(value: Any, fallback: Optional[str] = None) -> Optional[str]:
+    text = norm_text(str(value or "")).lower()
+    if not text:
+        return fallback
+
+    remote_tokens = (
+        "remote", "remote-first", "fully remote", "work from home", "home office", "homeoffice",
+        "distributed", "anywhere", "telecommut", "na dálku", "na dalku", "vzdálen",
+        "práce z domu", "prace z domu", "práce z domova", "praca z domova", "práca z domu",
+        "zdalna", "zdalnie", "fernarbeit", "telearbeit", "distans", "distansarbete",
+        "hybridarbejde", "fjärr", "fjar", "hjemmekontor", "etätyö", "etatyo", "remote possible",
+    )
+    hybrid_tokens = (
+        "hybrid", "hybridní", "hybridni", "hybridarbeit", "hybrid work", "hybridarbejde",
+        "hybridityö", "hybridityo", "hybridarbete", "hybryd", "kombinovan", "kombinovany",
+        "částečně", "castecne", "čiasto", "ciasto", "občas", "obcas", "partly remote",
+        "partially remote", "remote + onsite", "onsite + remote", "office and remote",
+        "možnost občasné práce z domova", "moznost obcasne prace z domova",
+    )
+    onsite_tokens = (
+        "on-site", "onsite", "on site", "vor ort", "stacjonarn", "presential", "office-first",
+        "in office", "na pracovišti", "na pracovisti", "v kanceláři", "v kancelari",
+    )
+
+    if any(token in text for token in hybrid_tokens):
+        return "hybrid"
+    if any(token in text for token in remote_tokens):
+        if any(token in text for token in (
+            "occasion", "občas", "obcas", "část", "cast", "hybrid",
+            "kancelář", "kancelar", "office", "tydnu", "týdnu", "days per week",
+        )):
+            return "hybrid"
+        return "remote"
+    if any(token in text for token in onsite_tokens):
+        return "onsite"
+    return fallback
+
+
+def infer_work_model(title: str, description: str, location: str, explicit_value: Any = None) -> str:
+    explicit = normalize_work_model(explicit_value)
+    if explicit:
+        return explicit
+    inferred = normalize_work_model(f"{title} {description} {location}", fallback="onsite")
+    return inferred or "onsite"
+
+
+def _azure_job_exists(url: str) -> bool:
+    normalized_url = str(url or "").strip()
+    if not normalized_url:
+        return False
+    job_id = build_job_id_from_url(normalized_url)
+    if callable(get_job_by_id):
+        try:
+            existing = get_job_by_id(job_id)
+            if isinstance(existing, dict) and existing:
+                return True
+        except Exception as exc:
+            print(f"⚠️ Azure duplicate lookup by id failed: {exc}")
+    if callable(get_job_by_url):
+        try:
+            existing = get_job_by_url(normalized_url)
+            return isinstance(existing, dict) and bool(existing)
+        except Exception as exc:
+            print(f"⚠️ Azure duplicate lookup by url failed: {exc}")
+    return False
 
 
 def save_job_to_supabase(supabase: Optional[Client], job_data: Dict, seen_urls: Optional[set] = None) -> bool:
@@ -959,38 +1065,28 @@ def save_job_to_supabase(supabase: Optional[Client], job_data: Dict, seen_urls: 
             return False
 
         normalized_url = str(payload.get("url") or "").strip()
-        existing_row: Optional[Dict] = None
-        if normalized_url and callable(get_job_by_url):
-            try:
-                existing = get_job_by_url(normalized_url)
-                if isinstance(existing, dict) and existing:
-                    existing_row = dict(existing)
-            except Exception as exc:
-                print(f"    ⚠️ Jobs Postgres duplicate lookup failed: {exc}")
-
-        doc = dict(existing_row or {})
+        doc = {}
         doc.update(payload)
-        if existing_row and existing_row.get("id") and not payload.get("id"):
-            doc["id"] = existing_row["id"]
         if not doc.get("id"):
-            doc["id"] = str(uuid.uuid5(uuid.NAMESPACE_URL, normalized_url or json.dumps(payload, sort_keys=True, default=str)))
+            doc["id"] = build_job_id_from_url(normalized_url, payload)
         doc["source_kind"] = "external"
         doc.setdefault("status", "active")
         doc.setdefault("is_active", True)
         doc.setdefault("scraped_at", now_iso())
         doc.setdefault("created_at", doc.get("scraped_at"))
         doc["updated_at"] = now_iso()
-
-        try:
-            result = backfill_jobs_from_documents([doc])
-            imported_count = int(result.get("imported_count") or 0)
-            matched_count = int(result.get("matched_count") or 0)
-            if imported_count > 0 or matched_count > 0:
-                print(f"    --> Data pro '{doc.get('title')}' uložena přímo do Jobs Postgres.")
-                return True
-        except Exception as exc:
-            print(f"    ⚠️ Direct Jobs Postgres write failed: {exc}")
-        return False
+        doc["work_model"] = infer_work_model(
+            str(doc.get("title") or ""),
+            str(doc.get("description") or ""),
+            str(doc.get("location") or ""),
+            doc.get("work_model") or doc.get("work_type"),
+        )
+        with _JOBS_POSTGRES_BUFFER_LOCK:
+            _JOBS_POSTGRES_BUFFER.append(doc)
+            buffer_size = len(_JOBS_POSTGRES_BUFFER)
+        if buffer_size >= SCRAPER_POSTGRES_BATCH_SIZE:
+            return flush_jobs_postgres_buffer(force=True)
+        return True
 
     url = job_data["url"]
     
@@ -1151,8 +1247,15 @@ def save_job_to_supabase(supabase: Optional[Client], job_data: Dict, seen_urls: 
             print(f"       ⚠️ Geolokace selhala, uložím bez souřadnic")
             job_data["lat"] = None
             job_data["lng"] = None
-    
+
             job_data["lng"] = None
+
+    job_data["work_model"] = infer_work_model(
+        str(job_data.get("title") or ""),
+        str(job_data.get("description") or ""),
+        str(job_data.get("location") or ""),
+        job_data.get("work_model") or job_data.get("work_type"),
+    )
     
     # TRUNCATE DESCRIPTION if too long (Supabase / Frontend performance protection)
     if "description" in job_data and job_data["description"] and len(job_data["description"]) > 9500:
@@ -1169,15 +1272,13 @@ def save_job_to_supabase(supabase: Optional[Client], job_data: Dict, seen_urls: 
             postgres_enabled = False
         if postgres_enabled and not jobs_postgres_write_available():
             print(
-                "    ⚠️ Jobs Postgres je nakonfigurovaný, ale zapis do main tabulky není aktivní. "
-                "Nastav `JOBS_POSTGRES_WRITE_MAIN=true`; Supabase fallback je vypnutý."
+                "    ⚠️ Azure Postgres nakonfigurován, ale zápis do main není aktivní. "
+                "Nastav: JOBS_POSTGRES_WRITE_MAIN=true"
             )
 
     if not SCRAPER_SUPABASE_FALLBACK_ENABLED:
         print(
-            "    ❌ Jobs Postgres zápis selhal nebo není aktivní; Supabase fallback je vypnutý. "
-            "Zkontroluj `JOBS_POSTGRES_URL`/`NORTHFLANK_POSTGRES_URL`, "
-            "`JOBS_POSTGRES_ENABLED=true` a `JOBS_POSTGRES_WRITE_MAIN=true`."
+            "    ❌ Zápis do Azure Postgres selhal. Zkontroluj: JOBS_POSTGRES_URL, JOBS_POSTGRES_ENABLED=true, JOBS_POSTGRES_WRITE_MAIN=true"
         )
         return False
 
@@ -1237,10 +1338,7 @@ class BaseScraper:
         self.supabase = supabase or get_supabase_client()
         # In-memory cache of seen URLs to avoid redundant DB lookups within one run
         self._seen_urls: set = set()
-        
-        if not self.supabase:
-            print(f"⚠️ VAROVÁNÍ: Supabase není dostupné pro {country_code} scraper")
-    
+
     def is_duplicate(self, url: str) -> bool:
         """
         Check if job URL already exists in database.
@@ -1250,28 +1348,27 @@ class BaseScraper:
         if url in self._seen_urls:
             print(f"    --> (Cache) Nabídka již existuje: {url}")
             return True
-        if not self.supabase:
+
+        # For Azure Postgres main writes we use deterministic IDs + upsert, so a DB
+        # pre-check is unnecessary and only creates extra connection pressure.
+        if jobs_postgres_write_available():
+            self._seen_urls.add(f"__new__{url}")
             return False
-            
+
         for attempt in range(2):
             try:
-                res = self.supabase.table("jobs").select("id").eq("url", url).execute()
-                if res.data and len(res.data) > 0:
+                if _azure_job_exists(url):
                     self._seen_urls.add(url)  # cache positive result
-                    print(f"    --> (DB) Nabídka již existuje: {url}")
+                    print(f"    --> (Azure DB) Nabídka již existuje: {url}")
                     return True
-                # Cache negative result too so save_job_to_supabase can skip its own check
                 self._seen_urls.add(f"__new__{url}")
                 return False
             except Exception as e:
                 if attempt == 0 and _is_transient_db_error(e):
-                    print(f"⚠️ Chyba při kontrole duplicity (pokus 1/2): {e}")
-                    refreshed = _refresh_supabase_client()
-                    if refreshed:
-                        self.supabase = refreshed
+                    print(f"⚠️ Chyba při Azure duplicate kontrole (pokus 1/2): {e}")
                     time.sleep(0.4)
                     continue
-                print(f"⚠️ Chyba při kontrole duplicity: {e}")
+                print(f"⚠️ Chyba při Azure duplicate kontrole: {e}")
                 return False
         return False
 

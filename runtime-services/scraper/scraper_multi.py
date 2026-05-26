@@ -1005,8 +1005,18 @@ def scrape_jobs_cz(soup):
 
         # Skip external listings with missing/short content
         if is_external_listing(detail_soup, {"jobs.cz"}) and (not description or len(description) < 400):
-            print(f"    ⚠️ Externí inzerát bez popisu, přeskakuji: {title}")
-            continue
+            print(f"    ⚠️ Externí inzerát bez plného popisu, ukládám se zkráceným fallbackem: {title}")
+            fallback_parts = [
+                f"Externí inzerát převzatý z Jobs.cz: {title}.",
+                f"Společnost: {company}." if company else "",
+                f"Lokalita: {location}." if location else "",
+                f"Typ smlouvy: {contract_type}." if contract_type and contract_type != "Nespecifikováno" else "",
+                f"Pracovní model: {work_model}." if work_model else "",
+                "Zdrojový detail neposkytl plný text popisu při scrapingu, nabídku ale zachováváme pro kompletní coverage zdrojů.",
+            ]
+            description = " ".join(part for part in fallback_parts if part)
+            job_data["description"] = description
+            job_data["allow_short_description"] = True
 
         # Quality Check
         if is_low_quality(job_data):
@@ -1143,8 +1153,18 @@ def scrape_prace_cz(soup):
 
         # Skip external listings with missing/short content
         if is_external_listing(detail_soup, {"prace.cz"}) and (not description or len(description) < 400):
-            print(f"    ⚠️ Externí inzerát bez popisu, přeskakuji: {title}")
-            continue
+            print(f"    ⚠️ Externí inzerát bez plného popisu, ukládám se zkráceným fallbackem: {title}")
+            fallback_parts = [
+                f"Externí inzerát převzatý z Prace.cz: {title}.",
+                f"Společnost: {company}." if company else "",
+                f"Lokalita: {location}." if location else "",
+                f"Typ smlouvy: {contract_type}." if contract_type and contract_type != "Nespecifikováno" else "",
+                f"Pracovní model: {work_model}." if work_model else "",
+                "Zdrojový detail neposkytl plný text popisu při scrapingu, nabídku ale zachováváme pro kompletní coverage zdrojů.",
+            ]
+            description = " ".join(part for part in fallback_parts if part)
+            job_data["description"] = description
+            job_data["allow_short_description"] = True
 
         if is_low_quality(job_data):
             print(f"    ⚠️ Nízká kvalita, přeskakuji: {title}")

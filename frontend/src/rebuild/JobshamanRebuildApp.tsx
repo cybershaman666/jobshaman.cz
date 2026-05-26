@@ -67,8 +67,8 @@ const CandidateJcfpmPage = React.lazy(() => import('./candidate/CandidateShell')
 const CandidateRoleBriefingPage = React.lazy(() => import('./candidate/CandidateShell').then(m => ({ default: m.CandidateRoleBriefingPage })));
 const ImportedPrepPage = React.lazy(() => import('./candidate/CandidateShell').then(m => ({ default: m.ImportedPrepPage })));
 const MarketplaceV2 = React.lazy(() => import('./candidate/MarketplaceV2').then(m => ({ default: m.MarketplaceV2 })));
-const CandidateInsightsPage = React.lazy(() => import('./candidate/CandidateExperience').then(m => ({ default: m.CandidateInsightsPage })));
-const CandidateJourneyPage = React.lazy(() => import('./candidate/CandidateExperience').then(m => ({ default: m.CandidateJourneyPage })));
+const CandidateInsightsPage = React.lazy(() => import('./candidate/CandidateInsightsPage').then(m => ({ default: m.CandidateInsightsPage })));
+const CandidateHandshakeLayout = React.lazy(() => import('./candidate/handshake/CandidateHandshakeLayout').then(m => ({ default: m.CandidateHandshakeLayout })));
 const CandidateApplicationsPage = React.lazy(() => import('./candidate/CandidateApplicationsPage').then(m => ({ default: m.CandidateApplicationsPage })));
 const CandidateLearningPage = React.lazy(() => import('./candidate/CandidateLearningPage').then(m => ({ default: m.CandidateLearningPage })));
 import { deriveDashboardMetrics, deriveRecruiterCalendar, deriveRolePipelineStats, deriveTalentPool } from './derivations';
@@ -76,6 +76,7 @@ const RecruiterActivationPage = React.lazy(() => import('./recruiter/RecruiterSh
 const RecruiterShell = React.lazy(() => import('./recruiter/RecruiterShell').then(m => ({ default: m.RecruiterShell })));
 import type { AuthIntent } from './authTypes';
 import { navigateTo, routeFromPath, usePathname } from './routing';
+import { resolveCompany } from './shellDomain';
 import {
   buildDefaultMarketplaceFilters,
   candidatePreferencesToUserProfileUpdates,
@@ -1508,6 +1509,19 @@ const JobshamanRebuildApp: React.FC = () => {
     }
   }, [companyProfile?.id, setCompanyLibrary, setCompanyProfile, userProfile.id]);
 
+  const handleRefreshRecruiterCompany = React.useCallback(async () => {
+    if (!userProfile.id) return;
+    const refreshed = await getRecruiterCompany(userProfile.id);
+    setCompanyProfile(refreshed);
+    if (refreshed) {
+      setCompanyLibrary((current) => {
+        const mapped = mapCompanyProfileToCompany(refreshed);
+        const exists = current.some((item) => item.id === mapped.id);
+        return exists ? current.map((item) => (item.id === mapped.id ? mapped : item)) : [mapped, ...current];
+      });
+    }
+  }, [setCompanyLibrary, setCompanyProfile, userProfile.id]);
+
   const handleCreateRecruiterChallenge = React.useCallback(async (input: {
     title: string;
     roleFamily: Role['roleFamily'];
@@ -1799,19 +1813,39 @@ const JobshamanRebuildApp: React.FC = () => {
         ) : null}
 
         {route.kind === 'candidate-journey' && activeRole && activeBlueprint && activeSession ? (
-          renderCandidateWorkspace(<CandidateJourneyPage
+          renderCandidateWorkspace(<CandidateHandshakeLayout
+            handshakeId={activeRole.id}
             role={activeRole}
-            companyId={activeRole.companyId}
+            company={resolveCompany(activeRole, companyLibrary) || companyLibrary[0]}
             blueprint={activeBlueprint}
-            session={route.stepId ? { ...activeSession, currentStepId: route.stepId } : activeSession}
-            setSession={(updater) => setSessionForRole(activeRole.id, updater)}
+            initialSession={route.stepId ? { ...activeSession, currentStepId: route.stepId } : (activeSession as any)}
             preferences={preferences}
             userProfile={userProfile}
             activeCvDocument={activeCvDocument}
-            companyLibrary={companyLibrary}
+            onNavigateBack={() => navigate('/candidate/marketplace')}
+            onNavigateToStep={(stepId) => navigate(`/candidate/handshake/${activeRole.id}/${stepId}`)}
+            onFinalizeHandshake={async (session, score) => {
+              await handleFinalizeJourney({
+                role: activeRole,
+                session,
+                candidateName: userProfile.name || '',
+                scheduledSlot: String(session.answers?.schedule_slot || ''),
+                candidateScore: score,
+                reviewerSummary: String(session.answers?.final_note || ''),
+                submissionSnapshot: (session.submissionSnapshot || {
+                  candidateJobTitle: userProfile.jobTitle || '',
+                  keySkills: userProfile.skills?.slice(0, 4) || [],
+                  taxSummary: '',
+                  commuteSummary: '',
+                  realMonthlyValue: 0,
+                  takeHomeMonthly: 0,
+                  seniorityScore: 0,
+                  workplaceScore: 0,
+                  travelScore: 0,
+                }) as any
+              });
+            }}
             finalizeBusy={journeySubmitting}
-            onFinalizeJourney={handleFinalizeJourney}
-            navigate={navigate}
           />)
         ) : null}
 
@@ -1945,6 +1979,7 @@ const JobshamanRebuildApp: React.FC = () => {
               recruiterCompany={companyProfile}
               recruiterCompanyHydrated={recruiterCompany}
               onSaveRecruiterBrand={handleSaveRecruiterBrand}
+              onRefreshCompany={handleRefreshRecruiterCompany}
               onCreateChallenge={handleCreateRecruiterChallenge}
               onAiDraftChallenge={handleAiDraftRecruiterChallenge}
               onAiAssistChallenge={handleAiAssistRecruiterChallenge}

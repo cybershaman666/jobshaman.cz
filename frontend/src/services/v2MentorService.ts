@@ -40,6 +40,7 @@ export const sendMentorChatMessage = async (
     message,
     recent_messages: recentMessages.slice(-8),
   });
+  console.log('✅ Mentor Chat Response:', response);
   return response.data;
 };
 

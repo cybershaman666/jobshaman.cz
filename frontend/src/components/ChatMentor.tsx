@@ -85,26 +85,43 @@ export const ChatMentor: React.FC<ChatMentorProps> = ({
   const submitMessage = React.useCallback(async (rawMessage: string) => {
     const message = rawMessage.trim();
     if (!message || busy) return;
+    console.log('🚀 Submitting message:', message);
     const nextMessages: { role: 'assistant' | 'user'; content: string; navigation_suggestion?: string; navigation_label?: string }[] = [...messages, { role: 'user' as const, content: message }];
     setMessages(nextMessages);
     setDraft('');
     setError('');
     setBusy(true);
     try {
+      console.log('⏳ Calling sendMessageFn...');
       const reply = await sendMessageFn(
         message,
         nextMessages.map(({ role, content }) => ({ role, content }))
       );
-      setMessages((current) => [
-        ...current,
-        {
-          role: 'assistant' as const,
-          content: reply.reply,
-          navigation_suggestion: reply.navigation_suggestion,
-          navigation_label: reply.navigation_label,
-        },
-      ]);
+      console.log('✅ Raw reply object:', reply);
+      console.log('✅ reply.reply:', reply?.reply);
+      console.log('✅ reply keys:', Object.keys(reply || {}));
+      console.log('✅ typeof reply.reply:', typeof reply?.reply);
+      
+      const replyContent = reply?.reply || '';
+      if (!replyContent) {
+        console.warn('⚠️ WARNING: reply.reply is empty!', { fullReply: reply });
+      }
+      
+      setMessages((current) => {
+        const newMessages = [
+          ...current,
+          {
+            role: 'assistant' as const,
+            content: replyContent,
+            navigation_suggestion: reply?.navigation_suggestion,
+            navigation_label: reply?.navigation_label,
+          },
+        ];
+        console.log('📝 Messages state updated with:', { assistantMessage: replyContent });
+        return newMessages;
+      });
     } catch (chatError: any) {
+      console.error('❌ Chat Error:', chatError);
       setError(
         chatError instanceof Error
           ? chatError.message
@@ -117,16 +134,20 @@ export const ChatMentor: React.FC<ChatMentorProps> = ({
 
   // Format obsah s odrážkami atd.
   const formatText = (text: string) => {
-    return text.split('\n').map((paragraph, index) => {
-      const trimmed = paragraph.trim();
-      if (!trimmed) return <div key={index} className="h-2" />;
+    const trimmed = (text || "").trim();
+    if (!trimmed) {
+      return <div className="text-slate-400 italic text-xs">[Prázdná odpověď - problém v backendu]</div>;
+    }
+    return trimmed.split('\n').map((paragraph, index) => {
+      const para = paragraph.trim();
+      if (!para) return <div key={index} className="h-2" />;
       // seznam
-      if (trimmed.startsWith('-') || trimmed.startsWith('*')) {
+      if (para.startsWith('-') || para.startsWith('*')) {
         return (
-          <li key={index} className="ml-4 list-disc text-sm leading-relaxed text-slate-700 dark:text-slate-200 my-1">{trimmed.substring(1).trim()}</li>
+          <li key={index} className="ml-4 list-disc text-sm leading-relaxed text-slate-700 dark:text-slate-200 my-1">{para.substring(1).trim()}</li>
         );
       }
-      return <div key={index} className="mb-2">{trimmed}</div>;
+      return <div key={index} className="mb-2">{para}</div>;
     });
   };
 
@@ -135,22 +156,34 @@ export const ChatMentor: React.FC<ChatMentorProps> = ({
       className="flex flex-col w-full h-full min-h-0 min-w-0"
       style={{ background: "none" }}
     >
-      {/* Branding a hlavička */}
-      <div className="flex items-center gap-4 border-b border-slate-100 dark:border-slate-800 px-0 md:px-3 pb-2 mb-2">
+      {/* Header - Velký avatar jen na začátku, pak se komprimuje */}
+      <div className={`border-b border-slate-100 dark:border-slate-800 shrink-0 transition-all duration-300 ${
+        messages.length <= 1 
+          ? 'flex items-center gap-4 px-0 md:px-3 pb-2 mb-2'
+          : 'flex items-center gap-1 px-2 md:px-3 py-1'
+      }`}>
         <img
-          src="/shami-tip.png"
+          src={messages.length <= 1 ? "/shami-tip.png" : "/shami.png"}
           alt={t('chatMentor.avatarAlt', 'Shami avatar')}
-          className="max-w-[110px] w-auto h-auto rounded-full shrink-0"
+          className={`rounded-full shrink-0 transition-all duration-300 ${
+            messages.length <= 1 
+              ? 'max-w-[110px] w-auto h-auto' 
+              : 'w-8 h-8'
+          }`}
           style={{ background: "transparent", border: "none", boxShadow: "none" }}
         />
-        <div className="flex flex-col">
-          <span className="font-black tracking-wider uppercase text-cyan-500 text-2xl">{t('chatMentor.shamiName', 'SHAMI')}</span>
-          <span className="text-[11px] text-slate-400">{t('chatMentor.brandHint', 'Powered by JobShaman AI')}</span>
-        </div>
-        <div className="flex-1 flex flex-col ml-3 min-w-0">
-          <span className="text-lg md:text-xl font-semibold text-slate-800 dark:text-white leading-snug truncate">{t('chatMentor.welcomeTitle', 'Shami AI – Tvůj kariérní průvodce')}</span>
-          <span className="text-xs text-slate-500 dark:text-slate-300 mt-0.5 leading-snug truncate">{t('chatMentor.slogan', 'Shami vidí souvislosti v profilu, najde další krok – bez HR omáčky.')}</span>
-        </div>
+        {messages.length <= 1 && (
+          <>
+            <div className="flex flex-col">
+              <span className="font-black tracking-wider uppercase text-cyan-500 text-2xl">{t('chatMentor.shamiName', 'SHAMI')}</span>
+              <span className="text-[11px] text-slate-400">{t('chatMentor.brandHint', 'Powered by JobShaman AI')}</span>
+            </div>
+            <div className="flex-1 flex flex-col ml-3 min-w-0">
+              <span className="text-lg md:text-xl font-semibold text-slate-800 dark:text-white leading-snug truncate">{t('chatMentor.welcomeTitle', 'Shami AI – Tvůj kariérní průvodce')}</span>
+              <span className="text-xs text-slate-500 dark:text-slate-300 mt-0.5 leading-snug truncate">{t('chatMentor.slogan', 'Shami vidí souvislosti v profilu, najde další krok – bez HR omáčky.')}</span>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Chat konverzace */}

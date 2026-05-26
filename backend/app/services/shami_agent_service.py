@@ -237,4 +237,5 @@ Output format (return only valid JSON):
         "profile_update_request": profile_update_request,
         "model": result.model_name,
         "latency_ms": result.latency_ms,
+        "deployment_tag": "2026-05-21-PROD-DEPLOY",
     }

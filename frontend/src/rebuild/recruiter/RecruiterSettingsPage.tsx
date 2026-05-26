@@ -58,15 +58,15 @@ export const RecruiterSettingsPage: React.FC<RecruiterSettingsPageProps> = ({
   
   // General Info State
   const [name, setName] = useState(company.name || '');
-  const [website, setWebsite] = useState(company.website_url || (company as any).website || '');
+  const [website, setWebsite] = useState(company.website_url || company.website || (company as any).websiteUrl || '');
   const [industry, setIndustry] = useState(company.industry || '');
   const [narrative, setNarrative] = useState(company.narrative || '');
   
   // Brand State
-  const [brandColor, setBrandColor] = useState(company.brand_color || '#2563eb');
-  const [accentColor, setAccentColor] = useState(company.accent_color || '#0ea5e9');
+  const [brandColor, setBrandColor] = useState(company.brand_color || (company as any).brandColor || '#2563eb');
+  const [accentColor, setAccentColor] = useState(company.accent_color || (company as any).accentColor || '#0ea5e9');
   const [logoUrl, setLogoUrl] = useState(company.logo_url || (company as any).logo || '');
-  const [coverUrl, setCoverUrl] = useState(company.cover_url || (company as any).coverImage || '');
+  const [coverUrl, setCoverUrl] = useState(company.cover_url || company.marketplace_media?.cover_url || (company as any).coverImage || '');
   
   // Team State
   const [members, setMembers] = useState<any[]>([]);
@@ -93,6 +93,30 @@ export const RecruiterSettingsPage: React.FC<RecruiterSettingsPageProps> = ({
       loadAssets();
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    setName(company.name || '');
+    setWebsite(company.website_url || company.website || (company as any).websiteUrl || '');
+    setIndustry(company.industry || (company as any).domain || '');
+    setNarrative(company.narrative || company.description || '');
+    setBrandColor(company.brand_color || (company as any).brandColor || '#2563eb');
+    setAccentColor(company.accent_color || (company as any).accentColor || '#0ea5e9');
+    setLogoUrl(company.logo_url || (company as any).logo || '');
+    setCoverUrl(company.cover_url || company.marketplace_media?.cover_url || (company as any).coverImage || '');
+  }, [
+    company.id,
+    company.name,
+    company.website,
+    company.website_url,
+    company.industry,
+    company.narrative,
+    company.description,
+    company.brand_color,
+    company.accent_color,
+    company.logo_url,
+    company.cover_url,
+    company.marketplace_media?.cover_url,
+  ]);
 
   const loadAssets = async () => {
     setIsLoadingAssets(true);
@@ -153,8 +177,10 @@ export const RecruiterSettingsPage: React.FC<RecruiterSettingsPageProps> = ({
     try {
       await updateCompanyProfile(company.id || '', {
         name,
+        website: website,
         website_url: website,
         industry,
+        description: narrative,
         narrative
       });
       await onRefreshCompany();
@@ -228,7 +254,11 @@ export const RecruiterSettingsPage: React.FC<RecruiterSettingsPageProps> = ({
         brand_color: brandColor,
         accent_color: accentColor,
         logo_url: logoUrl,
-        cover_url: coverUrl
+        cover_url: coverUrl,
+        marketplace_media: {
+          ...(company.marketplace_media || {}),
+          cover_url: coverUrl,
+        },
       });
       await onRefreshCompany();
     } catch (err) {

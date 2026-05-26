@@ -30,7 +30,7 @@ def _import_first(module_names: list[str]) -> Any:
     raise ImportError("No module names provided")
 
 
-_scraper_base = _import_first(["scraper.scraper_base", "backend.scraper.scraper_base"])
+_scraper_base = _import_first(["scraper_base", "scraper.scraper_base", "backend.scraper.scraper_base"])
 detect_work_type = _scraper_base.detect_work_type
 extract_salary = _scraper_base.extract_salary
 get_supabase_client = _scraper_base.get_supabase_client

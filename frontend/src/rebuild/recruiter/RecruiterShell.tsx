@@ -334,6 +334,7 @@ export const RecruiterShell: React.FC<{
   recruiterCompany: CompanyProfile | null;
   recruiterCompanyHydrated: Company | null;
   onSaveRecruiterBrand: (company: Company) => Promise<void>;
+  onRefreshCompany: () => Promise<void>;
   onCreateChallenge: (input: {
     title: string;
     roleFamily: Role['roleFamily'];
@@ -392,6 +393,7 @@ export const RecruiterShell: React.FC<{
   recruiterCompany,
   recruiterCompanyHydrated,
   onSaveRecruiterBrand,
+  onRefreshCompany,
   onCreateChallenge,
   onAiDraftChallenge,
   onAiAssistChallenge,
@@ -1963,16 +1965,12 @@ export const RecruiterShell: React.FC<{
             <RecruiterAssistantPage t={t} navigate={navigate} />
           ) : null}
 
-          {tab === 'settings' && recruiterCompanyHydrated ? (
+          {tab === 'settings' && recruiterCompany ? (
             <RecruiterSettingsPage 
-              company={recruiterCompanyHydrated as any}
+              company={recruiterCompany}
               userProfile={userProfile}
               t={t}
-              onRefreshCompany={async () => {
-                if (onSaveRecruiterBrand) {
-                  onSaveRecruiterBrand(recruiterCompanyHydrated as any);
-                }
-              }}
+              onRefreshCompany={onRefreshCompany}
             />
           ) : tab === 'settings' ? (
             <div className="flex h-64 items-center justify-center">

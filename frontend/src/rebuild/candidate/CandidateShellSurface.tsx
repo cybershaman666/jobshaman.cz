@@ -121,12 +121,12 @@ export const MetricPill: React.FC<{
   icon?: React.ReactNode;
   className?: string;
 }> = ({ label, value, icon, className }) => (
-  <div className={cn('rounded-lg border border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-soft-bg)] px-4 py-3', className)}>
-    <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--dashboard-text-muted)]">
+  <div className={cn('min-w-0 rounded-lg border border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-soft-bg)] px-4 py-3', className)}>
+    <div className="flex min-w-0 items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--dashboard-text-muted)]">
       {icon}
-      <span>{label}</span>
+      <span className="min-w-0 break-words">{label}</span>
     </div>
-    <div className="mt-2 text-[1.05rem] font-semibold text-[color:var(--dashboard-text-strong)]">{value}</div>
+    <div className="mt-2 text-[1.05rem] font-semibold text-[color:var(--dashboard-text-strong)] break-words">{value}</div>
   </div>
 );
 

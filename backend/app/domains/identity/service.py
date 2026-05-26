@@ -608,6 +608,9 @@ class IdentityDomainService:
                     **existing_consent,
                     **updates.get("authConsent"),
                 }
+            migration = preferences.get("v2_migration") if isinstance(preferences.get("v2_migration"), dict) else {}
+            migration["azure_profile_saved_at"] = datetime.utcnow().isoformat()
+            preferences["v2_migration"] = migration
             profile.preferences = json.dumps(preferences, ensure_ascii=False)
             profile.updated_at = datetime.utcnow()
 

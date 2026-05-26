@@ -21,6 +21,7 @@ import {
   Loader2,
   Send,
   Sparkles,
+  CalendarDays,
 } from 'lucide-react';
 
 import type { CVDocument, DialogueSummary, UserProfile } from '../../types';
@@ -31,7 +32,7 @@ import { evaluateRole } from '../intelligence';
 import { DashboardLayoutV2 } from '../ui/DashboardLayoutV2';
 import { useRebuildTheme } from '../ui/rebuildTheme';
 import { primaryButtonClass, secondaryButtonClass } from '../ui/shellStyles';
-import { CandidateShellSurface, ShellCard } from './CandidateShellSurface';
+import { CandidateShellSurface, CompactActionButton, MetricPill, ShellCard } from './CandidateShellSurface';
 import { CandidateProfileV2 } from './CandidateProfileV2';
 import { sendMentorChatMessage, type MentorChatMessage, type ShamiJobRecommendation } from '../../services/v2MentorService';
 import { getCandidateGreetingName } from './greeting';
@@ -510,7 +511,7 @@ const MissingDataPrompt: React.FC<{
 const OnboardingAlert: React.FC<{ onStart: () => void }> = ({ onStart }) => {
   const { t } = useTranslation();
   return (
-    <div className="mb-6 overflow-hidden rounded-[24px] border border-amber-200 bg-amber-50 shadow-sm transition hover:shadow-md">
+    <div className="mb-6 overflow-hidden rounded-[24px] border border-amber-200 bg-amber-50/80 backdrop-blur-md shadow-sm transition hover:shadow-md">
       <div className="flex flex-col items-center gap-4 p-5 md:flex-row md:justify-between md:p-6">
         <div className="flex items-center gap-4 text-center md:text-left">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600">
@@ -535,430 +536,6 @@ const OnboardingAlert: React.FC<{ onStart: () => void }> = ({ onStart }) => {
     </div>
   );
 };
-
-const ArchetypeHeroCard: React.FC<{
-  vm: ReturnType<typeof buildCandidateDashboardViewModel>;
-  onOpenDetail: () => void;
-  onStartJcfpm: () => void;
-}> = ({ vm, onOpenDetail, onStartJcfpm }) => {
-  const { t } = useTranslation();
-  const [activeTab, setActiveTab] = React.useState('skills');
-
-  if (!vm.isJcfpmComplete) {
-    return (
-      <ShellCard tone="default" className="xl:min-h-[514px] flex items-center justify-center">
-        <MissingDataPrompt
-          title={t('rebuild.dashboard.unlock_archetype', { defaultValue: 'Unlock your archetype' })}
-          description={t('rebuild.dashboard.unlock_archetype_desc', { defaultValue: 'Complete the JCFPM test to reveal your deep career identity and resonance score.' })}
-          actionLabel={t('rebuild.dashboard.start_test', { defaultValue: 'Start JCFPM Test' })}
-          onAction={onStartJcfpm}
-          tone="gold"
-        />
-      </ShellCard>
-    );
-  }
-
-  const copy = formatArchetypeCopy(vm.archetypeDescription, t);
-  const tabCopy: Record<string, string> = {
-    skills: copy.join(' '),
-    motivation: vm.mentorAdvice,
-    environment: t('rebuild.dashboard.top_signals', { defaultValue: 'Top signals: {{signals}}.', signals: vm.heroMetrics.slice(0, 3).map((metric) => metric.label).join(', ') }),
-    values: vm.challengeTags.length ? t('rebuild.dashboard.value_fit', { defaultValue: 'Topics that currently fit you best value-wise: {{tags}}.', tags: vm.challengeTags.join(', ') }) : vm.archetypeDescription,
-    risks: vm.blindSpots.length ? t('rebuild.dashboard.risks_warning', { defaultValue: 'Watch out for: {{risks}}.', risks: vm.blindSpots.slice(0, 2).map((spot) => spot.label).join(', ') }) : t('rebuild.dashboard.risks_refining', { defaultValue: 'Risks will be refined after completing JCFPM.' }),
-  };
-
-  return (
-    <ShellCard tone="default" className="overflow-hidden xl:min-h-[514px]">
-      <div className="grid h-full xl:grid-cols-[0.52fr_0.48fr]">
-        <div className="flex min-w-0 flex-col px-5 py-5 xl:px-8 xl:py-7">
-          <div className={sectionTitleClass}>{t('rebuild.dashboard.archetype_label', { defaultValue: 'Your archetype' })}</div>
-
-          <div className="mt-5 flex items-start gap-3">
-            <h2 className="max-w-[18ch] text-[26px] font-semibold leading-[1.15] tracking-tight text-[color:var(--accent-gold)] drop-shadow-[0_0_12px_rgba(var(--accent-gold-rgb),0.3)] xl:text-[28px]">
-              {vm.archetypeTitle}
-            </h2>
-            <Info size={16} className="mt-1 shrink-0 text-[color:var(--dashboard-text-muted)]" />
-          </div>
-
-          <div className="mt-5 max-w-[29ch] space-y-1.5 text-[14px] leading-7 text-[color:var(--dashboard-text-faint)]">
-            <p>{tabCopy[activeTab] || copy.join(' ')}</p>
-          </div>
-
-          <div className="mt-8">
-            <SurfaceButton onClick={onOpenDetail}>{t('rebuild.dashboard.view_detail', { defaultValue: 'View detail' })}</SurfaceButton>
-          </div>
-
-          <div className="mt-8 pt-6">
-            <div className={sectionTitleClass}>{t('rebuild.dashboard.resonance_label', { defaultValue: 'Resonance score' })}</div>
-            <div className="mt-5 flex items-center gap-5">
-              <ResonanceRing score={vm.resonanceScore} />
-              <p className="max-w-[28ch] text-[13px] leading-6 text-[color:var(--dashboard-text-faint)]">
-                {t('rebuild.dashboard.resonance_copy', { defaultValue: 'High alignment with an environment that allows you to grow and deliver real value.' })}
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-auto pt-6">
-            <div className="flex flex-wrap xl:flex-nowrap gap-2">
-              <TabButton label={t('rebuild.dashboard.tab_skills', { defaultValue: 'Skills' })} icon={<Zap size={13} />} active={activeTab === 'skills'} onClick={() => setActiveTab('skills')} />
-              <TabButton label={t('rebuild.dashboard.tab_motivation', { defaultValue: 'Motivation' })} icon={<Target size={13} />} active={activeTab === 'motivation'} onClick={() => setActiveTab('motivation')} />
-              <TabButton label={t('rebuild.dashboard.tab_environment', { defaultValue: 'Environment' })} icon={<Network size={13} />} active={activeTab === 'environment'} onClick={() => setActiveTab('environment')} />
-              <TabButton label={t('rebuild.dashboard.tab_values', { defaultValue: 'Values' })} icon={<Award size={13} />} active={activeTab === 'values'} onClick={() => setActiveTab('values')} />
-              <TabButton label={t('rebuild.dashboard.tab_risks', { defaultValue: 'Risks' })} icon={<ShieldAlert size={13} />} active={activeTab === 'risks'} onClick={() => setActiveTab('risks')} />
-            </div>
-          </div>
-        </div>
-
-        <div className="relative min-h-[340px] overflow-hidden flex items-center justify-center px-4 py-4 xl:px-8 xl:py-6">
-          <div className="pointer-events-none absolute inset-0">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(var(--accent-gold-rgb),0.1),transparent_65%)]" />
-            <AnimatedEnsoRing />
-          </div>
-
-          {vm.heroMetrics.slice(0, 6).map((metric, index) => {
-            const layout = heroMetricLayout[index];
-            if (!layout) return null;
-            return <HeroMetricBadge key={metric.id} metric={metric} className={layout.className} side={layout.side} index={index} />;
-          })}
-
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="relative h-[92%] w-full max-w-[380px]">
-              <img
-                src="/shami-tip.png"
-                alt="Shami kariérní průvodce"
-                className="absolute left-1/2 bottom-0 max-w-[180px] w-auto h-auto object-contain object-bottom drop-shadow-[0_0_32px_rgba(var(--accent-rgb),0.2)]"
-                style={{ transform: 'translateX(-50%)' }}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    </ShellCard>
-  );
-};
-
-const GrowthAnalysisCard: React.FC<{
-  vm: ReturnType<typeof buildCandidateDashboardViewModel>;
-  onOpenDetail: () => void;
-  onStartJcfpm: () => void;
-}> = ({ vm, onOpenDetail, onStartJcfpm }) => {
-  const { t } = useTranslation();
-
-  if (!vm.isJcfpmComplete) {
-    return (
-      <ShellCard tone="default" className="h-full flex items-center justify-center p-6">
-        <MissingDataPrompt
-          title={t('rebuild.dashboard.unlock_growth', { defaultValue: 'Unlock growth map' })}
-          description={t('rebuild.dashboard.unlock_growth_desc', { defaultValue: 'We need your JCFPM data to identify blind spots and recommend precise growth training.' })}
-          actionLabel={t('rebuild.dashboard.start_test', { defaultValue: 'Start JCFPM Test' })}
-          onAction={onStartJcfpm}
-          tone="green"
-        />
-      </ShellCard>
-    );
-  }
-
-  return (
-    <ShellCard tone="default" className="flex flex-col overflow-hidden h-full">
-      {/* Growth Section */}
-      <div className="relative p-5 xl:p-6 border-b border-[color:var(--dashboard-soft-border)] bg-[linear-gradient(180deg,rgba(var(--accent-green-rgb),0.03),transparent)]">
-        <div className="absolute top-4 right-4 xl:block hidden">
-          <NetworkBrain complexity={vm.growthProgress} />
-        </div>
-
-        <div className="relative z-10">
-          <div className={sectionTitleClass}>{t('rebuild.dashboard.growth_label', { defaultValue: 'Recommended growth' })}</div>
-          <h3 className="mt-3 max-w-[18ch] text-[18px] font-semibold leading-[1.2] tracking-tight text-[color:var(--accent-green)] drop-shadow-[0_0_12px_rgba(var(--accent-green-rgb),0.2)] line-clamp-2">
-            {vm.recommendedGrowthTitle}
-          </h3>
-          <p className="mt-2 max-w-[28ch] text-[13px] leading-snug text-[color:var(--text-faint)] line-clamp-2">
-            {vm.recommendedGrowthCopy}
-          </p>
-
-          <div className="mt-5 flex items-center justify-between text-[12px] font-semibold max-w-[85%]">
-            <span className="text-[color:var(--accent-green)]">{vm.growthProgress}%</span>
-            <span className="text-[color:var(--text-faint)]">{t('rebuild.dashboard.focus_label', { defaultValue: 'Weekly focus' })}</span>
-          </div>
-          <div className="mt-2 relative h-[2px] w-[85%] overflow-visible rounded-full bg-[color:var(--dashboard-soft-border)]">
-            <div
-              className="absolute bottom-0 left-0 top-0 rounded-full bg-[linear-gradient(90deg,transparent,rgba(var(--accent-green-rgb),1))] shadow-[0_0_12px_rgba(var(--accent-green-rgb),0.6)] transition-all duration-1000 ease-out"
-              style={{ width: `${vm.growthProgress}%` }}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Blind Spots Section */}
-      <div className="flex flex-1 flex-col p-5 xl:p-6">
-        <div className="flex items-center gap-2">
-          <div className={sectionTitleClass}>{t('rebuild.dashboard.blind_spots_label', { defaultValue: 'Blind spots' })}</div>
-          <Info size={14} className="text-[color:var(--text-faint)]" />
-        </div>
-
-        <div className="mt-5 flex-1 space-y-1">
-          {vm.blindSpots.slice(0, 3).map((spot) => (
-            <BlindSpotRow
-              key={spot.label}
-              label={spot.label}
-              self={spot.self}
-              reality={spot.reality}
-              delta={Math.round(spot.delta)}
-            />
-          ))}
-        </div>
-
-        <div className="mt-6 flex justify-between gap-3">
-          <SurfaceButton onClick={onOpenDetail} className="w-full flex items-center justify-center gap-2">
-            <Award size={14} />
-            {t('rebuild.dashboard.continue_training', { defaultValue: 'Continue training' })}
-          </SurfaceButton>
-        </div>
-      </div>
-    </ShellCard>
-  );
-};
-
-const ChallengeCard: React.FC<{
-  role: Role | null;
-  tags: string[];
-  portalAsset: string;
-  onOpenRole: () => void;
-  onOpenAll: () => void;
-}> = ({ role, tags, portalAsset, onOpenRole, onOpenAll }) => {
-  const { t } = useTranslation();
-  return (
-    <ShellCard className="overflow-hidden border-[color:var(--dashboard-card-border)] bg-[color:var(--dashboard-card-bg)] shadow-[0_18px_42px_-34px_rgba(78,61,28,0.28)] xl:min-h-[252px]">
-
-      <div className="flex h-full flex-col px-5 py-5 xl:px-6 xl:py-6">
-        <div className="flex items-center justify-between gap-3">
-          <div className={sectionTitleClass}>{t('rebuild.dashboard.challenges_label', { defaultValue: 'Current challenges' })}</div>
-          <button type="button" onClick={onOpenAll} className="rounded-full border border-[color:var(--dashboard-soft-border)] px-3 py-1 text-[11px] font-medium text-[color:var(--dashboard-text-muted)] transition hover:bg-[color:var(--dashboard-soft-bg)]">
-            {t('rebuild.dashboard.view_all', { defaultValue: 'View all' })}
-          </button>
-
-        </div>
-
-        {role ? (
-          <>
-            <div className="mt-4 grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_10.25rem]">
-              <div className="min-w-0">
-                <div className="inline-flex rounded-md border border-[color:color-mix(in_srgb,var(--dashboard-gold)_40%,transparent)] bg-[color:color-mix(in_srgb,var(--dashboard-gold)_10%,transparent)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[color:var(--dashboard-gold-strong)]">
-                  {t('rebuild.dashboard.new_badge', { defaultValue: 'New' })}
-                </div>
-
-                <h3 className="mt-3 max-w-[17ch] text-[18px] font-semibold leading-[1.15] tracking-[-0.03em] text-[color:var(--dashboard-text-strong)] line-clamp-2">
-                  {role.title}
-                </h3>
-                <p className="mt-3 max-w-[31ch] text-[14px] leading-6 text-[color:var(--dashboard-text-body)] line-clamp-3">
-
-                  {role.challenge || role.summary || role.description}
-                </p>
-
-                {tags.length > 0 ? (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {tags.slice(0, 3).map((tag) => (
-                      <span key={tag} className="rounded-full border border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-soft-bg)] px-3 py-1 text-[12px] font-medium text-[color:var(--dashboard-text-muted)]">
-                        {tag}
-                      </span>
-                    ))}
-
-                  </div>
-                ) : null}
-
-                <div className="mt-4 flex flex-wrap items-center gap-4 text-[13px] text-[color:var(--dashboard-text-muted)]">
-                  <span className="inline-flex items-center gap-1.5">
-                    <Briefcase size={12} className="text-[color:var(--dashboard-gold)]" />
-                    Marketplace
-                  </span>
-
-                  {role.location ? (
-                    <span className="inline-flex items-center gap-1.5">
-                      <MapPin size={12} className="text-[#2496ab]" />
-                      {role.location}
-                    </span>
-                  ) : null}
-                  {role.workModel ? (
-                    <span className="inline-flex items-center gap-1.5">
-                      <Clock3 size={12} className="text-slate-400" />
-                      {role.workModel}
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="hidden xl:block">
-                <div className="relative h-full min-h-[154px] overflow-hidden rounded-[22px] border border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-soft-bg)]">
-
-                  <img
-                    src={role.heroImage || portalAsset}
-                    alt=""
-                    className="absolute inset-0 h-full w-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0)_0%,rgba(16,24,40,0.08)_100%)]" />
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4 flex justify-end xl:mt-3">
-              <button
-                type="button"
-                onClick={onOpenRole}
-                className="inline-flex items-center justify-center rounded-[16px] bg-[color:var(--dashboard-gold)] px-5 py-3 text-[14px] font-bold text-black shadow-[0_20px_28px_-20px_rgba(var(--accent-gold-rgb),0.42)] transition hover:bg-[color:var(--dashboard-gold-strong)]"
-              >
-                {t('rebuild.dashboard.accept_challenge', { defaultValue: 'Accept challenge' })}
-              </button>
-
-            </div>
-          </>
-        ) : (
-          <div className="mt-4 flex min-h-[170px] flex-1 items-center justify-center rounded-[22px] border border-dashed border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-soft-bg)] px-6 text-center text-[13px] leading-6 text-[color:var(--dashboard-text-muted)]">
-            {t('rebuild.dashboard.no_challenges', { defaultValue: 'Once marketplace challenges arrive from the database, the one with the highest current match will appear here.' })}
-          </div>
-
-        )}
-      </div>
-    </ShellCard>
-  );
-};
-
-const HandshakeCard: React.FC<{
-  rows: Array<{ id: string; company: string; role: string; score: number }>;
-  onOpenHandshake: (id: string) => void;
-  onOpenAll: () => void;
-}> = ({ rows, onOpenHandshake, onOpenAll }) => {
-  const { t } = useTranslation();
-  return (
-    <ShellCard className="overflow-hidden border-[color:var(--dashboard-card-border)] bg-[color:var(--dashboard-card-bg)] shadow-[0_18px_42px_-34px_rgba(78,61,28,0.28)] xl:min-h-[252px]">
-
-      <div className="flex h-full flex-col px-5 py-5 xl:px-6 xl:py-6">
-        <div className="flex items-center justify-between gap-3">
-          <div className={sectionTitleClass}>{t('rebuild.dashboard.handshake_label', { defaultValue: 'Handshake' })}</div>
-          <button type="button" onClick={onOpenAll} className="rounded-full border border-[color:var(--dashboard-soft-border)] px-3 py-1 text-[11px] font-medium text-[color:var(--dashboard-text-muted)] transition hover:bg-[color:var(--dashboard-soft-bg)]">
-            {t('rebuild.dashboard.view_all', { defaultValue: 'View all' })}
-          </button>
-
-        </div>
-
-        <div className="mt-5 space-y-3">
-          {rows.length > 0 ? rows.slice(0, 3).map((row, index) => (
-            <button
-              key={row.id}
-              type="button"
-              onClick={() => onOpenHandshake(row.id)}
-              className="flex w-full items-center gap-3 rounded-[18px] border border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-card-bg)] px-3 py-3 text-left transition hover:border-[color:var(--dashboard-soft-border)] hover:bg-[color:var(--dashboard-soft-bg)]"
-            >
-
-              <div className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] text-[14px] font-black', companyTileClass[index % companyTileClass.length])}>
-                {row.company.slice(0, 1).toUpperCase()}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-[15px] font-medium text-[color:var(--dashboard-text-strong)]">{row.company}</div>
-                <div className="truncate text-[13px] text-[color:var(--dashboard-text-muted)]">{row.role}</div>
-              </div>
-
-              <HandshakeScore score={row.score} />
-              <ChevronRight size={16} className="shrink-0 text-slate-300" />
-            </button>
-          )) : (
-            <div className="rounded-[18px] border border-dashed border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-soft-bg)] px-4 py-8 text-center text-[13px] leading-7 text-[color:var(--dashboard-text-muted)]">
-              {t('rebuild.dashboard.no_handshakes', { defaultValue: 'As soon as the first matches or handshakes submitted appear, you will see them here in a clear timeline.' })}
-            </div>
-
-          )}
-        </div>
-      </div>
-    </ShellCard>
-  );
-};
-
-const GrowthMapCard: React.FC<{
-  vm: ReturnType<typeof buildCandidateDashboardViewModel>;
-  onOpenMap: () => void;
-  onStartJcfpm: () => void;
-}> = ({ vm, onOpenMap, onStartJcfpm }) => {
-  const { t } = useTranslation();
-
-  if (!vm.isJcfpmComplete) {
-    return (
-      <ShellCard className="xl:min-h-[252px] border-[color:var(--dashboard-card-border)] bg-[color:var(--dashboard-card-bg)] flex items-center justify-center p-6">
-
-        <MissingDataPrompt
-          title={t('rebuild.dashboard.unlock_map', { defaultValue: 'Map your future' })}
-          description={t('rebuild.dashboard.unlock_map_desc', { defaultValue: 'Unlock your personalized growth map by completing the JCFPM assessment.' })}
-          actionLabel={t('rebuild.dashboard.start_test', { defaultValue: 'Start JCFPM Test' })}
-          onAction={onStartJcfpm}
-          tone="teal"
-        />
-      </ShellCard>
-    );
-  }
-
-  const currentNode = vm.growthMapNodes[0];
-  const focusNode = vm.growthMapNodes[1];
-  const futureNode = vm.growthMapNodes[2];
-  const compactFocusTitle = getCompactArchetypeTitle(focusNode?.title || 'Archetyp', t);
-
-  return (
-    <ShellCard className="overflow-hidden border-[#e9e1d6] bg-white shadow-[0_18px_42px_-34px_rgba(78,61,28,0.28)] xl:min-h-[252px]">
-      <div className="flex h-full flex-col px-5 py-5 xl:px-6 xl:py-6">
-        <div className="flex items-center justify-between gap-3">
-          <div className={sectionTitleClass}>{t('rebuild.dashboard.growth_map_label', { defaultValue: 'Your growth map' })}</div>
-          <button
-            type="button"
-            onClick={onOpenMap}
-            className="rounded-full border border-[#ece4d8] px-3 py-1 text-[11px] font-medium text-[#707885] transition hover:bg-slate-50"
-          >
-            {t('rebuild.dashboard.view_map', { defaultValue: 'View map' })}
-          </button>
-        </div>
-
-        <div className="relative mt-auto">
-          <div className="absolute left-[8%] right-[8%] top-[22px] h-px bg-[color:var(--dashboard-soft-border)] z-0 overflow-hidden">
-            <div className="h-full w-full bg-[linear-gradient(90deg,transparent,rgba(var(--accent-rgb),0.3),transparent)] animate-pulse" />
-          </div>
-          <div className="grid grid-cols-[1fr_0.45fr_1fr_0.45fr_1fr] items-start gap-2 relative z-10">
-            <div className="flex flex-col items-center text-center">
-              <div className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-[#cfe3e8] bg-white text-[#2496ab]">
-                <Users size={15} />
-              </div>
-              <div className="mt-4 text-[15px] font-medium text-[#243040]">{currentNode?.title || t('rebuild.dashboard.default_current_role', { defaultValue: 'Analyst' })}</div>
-              <div className="mt-1 text-[12px] text-[#6a7380]">{currentNode?.caption || t('rebuild.dashboard.current_level', { defaultValue: 'Current level' })}</div>
-            </div>
-
-            <div className="flex flex-col items-center pt-1 text-center">
-              <div className="flex h-7 w-7 items-center justify-center rounded-full border border-[#edd5ac] bg-white text-[#d58a22]">
-                <span className="block h-1.5 w-1.5 rounded-full bg-current" />
-              </div>
-            </div>
-
-            <div className="flex flex-col items-center text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-[#d58a22] bg-white text-[#b26f15] shadow-[0_18px_28px_-22px_rgba(181,111,21,0.5)]">
-                <Users size={16} />
-              </div>
-              <div className="mt-4 max-w-[8ch] text-[15px] font-medium leading-5 text-[#243040]">{compactFocusTitle}</div>
-              <div className="mt-1 text-[12px] font-medium text-[#b26f17]">{focusNode?.caption || t('rebuild.dashboard.next_milestone', { defaultValue: 'Next milestone' })}</div>
-            </div>
-
-            <div className="flex flex-col items-center pt-1 text-center">
-              <div className="flex h-7 w-7 items-center justify-center rounded-full border border-[#cfe3e8] bg-white text-[#2496ab]">
-                <span className="block h-1.5 w-1.5 rounded-full bg-current" />
-              </div>
-            </div>
-
-            <div className="flex flex-col items-center text-center">
-              <div className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-[#e8edf1] bg-white text-slate-300">
-                <Zap size={15} />
-              </div>
-              <div className="mt-4 text-[15px] font-medium text-[#243040]">{futureNode?.title || t('rebuild.dashboard.default_future_role', { defaultValue: 'Innovation Leader' })}</div>
-              <div className="mt-1 text-[12px] text-[#6a7380]">{futureNode?.caption || t('rebuild.dashboard.future_potential', { defaultValue: 'Future potential' })}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </ShellCard>
-  );
-};
-
 
 export const CandidateDashboardV2: React.FC<{
   roles: Role[];
@@ -1014,8 +591,9 @@ export const CandidateDashboardV2: React.FC<{
   t,
 }) => {
     const { resolvedMode } = useRebuildTheme();
-
     const [currentChatId, setCurrentChatId] = React.useState<string | null>(null);
+    const [mentorPrompt, setMentorPrompt] = React.useState('');
+
     const resolveSectionFromLocation = React.useCallback(() => {
       if (typeof window === 'undefined') return '';
       if (window.location.pathname === '/candidate/profile') return 'profile';
@@ -1065,8 +643,8 @@ export const CandidateDashboardV2: React.FC<{
           const matchedRole = evaluatedRoles.find((item) => String(item.role.id) === String(application.job_id)) || evaluatedRoles[index];
           return {
             id: application.id,
-            company: application.company_name || matchedRole?.role.companyName || t('rebuild.dashboard.selected_company', { defaultValue: 'Selected company' }),
-            role: application.job_snapshot?.title || matchedRole?.role.title || t('rebuild.dashboard.active_handshake', { defaultValue: 'Active handshake' }),
+            company: application.company_name || matchedRole?.role.companyName || t('rebuild.dashboard.selected_company', { defaultValue: 'Vybraná firma' }),
+            role: application.job_snapshot?.title || matchedRole?.role.title || t('rebuild.dashboard.active_handshake', { defaultValue: 'Aktivní jednání' }),
             score: matchedRole?.score || clamp(vm.resonanceScore - (index * 6), 58, 96),
           };
         });
@@ -1074,11 +652,12 @@ export const CandidateDashboardV2: React.FC<{
 
       return evaluatedRoles.slice(0, 3).map((item, index) => ({
         id: item.role.id,
-        company: item.role.companyName || t('rebuild.dashboard.company_n', { defaultValue: 'Company {{n}}', n: index + 1 }),
+        company: item.role.companyName || t('rebuild.dashboard.company_n', { defaultValue: 'Firma {{n}}', n: index + 1 }),
         role: item.role.title,
         score: item.score || clamp(vm.resonanceScore - (index * 7), 58, 96),
       }));
     }, [candidateApplications, evaluatedRoles, t, vm.resonanceScore]);
+
     const openHandshakeOrRole = React.useCallback((id: string) => {
       const application = candidateApplications.find((item) => String(item.id) === String(id));
       if (application?.job_id) {
@@ -1093,18 +672,24 @@ export const CandidateDashboardV2: React.FC<{
       navigate('/candidate/applications');
     }, [candidateApplications, navigate, roles]);
 
+    const [activeArchetypeTab, setActiveArchetypeTab] = React.useState('skills');
 
-    const portalAsset = resolvedMode === 'dark'
-      ? 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=1200&auto=format&fit=crop'
-      : 'https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=1200&auto=format&fit=crop';
+    const handleMentorPromptSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!mentorPrompt.trim()) return;
+      // Save prompt in sessionStorage so ChatMentor can pick it up
+      sessionStorage.setItem('shami_mentor_initial_prompt', mentorPrompt);
+      setMentorPrompt('');
+      window.location.hash = '#mentor';
+    };
 
     const navItems = [
-      { id: 'home', label: t('rebuild.nav.home', { defaultValue: 'Home' }), icon: LayoutDashboard, path: '/candidate/insights' },
-      { id: 'profile', label: t('rebuild.nav.profile', { defaultValue: 'Profile' }), icon: CircleUserRound, path: '/candidate/profile' },
-      { id: 'jcfpm', label: t('rebuild.nav.self_knowledge', { defaultValue: 'Self-knowledge' }), icon: Brain, path: '/candidate/jcfpm' },
-      { id: 'work', label: t('rebuild.nav.work', { defaultValue: 'Work' }), icon: Briefcase, path: '/candidate/marketplace' },
-      { id: 'applications', label: t('rebuild.nav.applications', { defaultValue: 'Applications' }), icon: MessageSquare, path: '/candidate/applications' },
-      { id: 'learning', label: t('rebuild.nav.learning', { defaultValue: 'Learning' }), icon: GraduationCap, path: '/candidate/learning' },
+      { id: 'home', label: t('rebuild.nav.home', { defaultValue: 'Dashboard' }), icon: LayoutDashboard, path: '/candidate/insights' },
+      { id: 'profile', label: t('rebuild.nav.profile', { defaultValue: 'Profil' }), icon: CircleUserRound, path: '/candidate/profile' },
+      { id: 'jcfpm', label: t('rebuild.nav.self_knowledge', { defaultValue: 'Sebepoznání' }), icon: Brain, path: '/candidate/jcfpm' },
+      { id: 'work', label: t('rebuild.nav.work', { defaultValue: 'Tržiště práce' }), icon: Briefcase, path: '/candidate/marketplace' },
+      { id: 'applications', label: t('rebuild.nav.applications', { defaultValue: 'Moje žádosti' }), icon: MessageSquare, path: '/candidate/applications' },
+      { id: 'learning', label: t('rebuild.nav.learning', { defaultValue: 'Rozvoj' }), icon: GraduationCap, path: '/candidate/learning' },
     ];
 
     const activeItemId = hashSection === 'profile'
@@ -1132,38 +717,39 @@ export const CandidateDashboardV2: React.FC<{
           currentLanguage={currentLanguage}
           onLanguageChange={onLanguageChange}
           title="Jobshaman"
-          subtitle={t('rebuild.dashboard.logged_out_subtitle', { defaultValue: 'Sign in and open your personal work compass.' })}
+          subtitle={t('rebuild.dashboard.logged_out_subtitle', { defaultValue: 'Přihlaste se a otevřete svůj osobní pracovní kompas.' })}
           t={t}
         >
           <CandidateShellSurface variant="dashboard" className="max-w-full px-2 pb-2 pt-1">
-            <ShellCard className="overflow-hidden p-0">
-              <div className="grid gap-6 p-8 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-center">
+            <ShellCard className="overflow-hidden p-0 shamanic-glass-card relative">
+              <div className="shamanic-noise-overlay absolute inset-0 rounded-[24px]" />
+              <div className="grid gap-6 p-8 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-center relative z-10">
                 <div>
-                  <div className={sectionTitleClass}>{t('rebuild.dashboard.private_compass', { defaultValue: 'Private work compass' })}</div>
-                  <h1 className="mt-4 max-w-2xl text-[2.35rem] font-semibold leading-[1.02] tracking-[-0.055em] text-[#111827]">
-                    {t('rebuild.dashboard.auth_required_title', { defaultValue: 'Your data will appear after signing in.' })}
+                  <div className={sectionTitleClass}>{t('rebuild.dashboard.private_compass', { defaultValue: 'Osobní pracovní kompas' })}</div>
+                  <h1 className="mt-4 max-w-2xl text-[2.35rem] font-semibold leading-[1.02] tracking-[-0.055em] text-[color:var(--text-strong)]">
+                    {t('rebuild.dashboard.auth_required_title', { defaultValue: 'Vaše data se zobrazí po přihlášení.' })}
                   </h1>
-                  <p className="mt-4 max-w-2xl text-sm leading-7 text-[#5b6472]">
-                    {t('rebuild.dashboard.auth_required_desc', { defaultValue: 'Profile, archetype, JHI, and recommendations are personal. In logged-out mode, we do not share or display them from local cache.' })}
+                  <p className="mt-4 max-w-2xl text-sm leading-7 text-[color:var(--text-muted)]">
+                    {t('rebuild.dashboard.auth_required_desc', { defaultValue: 'Profil, archetyp, JHI a doporučení jsou soukromé. V odhlášeném režimu je nezobrazujeme.' })}
                   </p>
                   <div className="mt-7 flex flex-wrap gap-3">
                     <button type="button" onClick={() => onOpenAuth?.('candidate')} className={primaryButtonClass}>
-                      {t('rebuild.nav.sign_in', { defaultValue: 'Sign in' })}
+                      {t('rebuild.nav.sign_in', { defaultValue: 'Přihlásit se' })}
                     </button>
                     <button type="button" onClick={onCompanySwitch || (() => onOpenAuth?.('recruiter'))} className={secondaryButtonClass}>
-                      {t('rebuild.dashboard.company_profile', { defaultValue: 'Company profile' })}
+                      {t('rebuild.dashboard.company_profile', { defaultValue: 'Firemní profil' })}
                     </button>
                     <button type="button" onClick={() => navigate('/candidate/marketplace')} className={secondaryButtonClass}>
-                      {t('rebuild.dashboard.browse_jobs', { defaultValue: 'Browse jobs' })}
+                      {t('rebuild.dashboard.browse_jobs', { defaultValue: 'Procházet nabídky' })}
                     </button>
                   </div>
                 </div>
-                <div className="rounded-[26px] border border-[#ece4d8] bg-[linear-gradient(180deg,#fffaf0,#f7fbfb)] p-5">
-                  <div className="text-[1.05rem] font-semibold text-[#111827]">{t('rebuild.dashboard.auth_info_title', { defaultValue: 'What loads after signing in' })}</div>
-                  <div className="mt-4 space-y-3 text-sm leading-6 text-[#5b6472]">
-                    <div className="rounded-[18px] bg-white/76 px-4 py-3">{t('rebuild.dashboard.auth_info_profile', { defaultValue: 'Profile and CV documents' })}</div>
-                    <div className="rounded-[18px] bg-white/76 px-4 py-3">{t('rebuild.dashboard.auth_info_jhi', { defaultValue: 'Self-knowledge, JHI, and growth map' })}</div>
-                    <div className="rounded-[18px] bg-white/76 px-4 py-3">{t('rebuild.dashboard.auth_info_apps', { defaultValue: 'Applications, handshakes, and saved roles' })}</div>
+                <div className="rounded-[26px] border border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-soft-bg)] p-5">
+                  <div className="text-[1.05rem] font-semibold text-[color:var(--text-strong)]">{t('rebuild.dashboard.auth_info_title', { defaultValue: 'Co se po přihlášení odemkne' })}</div>
+                  <div className="mt-4 space-y-3 text-sm leading-6 text-[color:var(--text-muted)]">
+                    <div className="rounded-[18px] bg-[color:var(--dashboard-card-bg)] border border-[color:var(--dashboard-soft-border)] px-4 py-3">{t('rebuild.dashboard.auth_info_profile', { defaultValue: 'Profil a dokumenty životopisu' })}</div>
+                    <div className="rounded-[18px] bg-[color:var(--dashboard-card-bg)] border border-[color:var(--dashboard-soft-border)] px-4 py-3">{t('rebuild.dashboard.auth_info_jhi', { defaultValue: 'Sebepoznání, JHI index a mapa růstu' })}</div>
+                    <div className="rounded-[18px] bg-[color:var(--dashboard-card-bg)] border border-[color:var(--dashboard-soft-border)] px-4 py-3">{t('rebuild.dashboard.auth_info_apps', { defaultValue: 'Jednání s firmami, doporučení a uložené role' })}</div>
                   </div>
                 </div>
               </div>
@@ -1172,6 +758,16 @@ export const CandidateDashboardV2: React.FC<{
         </DashboardLayoutV2>
       );
     }
+
+    // Prepare tab descriptive texts
+    const archetypeCopy = formatArchetypeCopy(vm.archetypeDescription, t);
+    const tabCopy: Record<string, string> = {
+      skills: archetypeCopy.join(' '),
+      motivation: vm.mentorAdvice || t('rebuild.dashboard.motivation_default', { defaultValue: 'Vaše motivace směřuje k seberealizaci a objevování nových obzorů.' }),
+      environment: t('rebuild.dashboard.top_signals', { defaultValue: 'Nejsilnější kariérní signály: {{signals}}.', signals: vm.heroMetrics.slice(0, 3).map((metric) => metric.label).join(', ') }),
+      values: vm.challengeTags.length ? t('rebuild.dashboard.value_fit', { defaultValue: 'Témata hodnotově nejbližší: {{tags}}.', tags: vm.challengeTags.join(', ') }) : vm.archetypeDescription,
+      risks: vm.blindSpots.length ? t('rebuild.dashboard.risks_warning', { defaultValue: 'Pozor na tyto slepé skvrny: {{risks}}.', risks: vm.blindSpots.slice(0, 2).map((spot) => spot.label).join(', ') }) : t('rebuild.dashboard.risks_refining', { defaultValue: 'Slepé skvrny upřesníme po vyplnění rituálu sebepoznání.' }),
+    };
 
     return (
       <DashboardLayoutV2
@@ -1184,8 +780,8 @@ export const CandidateDashboardV2: React.FC<{
         onCompanySwitch={onCompanySwitch}
         currentLanguage={currentLanguage}
         onLanguageChange={onLanguageChange}
-        title={isProfileView ? t('rebuild.dashboard.my_profile', { defaultValue: 'My profile' }) : firstName ? t('rebuild.dashboard.greeting', { defaultValue: 'Hello, {{name}}', name: firstName }) : t('rebuild.dashboard.default_title', { defaultValue: 'Your work compass' })}
-        subtitle={isProfileView ? t('rebuild.dashboard.profile_subtitle', { defaultValue: 'Your skills, experience, and potential in one place.' }) : t('rebuild.dashboard.default_subtitle', { defaultValue: '„Everyone has potential. Our mission is to reveal it.“ — Shami' })}
+        title={isProfileView ? t('rebuild.dashboard.my_profile', { defaultValue: 'Můj profil' }) : firstName ? t('rebuild.dashboard.greeting', { defaultValue: 'Ahoj, {{name}}', name: firstName }) : t('rebuild.dashboard.default_title', { defaultValue: 'Tvůj pracovní kompas' })}
+        subtitle={isProfileView ? t('rebuild.dashboard.profile_subtitle', { defaultValue: 'Vaše dovednosti, zkušenosti a potenciál na jednom místě.' }) : t('rebuild.dashboard.default_subtitle', { defaultValue: '„Každý má v sobě potenciál. Naším posláním je ho probudit.“ — Shami' })}
         t={t}
       >
         {isProfileView ? (
@@ -1205,71 +801,307 @@ export const CandidateDashboardV2: React.FC<{
             onUploadPhoto={onUploadPhoto}
             navigate={navigate}
           />
-) : isMentorView ? (
-  <div className="flex w-full h-[75vh] gap-5">
-    <div className="flex-1 min-w-0 rounded-3xl border border-cyan-100 bg-white shadow-xl overflow-hidden p-2 md:p-4 transition-all duration-200">
-      <ChatMentor
-        intro={t('rebuild.dashboard.mentor_intro', { defaultValue: 'Jsem tady. Ne jako chatbot na líbivé věty, ale jako pracovní zrcadlo. Začni otázkou, nebo mi rovnou řekni, kde se ti kariéra zasekla, {{name}}.', name: getCandidateGreetingName({ profileName: userProfile.name, language: currentLanguage }) || t('rebuild.dashboard.you', { defaultValue: 'you' }) })}
-        sendMessageFn={async (message, messages) => {
-          const reply = await sendMentorChatMessage(message, messages);
-          return {
-            reply: [reply.reply, reply.next_step ? `${t('rebuild.dashboard.next_step', { defaultValue: 'Next step' })}: ${reply.next_step}` : ''].filter(Boolean).join('\n\n')
-          };
-        }}
-        storageKey={`shami_candidate_chat_${userProfile?.id || 'anonymous'}`}
-      />
-    </div>
-    <div className="hidden xl:block w-[360px] max-w-xs flex-shrink-0">
-      {/* Sidebar pro seznam chatů */}
-      <CandidateChatSidebar
-        userId={userProfile?.id}
-        selectedChatId={currentChatId}
-        onSelectChat={setCurrentChatId}
-      />
-    </div>
-  </div>
+        ) : isMentorView ? (
+          <div className="flex w-full h-[75vh] gap-5">
+            <div className="flex-1 min-w-0 rounded-3xl border border-cyan-100 bg-white shadow-xl overflow-hidden p-2 md:p-4 transition-all duration-200">
+              <ChatMentor
+                intro={t('rebuild.dashboard.mentor_intro', { defaultValue: 'Jsem tady. Ne jako chatbot na líbivé věty, ale jako pracovní zrcadlo. Začni otázkou, nebo mi rovnou řekni, kde se ti kariéra zasekla, {{name}}.', name: getCandidateGreetingName({ profileName: userProfile.name, language: currentLanguage }) || t('rebuild.dashboard.you', { defaultValue: 'ty' }) })}
+                sendMessageFn={async (message, messages) => {
+                  const reply = await sendMentorChatMessage(message, messages);
+                  return {
+                    reply: [reply.reply, reply.next_step ? `${t('rebuild.dashboard.next_step', { defaultValue: 'Další krok' })}: ${reply.next_step}` : ''].filter(Boolean).join('\n\n')
+                  };
+                }}
+                storageKey={`shami_candidate_chat_${userProfile?.id || 'anonymous'}`}
+              />
+            </div>
+            <div className="hidden xl:block w-[360px] max-w-xs flex-shrink-0">
+              <CandidateChatSidebar
+                userId={userProfile?.id}
+                selectedChatId={currentChatId}
+                onSelectChat={setCurrentChatId}
+              />
+            </div>
+          </div>
         ) : (
           <CandidateShellSurface variant="dashboard" className="max-w-full px-2 pb-6 pt-1">
             {!vm.isOnboardingComplete && (
               <OnboardingAlert onStart={() => navigate('/ritual')} />
             )}
-            <div className="flex flex-col gap-5 xl:gap-6">
-              <div className="grid gap-5 xl:grid-cols-[minmax(0,2.1fr)_minmax(360px,0.9fr)]">
-                <ArchetypeHeroCard
-                  vm={vm}
-                  onOpenDetail={() => navigate('/candidate/jcfpm')}
-                  onStartJcfpm={() => navigate('/candidate/jcfpm')}
-                />
 
-                <GrowthAnalysisCard
-                  vm={vm}
-                  onOpenDetail={() => navigate('/candidate/jcfpm')}
-                  onStartJcfpm={() => navigate('/candidate/jcfpm')}
-                />
+            {/* Premium 3-Column Responsive Shamanic Grid Layout */}
+            <div className="grid gap-6 lg:grid-cols-12 items-start">
+              
+              {/* COLUMN 1: OSOBNÍ KOMPAS & ARCHETYP (lg:col-span-5) */}
+              <div className="lg:col-span-5 space-y-6">
+                <div className="shamanic-glass-card rounded-[32px] overflow-hidden p-6 relative flex flex-col min-h-[520px]">
+                  <div className="shamanic-noise-overlay absolute inset-0 rounded-[32px]" />
+                  <div className="relative z-10 flex-1 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className={sectionTitleClass}>{t('rebuild.dashboard.archetype_label', { defaultValue: 'Tvůj archetyp' })}</span>
+                        <div className="rounded-full bg-[color:var(--accent-gold)]/10 px-3 py-1 text-[11px] font-bold text-[color:var(--accent-gold)]">
+                          JHI {vm.resonanceScore}%
+                        </div>
+                      </div>
+
+                      {vm.isJcfpmComplete ? (
+                        <>
+                          <h2 className="mt-5 text-[28px] font-extrabold leading-none tracking-tight text-[color:var(--accent-gold)] drop-shadow-[0_0_12px_rgba(var(--accent-gold-rgb),0.25)]">
+                            {vm.archetypeTitle}
+                          </h2>
+                          <div className="mt-6 relative h-[210px] w-full flex items-center justify-center overflow-hidden">
+                            <AnimatedEnsoRing />
+                            <div className="relative z-10 flex flex-col items-center">
+                              <span className="text-[44px] font-black tracking-tighter text-[color:var(--text-strong)] leading-none">{vm.resonanceScore}%</span>
+                              <span className="text-[11px] font-bold uppercase tracking-widest text-[color:var(--text-muted)] mt-1">{t('rebuild.dashboard.resonance', { defaultValue: 'Rezonance' })}</span>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="mt-12 flex flex-col items-center justify-center text-center p-4">
+                          <Brain size={48} className="text-[color:var(--accent-gold)] animate-pulse" />
+                          <h3 className="mt-4 text-lg font-bold text-[color:var(--accent-gold)]">{t('rebuild.dashboard.unlock_identity', { defaultValue: 'Odemkni svou identitu' })}</h3>
+                          <p className="mt-2 text-xs text-[color:var(--text-muted)] max-w-[24ch] leading-relaxed">
+                            Projděte testem JCFPM k zobrazení vašeho kariérního archetypu a indexu souladu.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => navigate('/candidate/jcfpm')}
+                            className="mt-6 rounded-full bg-[color:var(--accent-gold)] text-black px-6 py-2.5 text-xs font-bold transition hover:scale-105"
+                          >
+                            Spustit test
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {vm.isJcfpmComplete && (
+                      <div className="mt-4">
+                        <div className="rounded-2xl bg-[color:var(--dashboard-soft-bg)] border border-[color:var(--dashboard-soft-border)] p-4 text-[13px] text-[color:var(--text-strong)] leading-relaxed">
+                          <p className="font-semibold text-[color:var(--accent-gold)] mb-1">
+                            {activeArchetypeTab === 'skills' ? 'Kariérní esence' :
+                             activeArchetypeTab === 'motivation' ? 'Šamanovo doporučení' :
+                             activeArchetypeTab === 'environment' ? 'Ideální prostředí' :
+                             activeArchetypeTab === 'values' ? 'Hodnotové ladění' : 'Oblasti růstu'}
+                          </p>
+                          <p className="text-[color:var(--text-muted)] text-[12px]">{tabCopy[activeArchetypeTab]}</p>
+                        </div>
+
+                        <div className="mt-4 flex flex-wrap gap-1.5 justify-center">
+                          {['skills', 'motivation', 'environment', 'values', 'risks'].map((tab) => (
+                            <button
+                              key={tab}
+                              type="button"
+                              onClick={() => setActiveArchetypeTab(tab)}
+                              className={cn(
+                                "px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border",
+                                activeArchetypeTab === tab
+                                  ? "bg-[color:var(--accent-gold)] text-black border-[color:var(--accent-gold)]"
+                                  : "bg-transparent text-[color:var(--text-muted)] border-[color:var(--dashboard-soft-border)] hover:text-[color:var(--text-strong)]"
+                              )}
+                            >
+                              {tab === 'skills' ? 'Esence' :
+                               tab === 'motivation' ? 'Rada' :
+                               tab === 'environment' ? 'Prostředí' :
+                               tab === 'values' ? 'Hodnoty' : 'Rizika'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Quick stats pills */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="rounded-2xl border border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-card-bg)] p-4 shadow-sm">
+                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-[color:var(--text-muted)]">Fokus týdne</span>
+                    <p className="mt-2 text-[14px] font-bold text-[color:var(--text-strong)] truncate">{vm.recommendedGrowthTitle}</p>
+                  </div>
+                  <div className="rounded-2xl border border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-card-bg)] p-4 shadow-sm">
+                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-[color:var(--text-muted)]">Příležitost</span>
+                    <p className="mt-2 text-[14px] font-bold text-[color:var(--accent-cyan)] truncate">{vm.challengeTags[0] || 'Prozkoumat trh'}</p>
+                  </div>
+                </div>
               </div>
 
-              <div className="grid gap-5 xl:grid-cols-3">
-                <ChallengeCard
-                  role={featuredRole}
-                  tags={featuredRoleTags}
-                  portalAsset={portalAsset}
-                  onOpenRole={() => navigate(getRolePath(featuredRole))}
-                  onOpenAll={() => navigate('/candidate/marketplace')}
-                />
-                <HandshakeCard
-                  rows={handshakeRows}
-                  onOpenHandshake={openHandshakeOrRole}
-                  onOpenAll={() => navigate('/candidate/applications')}
-                />
-                <GrowthMapCard
-                  vm={vm}
-                  onOpenMap={() => navigate('/candidate/jcfpm')}
-                  onStartJcfpm={() => navigate('/candidate/jcfpm')}
-                />
+              {/* COLUMN 2: PRŮVODCE SHAMI & MENTOR (lg:col-span-4) */}
+              <div className="lg:col-span-4 space-y-6">
+                <div className="shamanic-glass-card rounded-[32px] overflow-hidden p-6 relative flex flex-col min-h-[520px]">
+                  <div className="shamanic-noise-overlay absolute inset-0 rounded-[32px]" />
+                  <div className="relative z-10 flex-1 flex flex-col justify-between">
+                    
+                    {/* Shami Avatar & Sparkle Greeting */}
+                    <div className="flex flex-col items-center text-center">
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-[color:var(--accent)]/10 rounded-full blur-xl scale-125 animate-pulse" />
+                        <img
+                          src={vm.isJcfpmComplete ? "/shami-happy.png" : "/shami.png"}
+                          alt="Průvodce Shami"
+                          className="w-24 h-24 object-contain relative z-10 shami-avatar-anim"
+                        />
+                      </div>
+                      <h3 className="mt-4 text-[18px] font-extrabold text-[color:var(--text-strong)] flex items-center gap-1.5 justify-center">
+                        <Sparkles size={16} className="text-[color:var(--accent-gold)]" />
+                        Průvodce Shami
+                      </h3>
+                    </div>
+
+                    {/* Speech Bubble */}
+                    <div className="mt-6 flex-1 flex flex-col justify-center">
+                      <div className="shami-speech-bubble relative rounded-2xl bg-[color:var(--dashboard-soft-bg)] border border-[color:var(--dashboard-soft-border)] p-4 text-[13px] text-[color:var(--text-muted)] leading-relaxed shadow-inner">
+                        <div className="absolute top-[-8px] left-[50%] -translate-x-1/2 w-4 h-4 bg-[color:var(--dashboard-soft-bg)] border-t border-l border-[color:var(--dashboard-soft-border)] rotate-45" />
+                        <p className="italic text-center font-medium">
+                          „{vm.mentorAdvice || "Naslouchej svému vnitřnímu hlasu. Tvá profesní cesta se začíná jasně rýsovat. Zeptej se mě na cokoliv, co tě zajímá."}“
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Quick interactive search input */}
+                    <form onSubmit={handleMentorPromptSubmit} className="mt-6 relative">
+                      <input
+                        type="text"
+                        placeholder="Zeptej se Shamiho na svou kariéru..."
+                        value={mentorPrompt}
+                        onChange={(e) => setMentorPrompt(e.target.value)}
+                        className="w-full h-11 rounded-full bg-[color:var(--dashboard-card-bg)] border border-[color:var(--dashboard-soft-border)] px-4 pr-11 text-xs text-[color:var(--text-strong)] focus:outline-none focus:border-[color:var(--accent)] focus:ring-1 focus:ring-[color:var(--accent)] transition"
+                      />
+                      <button
+                        type="submit"
+                        className="absolute right-1.5 top-1.5 h-8 w-8 rounded-full bg-[color:var(--accent)] text-white flex items-center justify-center hover:scale-105 active:scale-95 transition"
+                      >
+                        <Send size={12} />
+                      </button>
+                    </form>
+
+                    {/* Fast links */}
+                    <div className="mt-4 flex justify-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => navigate('/candidate/insights#mentor')}
+                        className="text-[11px] font-bold text-[color:var(--accent-cyan)] hover:underline flex items-center gap-1"
+                      >
+                        <MessageSquare size={12} />
+                        Otevřít chatovací zrcadlo
+                      </button>
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* Shami's recommended job if available */}
+                {vm.isJcfpmComplete && roles.length > 0 && (
+                  <div className="rounded-2xl border border-[#c7e9f0] bg-[#f7fcfd] p-4 text-left shadow-sm">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-[#0f95ac]">Doporučená výzva pro vás</span>
+                    <h4 className="mt-1 text-[13px] font-black text-slate-950 truncate">{featuredRole?.title}</h4>
+                    <p className="mt-1 text-[11px] text-slate-500 leading-snug truncate">{featuredRole?.companyName} · {featuredRole?.location}</p>
+                    <button
+                      type="button"
+                      onClick={() => navigate(getRolePath(featuredRole))}
+                      className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-black text-[#0f95ac] hover:text-[#0b7181]"
+                    >
+                      Otevřít detail role
+                      <ArrowRight size={12} />
+                    </button>
+                  </div>
+                )}
               </div>
+
+              {/* COLUMN 3: DRÁHA RŮSTU & JEDNÁNÍ (lg:col-span-3) */}
+              <div className="lg:col-span-3 space-y-6">
+                
+                {/* Growth milestones */}
+                <div className="rounded-3xl border border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-card-bg)] p-5 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className={sectionTitleClass}>Cesta rozvoje</span>
+                    <span className="text-xs font-bold text-[color:var(--accent-green)]">{vm.growthProgress}%</span>
+                  </div>
+
+                  <div className="relative h-1 bg-[color:var(--dashboard-soft-border)] rounded-full overflow-hidden mb-6">
+                    <div
+                      className="absolute top-0 bottom-0 left-0 bg-[color:var(--accent-green)] shadow-[0_0_8px_rgba(var(--accent-green-rgb),0.5)] transition-all duration-1000"
+                      style={{ width: `${vm.growthProgress}%` }}
+                    />
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <div className="h-6 w-6 rounded-full bg-[color:var(--accent-green)]/10 text-[color:var(--accent-green)] flex items-center justify-center text-xs font-bold shrink-0">1</div>
+                      <div>
+                        <p className="text-[12px] font-bold text-[color:var(--text-strong)]">Aktuální úroveň</p>
+                        <p className="text-[11px] text-[color:var(--text-muted)]">Analýza silných stránek</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="h-6 w-6 rounded-full bg-[color:var(--accent-gold)]/10 text-[color:var(--accent-gold)] flex items-center justify-center text-xs font-bold shrink-0">2</div>
+                      <div>
+                        <p className="text-[12px] font-bold text-[color:var(--text-strong)]">Další milník</p>
+                        <p className="text-[11px] text-[color:var(--text-muted)] truncate max-w-[120px]">{getCompactArchetypeTitle(vm.growthMapNodes[1]?.title || 'Lídr', t)}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Handshakes applications */}
+                <div className="rounded-3xl border border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-card-bg)] p-5 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className={sectionTitleClass}>Aktivní jednání</span>
+                    <button type="button" onClick={() => navigate('/candidate/applications')} className="text-[10px] font-bold text-[color:var(--text-muted)] hover:text-[color:var(--text-strong)]">
+                      Vše
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {handshakeRows.length > 0 ? (
+                      handshakeRows.slice(0, 2).map((row, index) => (
+                        <button
+                          key={row.id}
+                          type="button"
+                          onClick={() => openHandshakeOrRole(row.id)}
+                          className="w-full text-left p-3 rounded-2xl border border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-soft-bg)] hover:bg-[color:var(--dashboard-card-bg)] transition flex items-center gap-3"
+                        >
+                          <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0", companyTileClass[index % companyTileClass.length])}>
+                            {row.company.slice(0,1).toUpperCase()}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[12px] font-bold text-[color:var(--text-strong)] truncate">{row.company}</p>
+                            <p className="text-[11px] text-[color:var(--text-muted)] truncate">{row.role}</p>
+                          </div>
+                          <div className="text-[11px] font-black text-[color:var(--accent-gold)]">{row.score}%</div>
+                        </button>
+                      ))
+                    ) : (
+                      <p className="text-xs text-[color:var(--text-muted)] text-center py-4">Žádné rozpracované nabídky.</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Quick compass action buttons */}
+                <div className="flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/candidate/marketplace')}
+                    className="w-full h-11 rounded-2xl border border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-soft-bg)] hover:bg-[color:var(--dashboard-soft-border)] text-xs font-bold text-[color:var(--text-strong)] transition"
+                  >
+                    Prozkoumat trh práce
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/candidate/profile')}
+                    className="w-full h-11 rounded-2xl border border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-soft-bg)] hover:bg-[color:var(--dashboard-soft-border)] text-xs font-bold text-[color:var(--text-strong)] transition"
+                  >
+                    Upravit můj profil
+                  </button>
+                </div>
+
+              </div>
+
             </div>
           </CandidateShellSurface>
         )}
       </DashboardLayoutV2>
     );
   };
+
+
