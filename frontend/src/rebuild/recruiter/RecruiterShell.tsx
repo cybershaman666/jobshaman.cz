@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   AlertCircle,
+  Archive,
   BookOpen,
   Building2,
   Check,
@@ -376,6 +377,7 @@ export const RecruiterShell: React.FC<{
   currentLanguage?: string;
   onLanguageChange?: (lang: string) => void;
   onUpdateRoleStatus?: (roleId: string, status: 'active' | 'paused' | 'closed' | 'archived' | 'published') => Promise<void>;
+  onDeleteRole?: (roleId: string) => Promise<void>;
   onRefreshRoles?: () => Promise<void>;
   t: (key: string, options?: Record<string, unknown> & { defaultValue?: string }) => string;
   i18n: { language: string; changeLanguage: (lng: string) => Promise<unknown> };
@@ -411,6 +413,7 @@ export const RecruiterShell: React.FC<{
   currentLanguage,
   onLanguageChange,
   onUpdateRoleStatus,
+  onDeleteRole,
   onRefreshRoles,
   t,
   i18n: _i18n,
@@ -655,6 +658,21 @@ export const RecruiterShell: React.FC<{
       setChallengeNotice(t('rebuild.recruiter.role_status_updated', { defaultValue: 'Role status updated successfully.' }));
     } catch (error) {
       setChallengeError(error instanceof Error ? error.message : t('rebuild.recruiter.status_update_failed', { defaultValue: 'Failed to update status.' }));
+    } finally {
+      setChallengeBusyId(null);
+    }
+  };
+
+  const handleDeleteRole = async (roleId: string) => {
+    if (!onDeleteRole) return;
+    setChallengeBusyId(roleId);
+    setChallengeError('');
+    setChallengeNotice('');
+    try {
+      await onDeleteRole(roleId);
+      setChallengeNotice(t('rebuild.recruiter.role_deleted', { defaultValue: 'Role was permanently removed.' }));
+    } catch (error) {
+      setChallengeError(error instanceof Error ? error.message : t('rebuild.recruiter.role_delete_failed', { defaultValue: 'Failed to delete role.' }));
     } finally {
       setChallengeBusyId(null);
     }
@@ -1239,6 +1257,19 @@ export const RecruiterShell: React.FC<{
                                         }
                                       }}
                                       title={t('rebuild.recruiter.archive_role', { defaultValue: 'Archive Role' })}
+                                      className="p-3 rounded-2xl border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400 hover:text-amber-700 dark:hover:text-amber-400 transition-all"
+                                    >
+                                      <Archive size={18} />
+                                    </button>
+                                  )}
+                                  {onDeleteRole && (
+                                    <button
+                                      onClick={() => {
+                                        if (window.confirm(t('rebuild.recruiter.delete_confirm', { defaultValue: 'Do you really want to permanently delete this role? This cannot be undone.' }))) {
+                                          void handleDeleteRole(role.id);
+                                        }
+                                      }}
+                                      title={t('rebuild.recruiter.delete_role', { defaultValue: 'Delete Role Permanently' })}
                                       className="p-3 rounded-2xl border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-all"
                                     >
                                       <Trash2 size={18} />

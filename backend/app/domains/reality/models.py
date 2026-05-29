@@ -43,7 +43,11 @@ class Job(SQLModel, table=True):
     currency: str = Field(default="CZK")
     work_model: str = Field(default="Hybrid")
     location: Optional[str] = None
+    hours_per_week: Optional[int] = None
+    employment_type: Optional[str] = None
     skills_required: str = Field(default="[]")
+    benefits: str = Field(default="[]")
+    work_perks: str = Field(default="[]")
     is_active: bool = Field(default=True)
     status: str = Field(default="published", index=True)
     source_kind: str = Field(default="native_challenge")

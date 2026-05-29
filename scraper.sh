@@ -2,11 +2,18 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PYTHON_BIN="$ROOT_DIR/backend/.venv/bin/python"
+PYTHON_BIN=""
+if [[ -x "$ROOT_DIR/.venv/bin/python" ]]; then
+  PYTHON_BIN="$ROOT_DIR/.venv/bin/python"
+elif [[ -x "$ROOT_DIR/backend/.venv/bin/python" ]]; then
+  PYTHON_BIN="$ROOT_DIR/backend/.venv/bin/python"
+fi
 
-if [[ ! -x "$PYTHON_BIN" ]]; then
-  echo "❌ Backend venv python not found at $PYTHON_BIN"
-  echo "Run: cd backend && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt"
+if [[ -z "$PYTHON_BIN" ]]; then
+  echo "❌ Python venv not found."
+  echo "Expected one of:"
+  echo "   $ROOT_DIR/.venv/bin/python"
+  echo "   $ROOT_DIR/backend/.venv/bin/python"
   exit 1
 fi
 

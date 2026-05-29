@@ -11,6 +11,10 @@
     {
       "route": "/health",
       "rewrite": "/health"
+    },
+    {
+      "route": "/csrf-token",
+      "rewrite": "https://jobshaman-api.mangorock-7014fb1a.northeurope.azurecontainerapps.io/csrf-token"
     }
   ],
   "responseOverrides": {

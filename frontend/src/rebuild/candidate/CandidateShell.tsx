@@ -4,7 +4,6 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUp,
-  BadgeCheck,
   Building2,
   CheckCircle2,
   Clock3,
@@ -21,7 +20,7 @@ import {
   X,
 } from 'lucide-react';
 
-import type { DialogueSummary } from '../../types';
+import type { DialogueSummary, StoredAsset } from '../../types';
 import { computeArchetype, fetchJcfpmItems, hasJcfpmAnswer, scoreJcfpmAnswer, submitJcfpm } from '../../services/v2JcfpmService';
 import { clearJcfpmDraft, readJcfpmDraft, writeJcfpmDraft } from '../../services/jcfpmSessionState';
 import { fetchHandshakeAvailability } from '../../services/v2HandshakeService';
@@ -63,6 +62,7 @@ import { RecommendationFitPanel } from './RecommendationFitPanel';
 import { ResilientImage, RoleCard } from './RoleCard';
 import { DetailMetaPill, HeroStatCard, DetailSection } from './CandidateShellComponents';
 import { getRoleInsight, type RoleInsightReply } from '../../services/v2MentorService';
+import { MarkdownContent } from '../shared/MarkdownContent';
 
 const MARKETPLACE_IMAGE_FALLBACK = '/hero-panorama.png';
 const MARKETPLACE_LOGO_FALLBACK = '/logo-alt.png';
@@ -115,6 +115,211 @@ const benefitFilterAliases = (value: string): string[] => {
 const buildImageCandidates = (sources: Array<string | null | undefined>): string[] =>
   Array.from(new Set(sources.map((source) => String(source || '').trim()).filter(Boolean)));
 
+const cleanRoleDetailText = (value?: string | null): string =>
+  String(value || '')
+    .replace(/\s*First step:\s*undefined\.?/gi, '')
+    .replace(/\bundefined\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const cleanMarkdownDetailText = (value?: string | null): string =>
+  String(value || '')
+    .replace(/\s*First step:\s*undefined\.?/gi, '')
+    .replace(/\bundefined\b/gi, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+type CompanyHeroMediaItem = {
+  id: string;
+  url: string;
+  title: string;
+  caption?: string | null;
+  type: 'image' | 'video';
+};
+
+const isVideoUrl = (url: string): boolean => /\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(url);
+
+const isVideoAsset = (asset: StoredAsset): boolean => {
+  const mime = String(asset.mime_type || asset.content_type || '').toLowerCase();
+  return mime.startsWith('video/') || isVideoUrl(asset.url);
+};
+
+const buildCompanyHeroMedia = (company: Company, role: Role): CompanyHeroMediaItem[] => {
+  const items: CompanyHeroMediaItem[] = [];
+  const seen = new Set<string>();
+  const addItem = (item: CompanyHeroMediaItem) => {
+    const url = String(item.url || '').trim();
+    if (!url || seen.has(url)) return;
+    seen.add(url);
+    items.push({ ...item, url });
+  };
+
+  addItem({
+    id: 'cover',
+    url: company.coverImage || role.companyCoverImage || role.heroImage,
+    title: company.name,
+    caption: company.tagline,
+    type: isVideoUrl(company.coverImage || '') ? 'video' : 'image',
+  });
+
+  if (company.marketplaceVideoUrl) {
+    addItem({
+      id: 'marketplace-video',
+      url: company.marketplaceVideoUrl,
+      title: company.name,
+      caption: role.title,
+      type: 'video',
+    });
+  }
+
+  company.gallery.forEach((asset, index) => {
+    addItem({
+      id: asset.id || `gallery-${index}`,
+      url: asset.url,
+      title: asset.title || asset.name || `${company.name} ${index + 1}`,
+      caption: asset.caption,
+      type: isVideoAsset(asset) ? 'video' : 'image',
+    });
+  });
+
+  return items;
+};
+
+const CompanyHeroMediaStage: React.FC<{
+  company: Company;
+  role: Role;
+  fallbackSrcs: string[];
+  t: any;
+}> = ({ company, role, fallbackSrcs, t }) => {
+  const media = React.useMemo(() => buildCompanyHeroMedia(company, role), [company, role]);
+  const [activeIndex, setActiveIndex] = React.useState(0);
+  const active = media[activeIndex] || media[0];
+  const hasMultiple = media.length > 1;
+
+  React.useEffect(() => {
+    setActiveIndex(0);
+  }, [role.id, media.length]);
+
+  React.useEffect(() => {
+    if (!hasMultiple) return undefined;
+    const timer = window.setInterval(() => {
+      setActiveIndex((current) => (current + 1) % media.length);
+    }, active?.type === 'video' ? 9000 : 5200);
+    return () => window.clearInterval(timer);
+  }, [active?.type, hasMultiple, media.length]);
+
+  if (!active) {
+    return (
+      <ResilientImage
+        src={role.heroImage}
+        fallbackSrcs={fallbackSrcs}
+        alt={company.name}
+        className="h-full min-h-[18rem] w-full object-cover"
+        loading="lazy"
+        decoding="async"
+      />
+    );
+  }
+
+  return (
+    <div className="group relative h-full min-h-[18rem] overflow-hidden bg-slate-950">
+      {active.type === 'video' ? (
+        <video
+          key={active.url}
+          src={active.url}
+          className="h-full min-h-[18rem] w-full object-cover"
+          autoPlay
+          muted
+          loop
+          playsInline
+          controls
+        />
+      ) : (
+        <ResilientImage
+          key={active.url}
+          src={active.url}
+          fallbackSrcs={fallbackSrcs}
+          alt={active.title}
+          className="h-full min-h-[18rem] w-full object-cover"
+          loading="lazy"
+          decoding="async"
+        />
+      )}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-slate-950/45 via-slate-950/10 to-transparent" />
+      <div className="absolute bottom-4 left-4 right-4 flex flex-wrap items-end justify-between gap-3 text-white">
+        <div className="flex h-14 w-14 items-center justify-center rounded-lg border border-white/40 bg-white/90 p-2 shadow-sm backdrop-blur-md">
+          <ResilientImage
+            src={company.logo}
+            fallbackSrcs={fallbackSrcs}
+            alt={company.name}
+            className="h-full w-full object-contain"
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
+        {hasMultiple ? (
+          <div className="flex items-center gap-2 rounded-full bg-white/14 px-2 py-1 backdrop-blur-md">
+            {media.map((item, index) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setActiveIndex(index)}
+                aria-label={t('rebuild.briefing.show_media_slide', { defaultValue: 'Zobrazit médium {{n}}', n: index + 1 })}
+                className={cn(
+                  'h-2.5 rounded-full transition',
+                  index === activeIndex ? 'w-7 bg-white' : 'w-2.5 bg-white/48 hover:bg-white/80',
+                )}
+              />
+            ))}
+          </div>
+        ) : null}
+      </div>
+      {hasMultiple ? (
+        <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-3 opacity-0 transition group-hover:opacity-100">
+          <button
+            type="button"
+            onClick={() => setActiveIndex((current) => (current - 1 + media.length) % media.length)}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/86 text-slate-900 shadow-sm backdrop-blur-md transition hover:bg-white"
+            aria-label={t('rebuild.briefing.previous_media', { defaultValue: 'Předchozí médium' })}
+          >
+            <ArrowLeft size={17} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveIndex((current) => (current + 1) % media.length)}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/86 text-slate-900 shadow-sm backdrop-blur-md transition hover:bg-white"
+            aria-label={t('rebuild.briefing.next_media', { defaultValue: 'Další médium' })}
+          >
+            <ArrowRight size={17} />
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
+const normalizeRoleDetailText = (value?: string | null): string =>
+  cleanRoleDetailText(value)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const firstUniqueRoleText = (...values: Array<string | null | undefined>): string => {
+  const seen = new Set<string>();
+  for (const value of values) {
+    const cleaned = cleanMarkdownDetailText(value);
+    const normalized = normalizeRoleDetailText(cleaned);
+    if (!cleaned || !normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    return cleaned;
+  }
+  return '';
+};
+
 // Components extracted to separate files
 
 // Components extracted to separate files (RecommendationFitPanel, JhiNetGraph, RoleRealityBoard)
@@ -124,7 +329,7 @@ const ShamiGuidePanel: React.FC<{
   role: Role;
   blueprint: HandshakeBlueprint;
   company: Company;
-  t: (key: string, opts: { defaultValue: string } & Record<string, any>) => string;
+  t: any;
 }> = ({ role, blueprint, company, t }) => {
   const { i18n } = useTranslation();
   const [insight, setInsight] = React.useState<RoleInsightReply | null>(null);
@@ -219,7 +424,7 @@ const ShamiGuidePanel: React.FC<{
                     {hint.icon}
                     {hint.label}
                   </div>
-                  <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-600">{hint.text}</p>
+                  <p className="mt-2 break-words text-sm leading-6 text-slate-600">{hint.text}</p>
                 </div>
               ))}
             </div>
@@ -232,12 +437,12 @@ const ShamiGuidePanel: React.FC<{
         {(insight?.watch_out || insight?.suggested_first_move) ? (
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             {insight.watch_out ? (
-              <div className="rounded-lg border border-amber-200 bg-amber-50/80 p-3 text-sm leading-6 text-amber-900">
+              <div className="break-words rounded-lg border border-amber-200 bg-amber-50/80 p-3 text-sm leading-6 text-amber-900">
                 <span className="font-semibold">{t('rebuild.shami.watch_out', { defaultValue: 'Na co si dát pozor' })}: </span>{insight.watch_out}
               </div>
             ) : null}
             {insight.suggested_first_move ? (
-              <div className="rounded-lg border border-[rgba(18,175,203,0.18)] bg-white/80 p-3 text-sm leading-6 text-slate-700">
+              <div className="break-words rounded-lg border border-[rgba(18,175,203,0.18)] bg-white/80 p-3 text-sm leading-6 text-slate-700">
                 <span className="font-semibold text-slate-900">{t('rebuild.shami.first_move', { defaultValue: 'První krok' })}: </span>{insight.suggested_first_move}
               </div>
             ) : null}
@@ -253,8 +458,9 @@ const ShamiGuidePanel: React.FC<{
 const CompanyEncounterPanel: React.FC<{
   role: Role;
   company?: Company | null;
-  t: (key: string, opts: { defaultValue: string }) => string;
-}> = ({ role, company, t }) => {
+  companyStory?: string;
+  t: any;
+}> = ({ role, company, companyStory, t }) => {
   if (!company) {
     return (
       <ShellCard className="p-6">
@@ -292,6 +498,15 @@ const CompanyEncounterPanel: React.FC<{
         </div>
       </div>
       {intro ? <p className="mt-5 text-sm leading-7 text-slate-600">{intro}</p> : null}
+      {companyStory ? (
+        <div className="mt-5 rounded-lg border border-slate-200 bg-slate-50/80 p-4">
+          <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">
+            <Building2 size={12} />
+            {t('rebuild.briefing.company_story', { defaultValue: 'Příběh společnosti' })}
+          </div>
+          <MarkdownContent value={companyStory} className="text-sm text-slate-600 prose-p:leading-7 prose-li:leading-6" />
+        </div>
+      ) : null}
       <div className="mt-5 grid gap-3">
         <DetailMetaPill label={t('rebuild.detail.company', { defaultValue: 'Company' })} value={company.name} />
         <DetailMetaPill label={t('rebuild.detail.source', { defaultValue: 'Source' })} value={t('rebuild.detail.native', { defaultValue: 'Jobshaman native' })} />
@@ -327,8 +542,10 @@ const DetailActionPanel: React.FC<{
   isSaved: boolean;
   onToggleSaved: () => void;
   navigate: (path: string) => void;
-  t: (key: string, opts: { defaultValue: string }) => string;
-}> = ({ role, sourceLink, existingApplication, isSaved, onToggleSaved, navigate, t }) => {
+  sticky?: boolean;
+  className?: string;
+  t: any;
+}> = ({ role, sourceLink, existingApplication, isSaved, onToggleSaved, navigate, sticky = true, className, t }) => {
   const { i18n } = useTranslation();
   const [availability, setAvailability] = React.useState(role.slotAvailability || null);
   React.useEffect(() => {
@@ -344,7 +561,8 @@ const DetailActionPanel: React.FC<{
   const blocked = Boolean(availability && !availability.available && !availability.existingHandshakeId && !existingApplication);
   const compensation = formatRoleCompensation(role, t('rebuild.prep.compensation_unknown', { defaultValue: 'Neuvedeno' }), i18n?.language);
   return (
-    <ShellCard className="sticky top-6 p-5 md:p-6">
+    <ShellCard className={cn(sticky ? 'sticky top-6' : '', 'overflow-hidden p-5 md:p-6', className)}>
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#12AFCB] via-cyan-300 to-emerald-300" />
       <SectionEyebrow>{role.source === 'curated' ? t('rebuild.briefing.next_step', { defaultValue: 'Dalsi krok' }) : t('rebuild.detail.external_source_title', { defaultValue: 'External source' })}</SectionEyebrow>
       <h3 className="mt-3 text-xl font-semibold tracking-normal text-slate-900">
         {role.source === 'curated'
@@ -373,8 +591,11 @@ const DetailActionPanel: React.FC<{
         </div>
       </div>
       {availability?.companyChallenge ? (
-        <div className="mt-4 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-          {t('rebuild.briefing.slots_available', { defaultValue: 'Handshake sloty' })}: <strong>{availability.companyChallenge.remaining}</strong> / {availability.companyChallenge.limit}
+        <div className="mt-4 rounded-lg border border-[#12AFCB]/20 bg-[#12AFCB]/7 px-4 py-3 text-sm text-slate-700">
+          <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#0f95ac]">{t('rebuild.briefing.slots_available', { defaultValue: 'Handshake sloty' })}</div>
+          <div className="mt-1 text-2xl font-semibold tracking-normal text-slate-950">
+            {availability.companyChallenge.remaining} <span className="text-sm font-medium text-slate-500">/ {availability.companyChallenge.limit}</span>
+          </div>
         </div>
       ) : null}
       {blocked ? (
@@ -409,7 +630,7 @@ const MobileSwipeMarketplace: React.FC<{
   onLoadMore: () => void;
   onRoleInteraction: (roleId: string, eventType: 'swipe_left' | 'swipe_right' | 'save' | 'unsave') => void;
   navigate: (path: string) => void;
-  t: (key: string, opts: { defaultValue: string }) => string;
+  t: any;
 }> = ({ roles, companyLibrary, savedRoleIds, hasMore, loadingMore, onLoadMore, onRoleInteraction, navigate, t }) => {
   const [index, setIndex] = React.useState(0);
   const [dragX, setDragX] = React.useState(0);
@@ -573,7 +794,7 @@ export const MarketplacePage: React.FC<{
   onLoadMore: () => void;
   onRoleInteraction: (roleId: string, eventType: 'swipe_left' | 'swipe_right' | 'save' | 'unsave') => void;
   navigate: (path: string) => void;
-  t: (key: string, opts: { defaultValue: string }) => string;
+  t: any;
 }> = ({ roles, loading, totalRoleCount, databaseRoleCount, hasMore, searchValue, onSearchChange, filters, preferences, companyLibrary, candidateApplicationsByRoleId, savedRoleIds, onFiltersChange, onResetFilters, onLoadMore, onRoleInteraction, navigate, t }) => {
   const [showScrollTop, setShowScrollTop] = React.useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = React.useState(false);
@@ -995,7 +1216,7 @@ export const CandidateRoleBriefingPage: React.FC<{
   isSaved: boolean;
   onToggleSaved: () => void;
   navigate: (path: string) => void;
-  t: (key: string, opts: { defaultValue: string }) => string;
+  t: any;
 }> = ({ role, blueprint, preferences, companyLibrary, existingApplication, isSaved, onToggleSaved, navigate, t }) => {
   const company = resolveCompany(role, companyLibrary);
   const applicationStatus = existingApplication ? getApplicationStatusCopy(existingApplication.status, t) : null;
@@ -1006,11 +1227,11 @@ export const CandidateRoleBriefingPage: React.FC<{
     MARKETPLACE_IMAGE_FALLBACK,
   ]);
   const compensation = formatRoleCompensation(role, t('rebuild.briefing.compensation_unknown', { defaultValue: 'Compensation not specified' }));
-  const overviewCopy = role.roleSummary || role.mission || role.summary || role.description;
-  const missionCopy = role.mission && role.mission !== overviewCopy ? role.mission : role.description;
+  const overviewCopy = firstUniqueRoleText(role.description, role.challenge, role.roleSummary, role.summary, role.mission);
+  const companyStoryCopy = cleanMarkdownDetailText(company.narrative);
   const truthSections = [
-    { title: t('rebuild.briefing.hard_truth', { defaultValue: 'Narocna realita role' }), body: role.companyTruthHard || '' },
-    { title: t('rebuild.briefing.failure_truth', { defaultValue: 'Co znamena neuspech' }), body: role.companyTruthFail || '' },
+    { title: t('rebuild.briefing.hard_truth', { defaultValue: 'Narocna realita role' }), body: cleanRoleDetailText(role.companyTruthHard) },
+    { title: t('rebuild.briefing.failure_truth', { defaultValue: 'Co znamena neuspech' }), body: cleanRoleDetailText(role.companyTruthFail) },
   ].filter((item) => item.body.trim());
   return (
     <CandidateShellSurface
@@ -1025,21 +1246,42 @@ export const CandidateRoleBriefingPage: React.FC<{
     >
       <JobPostingSchema role={role} />
       <ShellCard className="overflow-hidden">
-        <div className="grid min-h-[24rem] bg-white lg:grid-cols-[1fr_0.72fr]">
-          <div className="flex items-center p-6 md:p-8 lg:p-10">
-            <div className="max-w-3xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{company.name}</div>
+        <div className="bg-white">
+          <div className="relative aspect-[16/7] min-h-[18rem] border-b border-slate-200 lg:aspect-[21/8]">
+            <CompanyHeroMediaStage company={company} role={role} fallbackSrcs={coverFallbacks} t={t} />
+          </div>
+          <div className="p-6 md:p-8 lg:p-10">
+            <div className="max-w-5xl">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{company.name}</span>
+                {company.gallery.length > 0 || company.marketplaceVideoUrl ? (
+                  <span className="inline-flex items-center gap-2 rounded-full bg-[#e6fbff] px-3 py-1 text-[11px] font-bold text-[#0f95ac]">
+                    {t('rebuild.briefing.company_media_count', { defaultValue: '{{count}} médií v profilu', count: company.gallery.length + (company.marketplaceVideoUrl ? 1 : 0) })}
+                  </span>
+                ) : null}
+              </div>
               <h1 className="mt-4 text-[clamp(2.2rem,5vw,4.35rem)] font-semibold leading-[0.98] tracking-normal text-slate-950">{role.title}</h1>
-              <p className="mt-5 max-w-2xl text-base leading-8 text-slate-600">{overviewCopy}</p>
-              <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                <DetailMetaPill label={t('rebuild.briefing.compensation', { defaultValue: 'Odmena' })} value={compensation} />
-                <DetailMetaPill label={t('rebuild.briefing.work_model', { defaultValue: 'Rezim' })} value={role.workModel} />
-                <DetailMetaPill label={t('rebuild.briefing.location', { defaultValue: 'Misto' })} value={role.location} />
+              <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
+                <div className="min-w-0">
+                  {overviewCopy ? <MarkdownContent value={overviewCopy} className="max-w-4xl text-base text-slate-600" /> : null}
+                  <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                    <DetailMetaPill label={t('rebuild.briefing.compensation', { defaultValue: 'Odmena' })} value={compensation} />
+                    <DetailMetaPill label={t('rebuild.briefing.work_model', { defaultValue: 'Rezim' })} value={role.workModel} />
+                    <DetailMetaPill label={t('rebuild.briefing.location', { defaultValue: 'Misto' })} value={role.location} />
+                  </div>
+                </div>
+                <DetailActionPanel
+                  role={role}
+                  existingApplication={existingApplication}
+                  isSaved={isSaved}
+                  onToggleSaved={onToggleSaved}
+                  navigate={navigate}
+                  sticky={false}
+                  className="self-start"
+                  t={t}
+                />
               </div>
             </div>
-          </div>
-          <div className="min-h-[16rem] border-t border-slate-200 lg:border-l lg:border-t-0">
-            <ResilientImage src={company.coverImage} fallbackSrcs={coverFallbacks} alt={company.name} className="h-full min-h-[16rem] w-full object-cover" loading="lazy" decoding="async" />
           </div>
         </div>
       </ShellCard>
@@ -1051,18 +1293,6 @@ export const CandidateRoleBriefingPage: React.FC<{
           <ShellCard className="p-6">
             <SectionEyebrow><Target size={12} />{t('rebuild.briefing.title', { defaultValue: 'Skill-first briefing' })}</SectionEyebrow>
             <h2 className="mt-3 text-2xl font-semibold tracking-normal text-slate-900">{t('rebuild.briefing.native_heading', { defaultValue: 'Nejdřív pracovní realita, potom CV.' })}</h2>
-            {missionCopy ? (
-              <p className="mt-4 text-base leading-8 text-slate-600">{missionCopy}</p>
-            ) : null}
-            {role.challenge ? (
-              <div className="mt-6 rounded-lg border border-[rgba(18,175,203,0.22)] bg-[rgba(18,175,203,0.06)] p-5">
-                <div className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#0f95ac]">
-                  <BadgeCheck size={13} />
-                  {t('rebuild.briefing.the_challenge', { defaultValue: 'The challenge' })}
-                </div>
-                <p className="whitespace-pre-wrap text-base leading-8 text-slate-700">{role.challenge}</p>
-              </div>
-            ) : null}
             <div className="mt-6 grid gap-4 md:grid-cols-2">
               <SkillSignalCard
                 tone="accent"
@@ -1080,10 +1310,27 @@ export const CandidateRoleBriefingPage: React.FC<{
               <DetailMetaPill label={t('rebuild.briefing.contract', { defaultValue: 'Typ uvazku' })} value={role.contractType || t('rebuild.briefing.contract_unknown', { defaultValue: 'Neuvedeno' })} />
               <DetailMetaPill label={t('rebuild.detail.source', { defaultValue: 'Zdroj' })} value={t('rebuild.detail.native', { defaultValue: 'Jobshaman native' })} />
             </div>
+            {role.hoursPerWeek ? (
+              <div className="mt-6 grid gap-3 md:grid-cols-2">
+                <DetailMetaPill label={t('rebuild.editor.hours_per_week', { defaultValue: 'Hours per Week' })} value={`${role.hoursPerWeek} h/week`} />
+                {role.employmentType ? (
+                  <DetailMetaPill
+                    label={t('rebuild.editor.employment_type', { defaultValue: 'Employment Type' })}
+                    value={t(`rebuild.editor.employment_${role.employmentType}`, { defaultValue: role.employmentType })}
+                  />
+                ) : null}
+              </div>
+            ) : null}
             {role.benefits.length > 0 ? (
               <div className="mt-6">
                 <div className="text-sm font-semibold text-slate-900">{t('rebuild.briefing.benefits', { defaultValue: 'Benefity a podminky' })}</div>
                 <div className="mt-3 flex flex-wrap gap-2">{role.benefits.map((benefit) => <span key={benefit} className="rounded-full bg-[#12AFCB]/8 px-3 py-1.5 text-xs font-medium text-[#0f95ac]">{benefit}</span>)}</div>
+              </div>
+            ) : null}
+            {role.workPerks && role.workPerks.length > 0 ? (
+              <div className="mt-6">
+                <div className="text-sm font-semibold text-slate-900">{t('rebuild.editor.work_perks', { defaultValue: 'Work Perks' })}</div>
+                <div className="mt-3 flex flex-wrap gap-2">{role.workPerks.map((perk) => <span key={perk} className="rounded-full bg-[#12AFCB]/8 px-3 py-1.5 text-xs font-medium text-[#0f95ac]">{perk}</span>)}</div>
               </div>
             ) : null}
             <div className="mt-6">
@@ -1101,7 +1348,11 @@ export const CandidateRoleBriefingPage: React.FC<{
                 <div className="mt-3 grid gap-3 md:grid-cols-2">
                   {company.gallery.slice(0, 4).map((asset) => (
                     <div key={asset.id} className="overflow-hidden rounded-[20px] border border-slate-200 bg-slate-50">
-                      <img src={asset.url} alt={asset.title || asset.name} className="h-36 w-full object-cover" loading="lazy" />
+                      {isVideoAsset(asset) ? (
+                        <video src={asset.url} className="h-36 w-full object-cover" controls muted playsInline />
+                      ) : (
+                        <img src={asset.url} alt={asset.title || asset.name} className="h-36 w-full object-cover" loading="lazy" />
+                      )}
                       <div className="px-4 py-3 text-sm text-slate-600">{asset.caption || asset.title || asset.name}</div>
                     </div>
                   ))}
@@ -1139,8 +1390,7 @@ export const CandidateRoleBriefingPage: React.FC<{
           </ShellCard>
         </div>
         <div className="space-y-6">
-          <CompanyEncounterPanel role={role} company={company} t={t} />
-          <DetailActionPanel role={role} existingApplication={existingApplication} isSaved={isSaved} onToggleSaved={onToggleSaved} navigate={navigate} t={t} />
+          <CompanyEncounterPanel role={role} company={company} companyStory={companyStoryCopy} t={t} />
         </div>
       </div>
     </CandidateShellSurface>
@@ -1153,7 +1403,7 @@ export const ImportedPrepPage: React.FC<{
   isSaved: boolean;
   onToggleSaved: () => void;
   navigate: (path: string) => void;
-  t: (key: string, opts: { defaultValue: string }) => string;
+  t: any;
 }> = ({ role, preferences, isSaved, onToggleSaved, navigate, t }) => {
   const sourceLink = role.outboundUrl || role.sourceUrl || '';
   const coverFallbacks = buildImageCandidates([

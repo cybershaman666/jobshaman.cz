@@ -24,11 +24,12 @@ const buildFallbackCompany = (role: Role): Company => ({
   headquarters: role.location,
   narrative: role.companyNarrative || 'This company has not published a custom brand surface yet.',
   coverImage: role.companyCoverImage || role.heroImage,
+  marketplaceVideoUrl: role.companyVideoUrl,
   logo: role.companyLogo || role.heroImage,
-  gallery: [],
+  gallery: role.companyGallery || [],
   handshakeMaterials: [],
   theme: getCompanyTheme(`${role.companyId}:${role.companyName || role.title}`),
-  reviewer: {
+  reviewer: role.companyReviewer || {
     name: 'Hiring Team',
     role: 'Recruiter',
     avatarUrl: role.companyLogo || role.heroImage,
@@ -40,7 +41,9 @@ const buildFallbackCompany = (role: Role): Company => ({
 });
 
 export const resolveCompany = (role: Role, companyLibrary: Company[]) =>
-  companyLibrary.find((company) => company.id === role.companyId) || buildFallbackCompany(role);
+  companyLibrary.find((company) => company.id === role.companyId)
+  || companyLibrary.find((company) => company.name.toLowerCase() === (role.companyName || '').toLowerCase())
+  || buildFallbackCompany(role);
 
 export const roleFamilyLabel: Record<Role['roleFamily'], string> = {
   engineering: 'Technologie a vývoj',

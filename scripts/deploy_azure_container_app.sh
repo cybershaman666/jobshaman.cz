@@ -194,30 +194,24 @@ az containerapp create \
     AZURE_AI_API_VERSION=2024-05-01-preview \
     AZURE_AI_EMBEDDING_MODEL=text-embedding-3-large \
     AZURE_AI_EMBEDDING_DIMENSIONS=1024 \
-    AZURE_OPENAI_API_KEY=secretref:azure-openai-api-key \
-    AZURE_OPENAI_ENDPOINT=secretref:azure-openai-endpoint \
     RESEND_API_KEY=secretref:resend-api-key \
     API_BASE_URL=https://api.jobshaman.cz \
     APP_PUBLIC_URL=https://jobshaman.cz \
     ALLOWED_ORIGINS="https://jobshaman.cz,https://www.jobshaman.cz" \
   --secrets \
-    "supabase-url=keyvaultref@https://${KEYVAULT_NAME}.vault.azure.net/secrets/SUPABASE-URL/" \
-    "supabase-service-role-key=keyvaultref@https://${KEYVAULT_NAME}.vault.azure.net/secrets/SUPABASE-SERVICE-ROLE-KEY/" \
-    "database-url=keyvaultref@https://${KEYVAULT_NAME}.vault.azure.net/secrets/DATABASE-URL/" \
-    "jwt-secret=keyvaultref@https://${KEYVAULT_NAME}.vault.azure.net/secrets/JWT-SECRET/" \
-    "stripe-secret-key=keyvaultref@https://${KEYVAULT_NAME}.vault.azure.net/secrets/STRIPE-SECRET-KEY/" \
-    "stripe-webhook-secret=keyvaultref@https://${KEYVAULT_NAME}.vault.azure.net/secrets/STRIPE-WEBHOOK-SECRET/" \
-    "openai-api-key=keyvaultref@https://${KEYVAULT_NAME}.vault.azure.net/secrets/OPENAI-API-KEY/" \
-    "azure-openai-api-key=keyvaultref@https://${KEYVAULT_NAME}.vault.azure.net/secrets/AZURE-OPENAI-API-KEY/" \
-    "azure-openai-endpoint=keyvaultref@https://${KEYVAULT_NAME}.vault.azure.net/secrets/AZURE-OPENAI-ENDPOINT/" \
-    "resend-api-key=keyvaultref@https://${KEYVAULT_NAME}.vault.azure.net/secrets/RESEND-API-KEY/" \
-    "sentry-dsn=keyvaultref@https://${KEYVAULT_NAME}.vault.azure.net/secrets/SENTRY-DSN/" \
+    "supabase-url=keyvaultref:https://${KEYVAULT_NAME}.vault.azure.net/secrets/SUPABASE-URL,identityref:system" \
+    "supabase-service-role-key=keyvaultref:https://${KEYVAULT_NAME}.vault.azure.net/secrets/SUPABASE-SERVICE-ROLE-KEY,identityref:system" \
+    "database-url=keyvaultref:https://${KEYVAULT_NAME}.vault.azure.net/secrets/DATABASE-URL,identityref:system" \
+    "jwt-secret=keyvaultref:https://${KEYVAULT_NAME}.vault.azure.net/secrets/JWT-SECRET,identityref:system" \
+    "stripe-secret-key=keyvaultref:https://${KEYVAULT_NAME}.vault.azure.net/secrets/STRIPE-SECRET-KEY,identityref:system" \
+    "stripe-webhook-secret=keyvaultref:https://${KEYVAULT_NAME}.vault.azure.net/secrets/STRIPE-WEBHOOK-SECRET,identityref:system" \
+    "openai-api-key=keyvaultref:https://${KEYVAULT_NAME}.vault.azure.net/secrets/OPENAI-API-KEY,identityref:system" \
+    "azure-openai-api-key=keyvaultref:https://${KEYVAULT_NAME}.vault.azure.net/secrets/AZURE-OPENAI-API-KEY,identityref:system" \
+    "azure-openai-endpoint=keyvaultref:https://${KEYVAULT_NAME}.vault.azure.net/secrets/AZURE-OPENAI-ENDPOINT,identityref:system" \
+    "resend-api-key=keyvaultref:https://${KEYVAULT_NAME}.vault.azure.net/secrets/RESEND-API-KEY,identityref:system" \
+    "sentry-dsn=keyvaultref:https://${KEYVAULT_NAME}.vault.azure.net/secrets/SENTRY-DSN,identityref:system" \
   --registry-server "${ACR_NAME}.azurecr.io" \
-  --registry-identity system \
-  --health-probe-path /health \
-  --health-probe-interval 10 \
-  --health-probe-timeout 5 \
-  --health-probe-failure-count-threshold 3
+  --registry-identity system 2>&1 | tee -a deployment.log
 
 echo "✅ Container App created/updated"
 echo ""

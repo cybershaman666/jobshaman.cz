@@ -13,6 +13,7 @@ export interface ResultsSummaryStepProps {
   answers: Record<string, unknown>;
   candidateScore: number;
   isSubmitting?: boolean;
+  isSaving?: boolean;
   onSubmit?: () => Promise<void>;
   onUpdateAnswer: (stepId: string, value: unknown) => void;
 }
@@ -28,6 +29,7 @@ export const ResultsSummaryStep: React.FC<ResultsSummaryStepProps> = ({
   answers,
   candidateScore,
   isSubmitting = false,
+  isSaving = false,
   onSubmit,
   onUpdateAnswer,
 }) => {
@@ -147,13 +149,15 @@ export const ResultsSummaryStep: React.FC<ResultsSummaryStepProps> = ({
               <button
                 type="button"
                 onClick={handleSubmit}
-                disabled={isSubmitting}
+                disabled={isSubmitting || isSaving}
                 className={cn(primaryButtonClass, 'mt-4 inline-flex gap-2')}
               >
-                {isSubmitting ? (
+                {isSubmitting || isSaving ? (
                   <>
                     <Loader2 size={16} className="animate-spin" />
-                    {t('rebuild.journey.submitting', { defaultValue: 'Submitting...' })}
+                    {isSaving
+                      ? t('rebuild.journey.saving', { defaultValue: 'Saving...' })
+                      : t('rebuild.journey.submitting', { defaultValue: 'Submitting...' })}
                   </>
                 ) : (
                   <>

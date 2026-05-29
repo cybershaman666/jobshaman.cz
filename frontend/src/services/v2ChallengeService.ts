@@ -30,6 +30,10 @@ export interface ChallengeDraft {
   salary_from?: number | null;
   salary_to?: number | null;
   currency?: Role['currency'] | string;
+  hours_per_week?: number | null;
+  employment_type?: Role['employmentType'] | string | null;
+  benefits?: string[];
+  work_perks?: string[];
   status: 'draft' | 'ai_assisted' | 'ready_for_publish' | 'published' | 'archived' | string;
   source_kind?: string;
   assessment_tasks?: AssessmentTask[];
@@ -52,6 +56,10 @@ export interface ChallengeUpsertInput {
   salary_from?: number | null;
   salary_to?: number | null;
   salary_currency?: string;
+  hours_per_week?: number | null;
+  employment_type?: string | null;
+  benefits?: string[];
+  work_perks?: string[];
   work_model?: string;
   location?: string;
   first_reply_prompt?: string;
@@ -77,6 +85,10 @@ export const createCompanyChallenge = async (input: ChallengeUpsertInput): Promi
 export const updateCompanyChallenge = async (challengeId: string, input: Partial<ChallengeUpsertInput> & { status?: string }): Promise<ChallengeDraft> => {
   const payload = await ApiService.patch<any>(`/company/challenges/${encodeURIComponent(challengeId)}`, input);
   return unwrapChallenge(payload);
+};
+
+export const deleteCompanyChallenge = async (challengeId: string): Promise<void> => {
+  await ApiService.delete<any>(`/company/challenges/${encodeURIComponent(challengeId)}`);
 };
 
 export const aiAssistCompanyChallenge = async (

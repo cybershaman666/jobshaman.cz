@@ -15,6 +15,10 @@ const unwrapData = <T>(payload: any): T => (payload?.data ?? payload) as T;
 
 let cachedCompanyId: string | null | undefined;
 
+export const clearDialogueCache = (): void => {
+  cachedCompanyId = undefined;
+};
+
 const resolveCompanyId = async (): Promise<string | null> => {
   if (cachedCompanyId !== undefined) return cachedCompanyId;
   try {

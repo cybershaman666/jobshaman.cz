@@ -28,9 +28,28 @@ export const WorkSampleStep: React.FC<WorkSampleStepProps> = ({
   onAddExternalSubmission,
 }) => {
   const { t } = useTranslation();
+  const [draftUrl, setDraftUrl] = React.useState('');
+  const [draftProvider, setDraftProvider] = React.useState('other');
+  const [draftComment, setDraftComment] = React.useState('');
 
   const externalSubmissions = (answers.external_submissions || []) as any[];
   const note = String(answers.work_sample_note || '');
+  const canAddDraft = /^https?:\/\//i.test(draftUrl.trim());
+
+  const addDraftSubmission = () => {
+    if (!canAddDraft) return;
+    onUpdateAnswer('external_submissions', [
+      ...externalSubmissions,
+      {
+        provider: draftProvider,
+        external_url: draftUrl.trim(),
+        comment: draftComment.trim(),
+      },
+    ]);
+    setDraftUrl('');
+    setDraftComment('');
+    setDraftProvider('other');
+  };
 
   return (
     <StepContainer step={step} stepIndex={stepIndex} totalSteps={totalSteps}>
@@ -47,14 +66,52 @@ export const WorkSampleStep: React.FC<WorkSampleStepProps> = ({
 
         {/* External Submissions */}
         <div>
+          {!onAddExternalSubmission && (
+            <div className="mb-4 grid gap-3 rounded-[12px] border border-slate-200 bg-white p-4 sm:grid-cols-[160px_1fr_auto]">
+              <select
+                value={draftProvider}
+                onChange={(e) => setDraftProvider(e.target.value)}
+                className="rounded-[8px] border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 focus:border-[#1f5fbf] focus:outline-none focus:ring-1 focus:ring-[#1f5fbf]"
+              >
+                {['other', 'figma', 'notion', 'google_docs', 'miro', 'canva'].map((provider) => (
+                  <option key={provider} value={provider}>{provider.replace('_', ' ')}</option>
+                ))}
+              </select>
+              <input
+                type="url"
+                value={draftUrl}
+                onChange={(e) => setDraftUrl(e.target.value)}
+                placeholder={t('rebuild.journey.work_sample_url_placeholder', { defaultValue: 'https://...' })}
+                className="rounded-[8px] border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-[#1f5fbf] focus:outline-none focus:ring-1 focus:ring-[#1f5fbf]"
+              />
+              <button
+                type="button"
+                onClick={addDraftSubmission}
+                disabled={!canAddDraft}
+                className={cn(primaryButtonClass, 'inline-flex justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-50')}
+              >
+                <Plus size={16} />
+                {t('rebuild.journey.add', { defaultValue: 'Add' })}
+              </button>
+              <textarea
+                value={draftComment}
+                onChange={(e) => setDraftComment(e.target.value)}
+                placeholder={t('rebuild.journey.work_sample_comment_placeholder', { defaultValue: 'Short context for the reviewer' })}
+                rows={2}
+                className="rounded-[8px] border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-[#1f5fbf] focus:outline-none focus:ring-1 focus:ring-[#1f5fbf] sm:col-span-3"
+              />
+            </div>
+          )}
+
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-slate-700">
               {t('rebuild.journey.work_samples', { defaultValue: 'Work Samples' })}
             </h3>
             <button
               type="button"
-              onClick={onAddExternalSubmission}
-              className={cn(secondaryButtonClass, 'inline-flex gap-2')}
+              onClick={onAddExternalSubmission || addDraftSubmission}
+              disabled={!onAddExternalSubmission && !canAddDraft}
+              className={cn(secondaryButtonClass, 'inline-flex gap-2 disabled:cursor-not-allowed disabled:opacity-50')}
             >
               <Plus size={16} />
               {t('rebuild.journey.add_work_sample', { defaultValue: 'Add Link' })}
@@ -104,8 +161,9 @@ export const WorkSampleStep: React.FC<WorkSampleStepProps> = ({
               </div>
               <button
                 type="button"
-                onClick={onAddExternalSubmission}
-                className={cn(primaryButtonClass, 'mt-3 inline-flex gap-2')}
+                onClick={onAddExternalSubmission || addDraftSubmission}
+                disabled={!onAddExternalSubmission && !canAddDraft}
+                className={cn(primaryButtonClass, 'mt-3 inline-flex gap-2 disabled:cursor-not-allowed disabled:opacity-50')}
               >
                 <Plus size={16} />
                 {t('rebuild.journey.add_first_sample', { defaultValue: 'Add Your First Sample' })}

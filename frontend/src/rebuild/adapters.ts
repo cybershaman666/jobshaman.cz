@@ -204,6 +204,23 @@ const inferHeroImage = (job: Job): string => {
     || getStockCoverForDomain(inferVisualDomain(job), `${job.company}:${job.title}`, job.companyProfile?.marketplace_media?.visual_tone || null);
 };
 
+const buildGalleryAssets = (companyProfile?: CompanyProfile | null): Company['gallery'] => {
+  if (!companyProfile) return [];
+  const brandGallery = companyProfile.brand_assets?.gallery;
+  if (Array.isArray(brandGallery) && brandGallery.length > 0) return brandGallery;
+
+  const urls = [
+    ...(Array.isArray(companyProfile.marketplace_media?.gallery_urls) ? companyProfile.marketplace_media.gallery_urls : []),
+    ...(Array.isArray(companyProfile.gallery_urls) ? companyProfile.gallery_urls : []),
+  ].map((url) => String(url || '').trim()).filter(Boolean);
+
+  return Array.from(new Set(urls)).map((url, index) => ({
+    id: `gallery-${index}`,
+    name: `Gallery ${index + 1}`,
+    url,
+    download_url: url,
+  }));
+};
 
 const inferRoleLevel = (job: Job): Role['level'] => {
   const title = String(job.title || '').toLowerCase();
@@ -304,17 +321,11 @@ export const mapCompanyProfileToCompany = (companyProfile: CompanyProfile): Comp
   const logoAsset = brandAssets.logo || null;
   const coverAsset = brandAssets.cover || null;
   const reviewerAvatarAsset = brandAssets.reviewer_avatar || null;
-  const gallery = Array.isArray(brandAssets.gallery) && brandAssets.gallery.length > 0
-    ? brandAssets.gallery
-    : (companyProfile.gallery_urls || []).map((url, index) => ({
-        id: `gallery-${index}`,
-        name: `Gallery ${index + 1}`,
-        url,
-        download_url: url,
-      }));
+  const gallery = buildGalleryAssets(companyProfile);
   const handshakeMaterials = Array.isArray(brandAssets.handshake_materials) && brandAssets.handshake_materials.length > 0
     ? brandAssets.handshake_materials
     : (companyProfile.handshake_materials || []);
+  const primaryMember = companyProfile.members?.[0];
   return {
     id: String(companyProfile.id || slugify(companyProfile.name)),
     name: companyProfile.name || 'Company',
@@ -330,7 +341,8 @@ export const mapCompanyProfileToCompany = (companyProfile: CompanyProfile): Comp
     accentColor: companyProfile.accent_color || '',
     headquarters: companyProfile.address || companyProfile.legal_address || 'Location not specified',
     narrative: companyProfile.narrative || companyProfile.description || companyProfile.philosophy || 'The company has not added a public brand narrative yet.',
-    coverImage: coverAsset?.url || companyProfile.cover_url || companyProfile.marketplace_media?.cover_url || companyProfile.gallery_urls?.[0] || getStockCoverForDomain('operations', seed),
+    coverImage: coverAsset?.url || companyProfile.cover_url || companyProfile.marketplace_media?.cover_url || gallery[0]?.url || getStockCoverForDomain('operations', seed),
+    marketplaceVideoUrl: companyProfile.marketplace_media?.video_url || undefined,
     logo: logoAsset?.url || companyProfile.logo_url || fallbackLogo,
     logoAsset,
     coverAsset,
@@ -342,10 +354,10 @@ export const mapCompanyProfileToCompany = (companyProfile: CompanyProfile): Comp
       ...(companyProfile.accent_color ? { accent: companyProfile.accent_color } : {}),
     },
     reviewer: {
-      name: companyProfile.members?.[0]?.name || 'Hiring Team',
-      role: companyProfile.members?.[0]?.companyRole || companyProfile.members?.[0]?.role || 'Recruiter',
-      avatarUrl: reviewerAvatarAsset?.url || companyProfile.members?.[0]?.avatar || logoAsset?.url || companyProfile.logo_url || fallbackLogo,
-      intro: companyProfile.tone || companyProfile.philosophy || 'We want to understand your signal before we talk live.',
+      name: primaryMember?.name || 'Hiring Team',
+      role: primaryMember?.companyRole || primaryMember?.role || 'Recruiter',
+      avatarUrl: reviewerAvatarAsset?.url || primaryMember?.avatar || logoAsset?.url || companyProfile.logo_url || fallbackLogo,
+      intro: primaryMember?.teamBio || companyProfile.tone || companyProfile.philosophy || 'We want to understand your signal before we talk live.',
       meetingLabel: 'Intro Call',
       durationMinutes: 25,
       tool: 'Google Meet',
@@ -360,6 +372,9 @@ export const mapJobToRole = (job: Job): Role => {
   const source = normalizeRoleSource(job);
   const companyId = String(job.company_id || slugify(job.company || 'company'));
   const rawJob = job as any;
+  const companyProfile = job.companyProfile;
+  const reviewerAvatarAsset = companyProfile?.brand_assets?.reviewer_avatar || null;
+  const primaryMember = companyProfile?.members?.[0];
   const assessmentTasks = Array.isArray(rawJob.assessment_tasks || rawJob.payload_json?.assessment_tasks)
     ? (rawJob.assessment_tasks || rawJob.payload_json?.assessment_tasks)
     : [];
@@ -374,9 +389,20 @@ export const mapJobToRole = (job: Job): Role => {
     status: job.status || 'published',
     companyId,
     companyName: job.company,
-    companyLogo: job.companyProfile?.logo_url || undefined,
-    companyCoverImage: job.companyProfile?.marketplace_media?.cover_url || job.companyProfile?.gallery_urls?.[0] || undefined,
-    companyNarrative: job.companyProfile?.description || job.companyGoal || undefined,
+    companyLogo: companyProfile?.logo_url || undefined,
+    companyCoverImage: companyProfile?.marketplace_media?.cover_url || companyProfile?.cover_url || companyProfile?.gallery_urls?.[0] || undefined,
+    companyVideoUrl: companyProfile?.marketplace_media?.video_url || undefined,
+    companyGallery: buildGalleryAssets(companyProfile),
+    companyNarrative: companyProfile?.narrative || companyProfile?.description || companyProfile?.philosophy || job.companyGoal || undefined,
+    companyReviewer: primaryMember ? {
+      name: primaryMember.name || 'Hiring Team',
+      role: primaryMember.companyRole || primaryMember.role || 'Recruiter',
+      avatarUrl: reviewerAvatarAsset?.url || primaryMember.avatar || companyProfile?.logo_url || '',
+      intro: primaryMember.teamBio || companyProfile?.tone || companyProfile?.philosophy || 'We want to understand your signal before we talk live.',
+      meetingLabel: 'Intro Call',
+      durationMinutes: 25,
+      tool: 'Google Meet',
+    } : undefined,
     title: job.title,
     team: job.companyGoal || job.company || 'Hiring',
     location: job.location || 'Location not specified',
@@ -622,6 +648,18 @@ export const mapChallengeDraftToRole = (challenge: ChallengeDraft, t: any, compa
     : Array.isArray(challenge.payload_json?.assessment_tasks)
       ? challenge.payload_json.assessment_tasks as any[]
       : [];
+  const benefits = Array.isArray(challenge.benefits)
+    ? challenge.benefits.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+    : [];
+  const workPerks = Array.isArray(challenge.work_perks)
+    ? challenge.work_perks.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+    : [];
+  const employmentType = challenge.employment_type === 'full_time'
+    || challenge.employment_type === 'part_time'
+    || challenge.employment_type === 'contract'
+    || challenge.employment_type === 'gig'
+    ? challenge.employment_type
+    : null;
   const handshakeBlueprint = normalizeLiveBlueprint(
     challenge.handshake_blueprint_v1 || challenge.payload_json?.handshake_blueprint_v1,
     assessmentTasks,
@@ -635,6 +673,8 @@ export const mapChallengeDraftToRole = (challenge: ChallengeDraft, t: any, compa
     companyName: challenge.company_name || company?.name || t('rebuild.adapters.company_fallback', { defaultValue: 'Company' }),
     companyLogo: company?.logo,
     companyCoverImage: company?.coverImage,
+    companyVideoUrl: company?.marketplaceVideoUrl,
+    companyGallery: company?.gallery || [],
     companyNarrative: company?.narrative,
     title: challenge.title,
     team: String(challenge.editor_state?.company_goal || company?.domain || t('rebuild.adapters.assessment_center', { defaultValue: 'Assessment center' })),
@@ -659,13 +699,24 @@ export const mapChallengeDraftToRole = (challenge: ChallengeDraft, t: any, compa
     companyTruthHard: null,
     companyTruthFail: null,
     skills,
-    benefits: [],
+    benefits,
+    hoursPerWeek: typeof challenge.hours_per_week === 'number' ? challenge.hours_per_week : null,
+    employmentType,
+    workPerks,
     coordinates: { lat: 0, lng: 0 },
     blueprintId: handshakeBlueprint?.id || String((challenge.handshake_blueprint_v1 as any)?.id || ''),
     assessmentTasks,
     handshakeBlueprint,
     capacityPolicy: challenge.capacity_policy || {},
-    featuredInsights: [challenge.status, workModel, roleFamily].filter(Boolean),
+    featuredInsights: [
+      challenge.status,
+      workModel,
+      employmentType ? t(`rebuild.editor.employment_${employmentType}_short`, { defaultValue: employmentType }) : null,
+      typeof challenge.hours_per_week === 'number' ? `${challenge.hours_per_week} ${t('rebuild.editor.hours', { defaultValue: 'h/week' })}` : null,
+      ...benefits.slice(0, 2),
+      ...workPerks.slice(0, 2),
+      roleFamily,
+    ].filter(Boolean),
   };
 };
 

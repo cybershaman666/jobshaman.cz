@@ -26,6 +26,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .core.runtime import get_cors_origins, validate_runtime_config
 
+from .routers import csrf
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
@@ -121,14 +123,8 @@ api_v2_router.include_router(scraper.router, prefix="/scraper", tags=["scraper"]
 api_v2_router.include_router(integrations.router, prefix="/integrations", tags=["integrations"])
 
 app.include_router(api_v2_router)
-
-@app.get("/csrf-token")
-def get_csrf_token():
-    """
-    Generate CSRF token for frontend.
-    """
-    # For now, return a dummy token since CSRF is disabled
-    return {"csrf_token": "dummy-token-for-v2"}
+app.include_router(csrf.router)
+# CSRF endpoint je napojen přes routers/csrf.py
 
 @app.get("/health")
 def health_check():

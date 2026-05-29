@@ -31,6 +31,20 @@ def _is_active_subscription(sub: dict | None) -> bool:
         return True
     return datetime.now(timezone.utc) <= expires_at
 
+def _subscription_priority(sub: dict) -> tuple[int, int, datetime]:
+    tier = str(sub.get("tier") or "").lower()
+    tier_weight = {
+        "enterprise": 6,
+        "professional": 5,
+        "growth": 4,
+        "starter": 3,
+        "premium": 2,
+        "trial": 1,
+        "free": 0,
+    }.get(tier, 0)
+    updated_at = _parse_iso_datetime(sub.get("updated_at")) or _parse_iso_datetime(sub.get("current_period_end")) or datetime.min.replace(tzinfo=timezone.utc)
+    return (1 if _is_active_subscription(sub) else 0, tier_weight, updated_at)
+
 def _get_latest_subscription_by(column: str, value: str) -> dict | None:
     if not value:
         return None
@@ -47,24 +61,10 @@ def _get_latest_subscription_by(column: str, value: str) -> dict | None:
         rows = [row for row in (resp.data or []) if isinstance(row, dict)]
         if not rows:
             return None
-
-        def _priority(sub: dict) -> tuple[int, int, datetime]:
-            tier = str(sub.get("tier") or "").lower()
-            tier_weight = {
-                "enterprise": 6,
-                "professional": 5,
-                "growth": 4,
-                "starter": 3,
-                "premium": 2,
-                "trial": 1,
-                "free": 0,
-            }.get(tier, 0)
-            updated_at = _parse_iso_datetime(sub.get("updated_at")) or _parse_iso_datetime(sub.get("current_period_end")) or datetime.min.replace(tzinfo=timezone.utc)
-            return (1 if _is_active_subscription(sub) else 0, tier_weight, updated_at)
-
-        return max(rows, key=_priority)
+        return max(rows, key=_subscription_priority)
     except Exception:
         return None
+
 
 
 def _count_company_active_dialogues(company_id: str) -> int:
@@ -121,20 +121,56 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
         # This avoids forcing recruiter users into company subscription when querying their own user profile.
         if userId == user_id:
             resolved_is_company_context = False
-            sub_response = supabase.table("subscriptions").select("*").eq("user_id", user_id).execute()
-            # Backward compatibility: if user-level subscription is missing for recruiters, fall back to company.
-            if (not sub_response.data) and is_company_admin:
-                target_company_id = require_company_access(user, user.get("company_id"))
+            user_sub = _get_latest_subscription_by("user_id", user_id)
+            company_sub = None
+            target_company_id = None
+            if is_company_admin:
+                try:
+                    target_company_id = require_company_access(user, user.get("company_id"))
+                    company_sub = _get_latest_subscription_by("company_id", target_company_id)
+                except Exception:
+                    pass
+            
+            # Select the best one based on priority weight
+            if user_sub and company_sub:
+                if _subscription_priority(company_sub) >= _subscription_priority(user_sub):
+                    sub_details = company_sub
+                    resolved_company_id = target_company_id
+                    resolved_is_company_context = True
+                else:
+                    sub_details = user_sub
+            elif company_sub:
+                sub_details = company_sub
                 resolved_company_id = target_company_id
                 resolved_is_company_context = True
-                sub_response = supabase.table("subscriptions").select("*").eq("company_id", target_company_id).execute()
+            elif user_sub:
+                sub_details = user_sub
+            else:
+                # Neither found, but if company admin, auto-trial might be needed for company context
+                if is_company_admin and target_company_id:
+                    trial_end = (datetime.now(timezone.utc) + timedelta(days=14)).isoformat()
+                    trial_data = {
+                        "company_id": target_company_id,
+                        "tier": "trial",
+                        "status": "trialing",
+                        "current_period_end": trial_end,
+                        "stripe_customer_id": "trial_cust",
+                        "stripe_price_id": "trial_price",
+                        "stripe_subscription_id": f"trial_{target_company_id[:8]}"
+                    }
+                    supabase.table("subscriptions").insert(trial_data).execute()
+                    company_sub = _get_latest_subscription_by("company_id", target_company_id)
+                    if company_sub:
+                        sub_details = company_sub
+                        resolved_company_id = target_company_id
+                        resolved_is_company_context = True
         else:
             target_company_id = require_company_access(user, userId)
             resolved_company_id = target_company_id
             resolved_is_company_context = True
 
-            sub_response = supabase.table("subscriptions").select("*").eq("company_id", target_company_id).execute()
-            if not sub_response.data:
+            company_sub = _get_latest_subscription_by("company_id", target_company_id)
+            if not company_sub:
                 # Auto-trial for companies
                 trial_end = (datetime.now(timezone.utc) + timedelta(days=14)).isoformat()
                 trial_data = {
@@ -146,10 +182,11 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
                     "stripe_price_id": "trial_price",
                     "stripe_subscription_id": f"trial_{target_company_id[:8]}"
                 }
-                sub_response = supabase.table("subscriptions").insert(trial_data).execute()
-
-        if sub_response and sub_response.data:
-            sub_details = sub_response.data[0]
+                supabase.table("subscriptions").insert(trial_data).execute()
+                company_sub = _get_latest_subscription_by("company_id", target_company_id)
+            
+            if company_sub:
+                sub_details = company_sub
     except Exception as e:
         print(f"❌ Error fetching/creating subscription: {e}")
         # Fallback to free tier on database error instead of crashing

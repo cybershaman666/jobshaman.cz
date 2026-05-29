@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from backend.app.domains.handshake.service import HandshakeDomainService
+from backend.app.domains.handshake.service import HandshakeDomainService, _answer_text
 from backend.app.domains.reality.service import RealityDomainService
 
 
@@ -37,6 +37,13 @@ def test_company_handshake_radar_requires_real_scorecards():
         {"id": "evidence", "label": "Evidence", "value": 80},
         {"id": "judgment", "label": "Judgment", "value": 70},
     ]
+
+
+def test_handshake_readout_answer_text_preserves_structured_candidate_output():
+    assert _answer_text(["strategy", "sales", "ops"]) == "strategy, sales, ops"
+    assert _answer_text({"risk": "Low adoption", "next_step": "Interview 5 customers"}) == (
+        "Risk: Low adoption Next Step: Interview 5 customers"
+    )
 
 
 def test_challenge_blueprint_propagates_assessment_tasks():

@@ -84,13 +84,13 @@ export const LandingChoicePage: React.FC<{
   };
 
   return (
-    <main className={cn(shellPageClass, 'flex min-h-screen items-center bg-[#fbfaf7] dark:bg-slate-950')}>
+    <main className="w-full min-h-screen flex items-center justify-center bg-[#fbfaf7] dark:bg-slate-950 relative">
       <OrganizationSchema />
-      <div className="absolute top-6 right-6 flex items-center gap-4">
+      <div className="absolute top-6 right-6 flex items-center gap-4 z-20">
         <ThemeToggle />
         <LanguageSwitcher i18n={i18n} />
       </div>
-      <section aria-labelledby="hero-title" className="mx-auto grid w-full max-w-[1080px] gap-10 px-6 py-10 md:grid-cols-[minmax(0,1fr)_22rem] md:items-center">
+      <section aria-labelledby="hero-title" className="mx-auto grid w-full max-w-[1080px] gap-10 px-6 py-10 md:grid-cols-[minmax(0,1fr)_22rem] md:items-center relative z-10">
         <div>
           <header className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <BrandMark subtitle="" compact />
@@ -252,12 +252,13 @@ export const CompanyEntryPage: React.FC<{
   ];
 
   return (
-    <div className={cn(shellPageClass, 'min-h-screen bg-[#f7f8f5] dark:bg-slate-950')}>
+    <div className="w-full min-h-screen bg-[#f7f8f5] dark:bg-slate-950 pb-20 pt-6">
       <OrganizationSchema />
-      <header className="mx-auto flex w-full max-w-[1280px] items-center justify-between gap-4 px-1 pb-8">
-        <button type="button" onClick={() => navigate('/candidate/marketplace')} className="text-left">
-          <BrandMark subtitle="Hiring workspace" compact />
-        </button>
+      <div className="mx-auto w-full max-w-[1280px] px-4 sm:px-6 lg:px-8">
+        <header className="flex w-full items-center justify-between gap-4 pb-8">
+          <button type="button" onClick={() => navigate('/candidate/marketplace')} className="text-left">
+            <BrandMark subtitle="Hiring workspace" compact />
+          </button>
         <div className="hidden items-center gap-6 text-sm font-semibold text-slate-600 dark:text-slate-400 md:flex">
           <a href="#workflow" className="hover:text-slate-950 dark:hover:text-white">Jak to funguje</a>
           <a href="#pricing" className="hover:text-slate-950 dark:hover:text-white">Ceny</a>
@@ -454,31 +455,34 @@ export const CompanyEntryPage: React.FC<{
           <ArrowRight size={16} />
         </button>
       </section>
+      </div>
     </div>
   );
 };
 
 const LegalShell: React.FC<{ title: string; eyebrow: string; children: React.ReactNode }> = ({ title, eyebrow, children }) => (
-  <div className={cn(shellPageClass, 'min-h-screen pb-20 dark:bg-slate-950')}>
-    <header className="mx-auto flex w-full max-w-4xl items-center justify-between gap-4 px-1 pb-4">
-      <BrandMark subtitle="Právní centrum" compact />
-      <ThemeToggle />
-    </header>
-    <section className={cn(panelClass, 'mx-auto max-w-4xl p-8 md:p-12 relative overflow-hidden dark:bg-slate-900 dark:border-slate-800')}>
-      {/* Background decoration */}
-      <div className="absolute top-0 right-0 w-64 h-64 bg-[radial-gradient(circle_at_top_right,var(--shell-accent-cyan)_0%,transparent_70%)] opacity-[0.03] pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-64 h-64 bg-[radial-gradient(circle_at_bottom_left,#b98331_0%,transparent_70%)] opacity-[0.03] pointer-events-none" />
+  <div className="w-full min-h-screen pb-20 pt-6 dark:bg-slate-950">
+    <div className="mx-auto w-full max-w-4xl px-4 sm:px-6 lg:px-8">
+      <header className="flex w-full items-center justify-between gap-4 pb-4">
+        <BrandMark subtitle="Právní centrum" compact />
+        <ThemeToggle />
+      </header>
+      <section className={cn(panelClass, 'w-full p-8 md:p-12 relative overflow-hidden dark:bg-slate-900 dark:border-slate-800')}>
+        {/* Background decoration */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-[radial-gradient(circle_at_top_right,var(--shell-accent-cyan)_0%,transparent_70%)] opacity-[0.03] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-[radial-gradient(circle_at_bottom_left,#b98331_0%,transparent_70%)] opacity-[0.03] pointer-events-none" />
 
-      <div className="relative z-10">
-        <div className={pillEyebrowClass}>{eyebrow}</div>
-        <h1 className="mt-5 text-4xl md:text-5xl font-bold tracking-tight text-slate-900 leading-tight dark:text-white">
-          {title}
-        </h1>
-        <div className="mt-10 space-y-8 text-[0.95rem] leading-8 text-slate-600 prose prose-slate max-w-none dark:text-slate-400">
-          {children}
+        <div className="relative z-10">
+          <div className={pillEyebrowClass}>{eyebrow}</div>
+          <h1 className="mt-5 text-4xl md:text-5xl font-bold tracking-tight text-slate-900 leading-tight dark:text-white">
+            {title}
+          </h1>
+          <div className="mt-10 space-y-8 text-[0.95rem] leading-8 text-slate-600 prose prose-slate max-w-none dark:text-slate-400">
+            {children}
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </div>
   </div>
 );
 

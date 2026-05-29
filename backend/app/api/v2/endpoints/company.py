@@ -21,6 +21,10 @@ class ChallengeUpsertRequest(BaseModel):
     work_model: Optional[str] = None
     location: Optional[str] = None
     location_public: Optional[str] = None
+    hours_per_week: Optional[int] = None
+    employment_type: Optional[str] = None
+    benefits: Optional[list[str]] = None
+    work_perks: Optional[list[str]] = None
     first_reply_prompt: Optional[str] = None
     company_goal: Optional[str] = None
     assessment_tasks: Optional[list[Dict[str, Any]]] = None
@@ -164,6 +168,21 @@ async def update_my_company_challenge(
     if not challenge:
         raise HTTPException(status_code=404, detail="Challenge not found")
     return {"status": "success", "data": challenge, "challenge": challenge}
+
+@router.delete("/challenges/{challenge_id}")
+async def delete_my_company_challenge(
+    challenge_id: str,
+    current_user: dict = Depends(AccessControlService.get_current_user),
+):
+    domain_user = await IdentityDomainService.get_or_create_user_mirror(
+        supabase_id=current_user["id"],
+        email=current_user["email"],
+        role=current_user["role"],
+    )
+    deleted = await RealityDomainService.delete_company_challenge(domain_user["id"], challenge_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Challenge not found")
+    return {"status": "success", "deleted": True, "id": challenge_id}
 
 @router.post("/challenges/ai-draft")
 async def ai_draft_my_company_challenge(
@@ -512,6 +531,8 @@ async def resend_company_invitation(
         raise HTTPException(status_code=403, detail="Access denied")
     if isinstance(result, dict) and result.get("error") == "not_invited":
         raise HTTPException(status_code=404, detail="Invitation not found for the selected user")
+    if isinstance(result, dict) and result.get("status") == "email_failed":
+        raise HTTPException(status_code=500, detail=result.get("error", "Email service unavailable. Please try again later."))
     return {"status": "success", "data": result}
 
 @router.post("/{company_id}/invite")
@@ -532,6 +553,10 @@ async def invite_company_member(
     )
     if result is None:
         raise HTTPException(status_code=403, detail="Access denied or company not found")
+    if isinstance(result, dict) and result.get("status") == "email_failed":
+        raise HTTPException(status_code=503, detail=result.get("error", "Email service unavailable. Please try again later."))
+    if isinstance(result, dict) and result.get("status") == "already_invited":
+        raise HTTPException(status_code=409, detail="This email has already been invited or is already a member.")
     return {"status": "success", "data": result}
 
 @router.post("/accept-invitation")

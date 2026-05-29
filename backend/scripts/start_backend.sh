@@ -3,7 +3,7 @@ set -eu
 
 if [ "${RUN_DB_MIGRATIONS_ON_START:-true}" = "true" ]; then
   echo "Running database migrations before backend start..."
-  python scripts/migrate_v2.py
+  python backend/scripts/migrate_v2.py
 else
   echo "Skipping database migrations because RUN_DB_MIGRATIONS_ON_START is not true."
 fi

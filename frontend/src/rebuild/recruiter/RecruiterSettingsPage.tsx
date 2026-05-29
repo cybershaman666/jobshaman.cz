@@ -17,7 +17,8 @@ import {
   Loader2,
   Sparkles,
   FileText,
-  Paperclip
+  Paperclip,
+  Play
 } from 'lucide-react';
 import { cn } from '../cn';
 import { 
@@ -25,7 +26,6 @@ import {
   fieldClass, 
   primaryButtonClass, 
   secondaryButtonClass, 
-  textareaClass, 
   pillEyebrowClass 
 } from '../ui/shellStyles';
 import { 
@@ -37,6 +37,8 @@ import {
 } from '../../services/v2UserService';
 import { uploadV2Asset, API_BASE_URL } from '../../services/v2AssetService';
 import type { CompanyProfile, UserProfile, StoredAsset } from '../../types';
+import { MarkdownContent } from '../shared/MarkdownContent';
+import { MarkdownEditor } from '../shared/MarkdownEditor';
 
 interface RecruiterSettingsPageProps {
   company: CompanyProfile;
@@ -67,6 +69,14 @@ export const RecruiterSettingsPage: React.FC<RecruiterSettingsPageProps> = ({
   const [accentColor, setAccentColor] = useState(company.accent_color || (company as any).accentColor || '#0ea5e9');
   const [logoUrl, setLogoUrl] = useState(company.logo_url || (company as any).logo || '');
   const [coverUrl, setCoverUrl] = useState(company.cover_url || company.marketplace_media?.cover_url || (company as any).coverImage || '');
+  const [marketplaceGalleryUrls, setMarketplaceGalleryUrls] = useState<string[]>(() => {
+    const urls = [
+      ...(company.marketplace_media?.gallery_urls || []),
+      ...(company.gallery_urls || []),
+    ].map((url) => String(url || '').trim()).filter(Boolean);
+    return Array.from(new Set(urls));
+  });
+  const [marketplaceVideoUrl, setMarketplaceVideoUrl] = useState(company.marketplace_media?.video_url || '');
   
   // Team State
   const [members, setMembers] = useState<any[]>([]);
@@ -81,6 +91,7 @@ export const RecruiterSettingsPage: React.FC<RecruiterSettingsPageProps> = ({
   const [isLoadingAssets, setIsLoadingAssets] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [isUploadingGalleryMedia, setIsUploadingGalleryMedia] = useState(false);
   const [isUploadingMaterial, setIsUploadingMaterial] = useState(false);
   const [showManualLogoUrl, setShowManualLogoUrl] = useState(false);
   const [showManualCoverUrl, setShowManualCoverUrl] = useState(false);
@@ -103,6 +114,11 @@ export const RecruiterSettingsPage: React.FC<RecruiterSettingsPageProps> = ({
     setAccentColor(company.accent_color || (company as any).accentColor || '#0ea5e9');
     setLogoUrl(company.logo_url || (company as any).logo || '');
     setCoverUrl(company.cover_url || company.marketplace_media?.cover_url || (company as any).coverImage || '');
+    setMarketplaceGalleryUrls(Array.from(new Set([
+      ...(company.marketplace_media?.gallery_urls || []),
+      ...(company.gallery_urls || []),
+    ].map((url) => String(url || '').trim()).filter(Boolean))));
+    setMarketplaceVideoUrl(company.marketplace_media?.video_url || '');
   }, [
     company.id,
     company.name,
@@ -116,6 +132,9 @@ export const RecruiterSettingsPage: React.FC<RecruiterSettingsPageProps> = ({
     company.logo_url,
     company.cover_url,
     company.marketplace_media?.cover_url,
+    company.marketplace_media?.gallery_urls,
+    company.marketplace_media?.video_url,
+    company.gallery_urls,
   ]);
 
   const loadAssets = async () => {
@@ -229,6 +248,32 @@ export const RecruiterSettingsPage: React.FC<RecruiterSettingsPageProps> = ({
     }
   };
 
+  const handleUploadGalleryMedia = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    if (!files.length) return;
+
+    setIsUploadingGalleryMedia(true);
+    try {
+      const uploaded = await Promise.all(files.map((file) => uploadV2Asset(file, {
+        kind: 'company_branding',
+        usage: 'company_gallery',
+        companyId: company.id
+      })));
+      setMarketplaceGalleryUrls((current) => Array.from(new Set([
+        ...current,
+        ...uploaded.map((asset) => asset.url).filter(Boolean),
+      ])));
+      const firstVideo = uploaded.find((asset) => String(asset.mime_type || asset.content_type || '').startsWith('video/') || /\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(asset.url));
+      if (firstVideo) setMarketplaceVideoUrl(firstVideo.url);
+      await loadAssets();
+    } catch (err) {
+      console.error('Gallery media upload failed', err);
+    } finally {
+      setIsUploadingGalleryMedia(false);
+    }
+  };
+
   const handleUploadMaterial = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -258,7 +303,10 @@ export const RecruiterSettingsPage: React.FC<RecruiterSettingsPageProps> = ({
         marketplace_media: {
           ...(company.marketplace_media || {}),
           cover_url: coverUrl,
+          video_url: marketplaceVideoUrl || null,
+          gallery_urls: marketplaceGalleryUrls,
         },
+        gallery_urls: marketplaceGalleryUrls,
       });
       await onRefreshCompany();
     } catch (err) {
@@ -360,11 +408,13 @@ export const RecruiterSettingsPage: React.FC<RecruiterSettingsPageProps> = ({
                   </div>
                   <div className="space-y-2 md:col-span-2">
                     <label className="text-sm font-semibold text-slate-700">{t('rebuild.recruiter.narrative', { defaultValue: 'Company Narrative' })}</label>
-                    <textarea 
-                      className={cn(textareaClass, 'min-h-[200px]')} 
-                      value={narrative} 
-                      onChange={(e) => setNarrative(e.target.value)}
-                      placeholder={t('rebuild.recruiter.narrative_placeholder', { defaultValue: 'Describe what your company does, your mission and culture...' })} 
+                    <MarkdownEditor
+                      value={narrative}
+                      onChange={setNarrative}
+                      t={t}
+                      placeholder={t('rebuild.recruiter.narrative_placeholder', { defaultValue: 'Describe what your company does, your mission and culture...' })}
+                      headingFallback={t('rebuild.editor.company_heading_text', { defaultValue: 'What makes us different' })}
+                      bulletsFallback={t('rebuild.editor.company_bullets_text', { defaultValue: 'Transparent communication\nReal ownership\nKind humor' })}
                     />
                   </div>
                 </div>
@@ -719,6 +769,85 @@ export const RecruiterSettingsPage: React.FC<RecruiterSettingsPageProps> = ({
                   </div>
                 </div>
 
+                {/* Marketplace Banner Slideshow */}
+                <div className="pt-8 border-t border-slate-100">
+                  <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <Layout className="h-5 w-5 text-cyan-600" />
+                        {t('rebuild.recruiter.banner_slideshow', { defaultValue: 'Banner slideshow' })}
+                      </h3>
+                      <p className="text-sm text-slate-500">{t('rebuild.recruiter.banner_slideshow_desc', { defaultValue: 'Photos or video shown as a wide company profile banner in role detail.' })}</p>
+                    </div>
+                    <label className={cn(secondaryButtonClass, 'cursor-pointer gap-2')}>
+                      {isUploadingGalleryMedia ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                      {t('rebuild.recruiter.add_banner_media', { defaultValue: 'Add media' })}
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*,video/mp4,video/webm,video/quicktime"
+                        multiple
+                        onChange={handleUploadGalleryMedia}
+                        disabled={isUploadingGalleryMedia}
+                      />
+                    </label>
+                  </div>
+
+                  {marketplaceGalleryUrls.length > 0 ? (
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                      {marketplaceGalleryUrls.map((url) => {
+                        const isVideo = /\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(url);
+                        return (
+                          <div key={url} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                            <div className="relative aspect-[16/7] bg-slate-100">
+                              {isVideo ? (
+                                <>
+                                  <video src={url} className="h-full w-full object-cover" muted playsInline />
+                                  <div className="absolute inset-0 flex items-center justify-center bg-slate-950/24 text-white">
+                                    <Play className="h-8 w-8" />
+                                  </div>
+                                </>
+                              ) : (
+                                <img src={url} alt="" className="h-full w-full object-cover" loading="lazy" />
+                              )}
+                            </div>
+                            <div className="flex items-center justify-between gap-3 px-3 py-2">
+                              <span className="truncate text-xs font-semibold text-slate-500">{isVideo ? t('rebuild.recruiter.video', { defaultValue: 'Video' }) : t('rebuild.recruiter.photo', { defaultValue: 'Photo' })}</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setMarketplaceGalleryUrls((current) => current.filter((item) => item !== url));
+                                  if (marketplaceVideoUrl === url) setMarketplaceVideoUrl('');
+                                }}
+                                className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600"
+                                aria-label={t('rebuild.recruiter.remove_media', { defaultValue: 'Remove media' })}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/60 px-6 py-8 text-center text-sm font-medium text-slate-400">
+                      {t('rebuild.recruiter.no_banner_media', { defaultValue: 'No slideshow media yet. The main cover will be used by itself.' })}
+                    </div>
+                  )}
+
+                  <div className="mt-4">
+                    <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">
+                      {t('rebuild.recruiter.primary_video_url', { defaultValue: 'Primary video URL' })}
+                    </label>
+                    <input
+                      className={cn(fieldClass, 'text-sm')}
+                      value={marketplaceVideoUrl}
+                      onChange={(event) => setMarketplaceVideoUrl(event.target.value)}
+                      placeholder="https://.../company-video.mp4"
+                    />
+                  </div>
+                </div>
+
                 {/* Additional Materials Section */}
                 <div className="pt-8 border-t border-slate-100">
                   <div className="flex items-center justify-between mb-6">
@@ -826,9 +955,16 @@ export const RecruiterSettingsPage: React.FC<RecruiterSettingsPageProps> = ({
                   <div className="h-8 w-12 rounded-md" style={{ background: accentColor }} />
                 </div>
                 
-                <p className="mt-4 line-clamp-3 text-sm text-slate-600 italic">
-                  "{narrative || company.narrative || (company as any).description || 'No description provided yet...'}"
-                </p>
+                <div className="mt-4 max-h-32 overflow-hidden rounded-lg bg-slate-50 px-3 py-2">
+                  {narrative || company.narrative || (company as any).description ? (
+                    <MarkdownContent
+                      value={narrative || company.narrative || (company as any).description || ''}
+                      className="text-xs text-slate-600 prose-p:my-1 prose-p:leading-5 prose-ul:my-1 prose-li:leading-5"
+                    />
+                  ) : (
+                    <p className="text-xs italic leading-5 text-slate-400">No description provided yet...</p>
+                  )}
+                </div>
                 
                 <div className="mt-6 space-y-3">
                   <div className="h-2 w-full rounded bg-slate-100" />

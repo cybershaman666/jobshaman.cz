@@ -44,12 +44,81 @@ JOB_SEARCH_INTENT_TERMS = {
     "plat",
     "mzda",
     "firma",
+    "polsk",
+    "němec",
+    "nemec",
+    "slovensk",
+    "rakous",
+    "anglick",
+    "english",
+    "tricity",
+    "trojměs",
+    "trojmest",
+    "trójmia",
+    "gdansk",
+    "gdańs",
+    "gdynia",
+    "sopot",
+    "warsaw",
+    "warsz",
+    "krakow",
+    "krakó",
+    "prag",
+    "praha",
+    "brno",
+    "bratislav",
+    "berlin",
+    "munich",
+    "münch",
+    "vienna",
+    "wien",
 }
 
 
 def _has_job_search_intent(message: str) -> bool:
     normalized = str(message or "").lower()
     return any(term in normalized for term in JOB_SEARCH_INTENT_TERMS)
+
+
+def _parse_search_params(message: str) -> Optional[Dict[str, Any]]:
+    normalized = str(message or "").lower()
+    params = {}
+    
+    # 1. Detect Country (including major cities / regions)
+    pl_indicators = [
+        "polsk", "polsc", "poland", "poľsk", "warsz", "warsaw", "krak", "wroc", "pozna", 
+        "gdans", "gdyns", "sopot", "tricity", "trojměs", "trojmest", "trójmia", "katow", "lodz", "łódź"
+    ]
+    cz_indicators = [
+        "česk", "cesk", "czech", "čechy", "prag", "praha", "brn", "ostrav", "plze", "liber", "olomo"
+    ]
+    sk_indicators = [
+        "slovensk", "słowac", "slovak", "bratislav", "kosic", "košic", "zilin", "žilin", "nitr", "presov", "prešov"
+    ]
+    de_indicators = [
+        "němec", "nemec", "niemiec", "german", "berlin", "munich", "münchen", "hamburg", "frankf", 
+        "stuttg", "dussel", "düssel", "cologn", "köln"
+    ]
+    at_indicators = [
+        "rakous", "austri", "wien", "vienna", "salzburg", "graz", "linz", "innsbr"
+    ]
+
+    if any(p in normalized for p in pl_indicators):
+        params["country"] = "PL"
+    elif any(p in normalized for p in cz_indicators):
+        params["country"] = "CZ"
+    elif any(p in normalized for p in sk_indicators):
+        params["country"] = "SK"
+    elif any(p in normalized for p in de_indicators):
+        params["country"] = "DE"
+    elif any(p in normalized for p in at_indicators):
+        params["country"] = "AT"
+        
+    # 2. Detect English / Language
+    if any(p in normalized for p in ["anglick", "angličtin", "angielsk", "english"]):
+        params["language"] = "en"
+        
+    return params if params else None
 
 
 def _salary_label(job: Dict[str, Any]) -> str:
@@ -128,7 +197,12 @@ async def mentor_chat(
         job_recommendations: Optional[List[Dict[str, Any]]] = None
         if _has_job_search_intent(payload.message):
             try:
-                feed = await RecommendationDomainService.build_candidate_feed(domain_user["id"], limit=12)
+                search_params = _parse_search_params(payload.message)
+                feed = await RecommendationDomainService.build_candidate_feed(
+                    user_id=domain_user["id"],
+                    limit=24,
+                    search_params=search_params,
+                )
                 job_recommendations = _compact_job_recommendations(feed, limit=4)
             except Exception as recommendation_exc:
                 logger.warning("Failed to load mentor job recommendations: %s", recommendation_exc)

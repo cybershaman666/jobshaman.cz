@@ -87,13 +87,42 @@ LIVE_SEARCH_CACHE_TTL_SECONDS = max(30, int(os.getenv("LIVE_SEARCH_CACHE_TTL_SEC
 LIVE_SEARCH_GEOCODE_TTL_SECONDS = max(300, int(os.getenv("LIVE_SEARCH_GEOCODE_TTL_SECONDS") or "86400"))
 LIVE_SEARCH_CACHE_TABLE = "external_live_search_cache"
 JOOBLE_HOST_FORBIDDEN_COOLDOWN_SECONDS = max(300, int(os.getenv("JOOBLE_HOST_FORBIDDEN_COOLDOWN_SECONDS") or "3600"))
+LIVE_SOURCE_UNAVAILABLE_COOLDOWN_SECONDS = max(
+    60, int(os.getenv("LIVE_SOURCE_UNAVAILABLE_COOLDOWN_SECONDS") or "900")
+)
 _LIVE_SEARCH_CACHE: Dict[str, Tuple[float, List[Dict[str, Any]]]] = {}
 _LIVE_GEOCODE_CACHE: Dict[str, Tuple[float, Optional[Dict[str, Any]]]] = {}
 _JOOBLE_HOST_FORBIDDEN_UNTIL: Dict[str, float] = {}
+_LIVE_SOURCE_UNAVAILABLE_UNTIL: Dict[str, float] = {}
 _SUPABASE_CLIENT: Any = None
 _SUPABASE_CLIENT_RESOLVED = False
 _LIVE_SEARCH_CACHE_DB_AVAILABLE: Optional[bool] = None
 _LIVE_GEOCODE_CACHE_DB_AVAILABLE: Optional[bool] = None
+
+
+class LiveSourceUnavailableError(RuntimeError):
+    """Raised when a live source is temporarily unavailable for technical reasons."""
+
+
+def _is_dns_resolution_error(exc: Exception) -> bool:
+    message = str(exc).lower()
+    return (
+        "nameresolutionerror" in message
+        or "failed to resolve" in message
+        or "temporary failure in name resolution" in message
+    )
+
+
+def _mark_live_source_unavailable(provider: str) -> None:
+    _LIVE_SOURCE_UNAVAILABLE_UNTIL[provider] = time.time() + LIVE_SOURCE_UNAVAILABLE_COOLDOWN_SECONDS
+
+
+def _is_live_source_unavailable(provider: str) -> bool:
+    until = _LIVE_SOURCE_UNAVAILABLE_UNTIL.get(provider, 0.0)
+    if until <= time.time():
+        _LIVE_SOURCE_UNAVAILABLE_UNTIL.pop(provider, None)
+        return False
+    return True
 WWR_EU_INCLUDE_TOKENS = [
     "emea",
     "europe",
@@ -151,6 +180,7 @@ WWR_NEUTRAL_TOKENS = [
     "anywhere",
 ]
 WWR_HARD_EXCLUDE_TOKENS = [token for token in WWR_NON_EU_EXCLUDE_TOKENS if token not in set(WWR_NEUTRAL_TOKENS)]
+NORDIC_COUNTRY_CODES = {"DK", "SE", "NO", "FI"}
 
 _BROAD_LOCATION_TOKENS = {
     "remote",
@@ -413,6 +443,13 @@ def _pick_default_country_code(allowed_country_codes: set[str]) -> Optional[str]
     if "CZ" in allowed_country_codes:
         return "CZ"
     return sorted(allowed_country_codes)[0]
+
+
+def _requires_explicit_country_match(allowed_country_codes: Iterable[str]) -> bool:
+    normalized = {
+        code for code in (normalize_country_code(value) for value in (allowed_country_codes or [])) if code
+    }
+    return bool(normalized) and normalized.issubset(NORDIC_COUNTRY_CODES)
 
 
 def _save_api_job(
@@ -1045,6 +1082,10 @@ def search_weworkremotely_jobs_live(
     country_codes: Optional[List[str]] = None,
     exclude_country_codes: Optional[List[str]] = None,
 ) -> List[Dict[str, Any]]:
+    provider_key = "weworkremotely"
+    if _is_live_source_unavailable(provider_key):
+        raise LiveSourceUnavailableError("WWR temporarily unavailable due to recent DNS resolution failure.")
+
     cache_key = _build_live_cache_key(
         "wwr",
         limit=limit,
@@ -1066,6 +1107,8 @@ def search_weworkremotely_jobs_live(
     blocked_country_codes = {
         code for code in (normalize_country_code(value) for value in (exclude_country_codes or [])) if code
     }
+    strict_country_match = _requires_explicit_country_match(allowed_country_codes)
+    strict_country_match = _requires_explicit_country_match(allowed_country_codes)
 
     results: List[Dict[str, Any]] = []
     seen_urls: set[str] = set()
@@ -1077,6 +1120,12 @@ def search_weworkremotely_jobs_live(
                 headers={"Accept": "application/rss+xml, application/xml;q=0.9, */*;q=0.8"},
             )
         except Exception as exc:
+            if _is_dns_resolution_error(exc):
+                _mark_live_source_unavailable(provider_key)
+                print(f"❌ WWR live RSS fetch failed for {rss_url}: {exc}")
+                raise LiveSourceUnavailableError(
+                    f"WWR temporarily unavailable due to DNS resolution failure for {rss_url}."
+                ) from exc
             print(f"❌ WWR live RSS fetch failed for {rss_url}: {exc}")
             continue
 
@@ -1108,8 +1157,9 @@ def search_weworkremotely_jobs_live(
             normalized_country = normalize_country_code(inferred_country_code)
             if allowed_country_codes:
                 if normalized_country is None:
-                    # WWR often doesn't include a concrete country. If the caller requests countries
-                    # (candidate availability), pin to one of them so the job isn't dropped.
+                    if strict_country_match:
+                        continue
+                    # Outside strict country matching, keep historical fallback behavior.
                     normalized_country = _pick_default_country_code(allowed_country_codes)
                 if normalized_country not in allowed_country_codes:
                     continue
@@ -1201,6 +1251,7 @@ def search_jooble_jobs_live(
     blocked_country_codes = {
         code for code in (normalize_country_code(value) for value in (exclude_country_codes or [])) if code
     }
+    strict_country_match = _requires_explicit_country_match(allowed_country_codes)
 
     location = norm_text(filter_city)
     if len(allowed_country_codes) == 1:
@@ -1279,6 +1330,8 @@ def search_jooble_jobs_live(
 
         mapped_country = normalize_country_code(mapped.get("country_code"))
         if not mapped_country and len(allowed_country_codes) == 1:
+            if strict_country_match:
+                continue
             mapped["country_code"] = allowed_country_codes[0]
             mapped_country = allowed_country_codes[0]
         if successful_host and not mapped.get("language_code"):
@@ -1428,6 +1481,10 @@ def search_arbeitnow_jobs_live(
     country_codes: Optional[List[str]] = None,
     exclude_country_codes: Optional[List[str]] = None,
 ) -> List[Dict[str, Any]]:
+    provider_key = "arbeitnow"
+    if _is_live_source_unavailable(provider_key):
+        raise LiveSourceUnavailableError("Arbeitnow temporarily unavailable due to recent DNS resolution failure.")
+
     cache_key = _build_live_cache_key(
         "arbeitnow",
         limit=limit,
@@ -1454,6 +1511,12 @@ def search_arbeitnow_jobs_live(
     try:
         payload = _request_json(api_url, params={"page": max(1, int(page or 1))})
     except Exception as exc:
+        if _is_dns_resolution_error(exc):
+            _mark_live_source_unavailable(provider_key)
+            print(f"❌ Arbeitnow live API fetch failed: {exc}")
+            raise LiveSourceUnavailableError(
+                "Arbeitnow temporarily unavailable due to DNS resolution failure."
+            ) from exc
         print(f"❌ Arbeitnow live API fetch failed: {exc}")
         return _set_cached_live_search(
             cache_key,
@@ -1496,6 +1559,8 @@ def search_arbeitnow_jobs_live(
         mapped_country = normalize_country_code(mapped.get("country_code"))
         if allowed_country_codes:
             if mapped_country is None:
+                if strict_country_match:
+                    continue
                 mapped_country = _pick_default_country_code(allowed_country_codes)
                 mapped["country_code"] = mapped_country
             if mapped_country not in allowed_country_codes:

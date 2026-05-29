@@ -1180,7 +1180,7 @@ Ritual Answers:
         """
 
         try:
-            ai_data, _ = call_ai_json(prompt)
+            ai_data, result = call_ai_json(prompt, model_name="gpt-4.1")
         except Exception as exc:
             raise ValueError(f"AI interpretation failed: {exc}")
 
@@ -1276,7 +1276,7 @@ Ritual Answers:
                 "preferences": preferences
             },
             "meta": {
-                "model_used": "gpt-5-mini",
+                "model_used": result.model_name,
                 "archetype": archetype
             }
         }

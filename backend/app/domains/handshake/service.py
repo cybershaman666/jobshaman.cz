@@ -37,6 +37,18 @@ def _clean_text(value: Any, limit: int = 1200) -> str:
         return ""
     return " ".join(str(value).strip().split())[:limit]
 
+def _answer_text(value: Any, limit: int = 1800) -> str:
+    if isinstance(value, list):
+        return _clean_text(", ".join(_clean_text(item, 240) for item in value if item is not None), limit)
+    if isinstance(value, dict):
+        lines = []
+        for key, item in value.items():
+            text = _clean_text(item, 500)
+            if text:
+                lines.append(f"{str(key).replace('_', ' ').title()}: {text}")
+        return _clean_text("\n".join(lines), limit)
+    return _clean_text(value, limit)
+
 def _uuid_or_none(value: Any) -> Optional[uuid.UUID]:
     try:
         return uuid.UUID(str(value)) if value else None
@@ -162,17 +174,20 @@ class HandshakeDomainService:
                 "at": datetime.utcnow().isoformat(),
                 "elapsed_ms": elapsed_ms,
             })
+            previous_status = handshake.status
+            submitted_like = previous_status in {"submitted", "company_reviewing", "mutual_handshake", "completed"}
+            next_submission_status = "submitted" if submitted_like else "in_progress"
+            next_handshake_status = previous_status if previous_status not in {"initiated", "in_progress"} else "in_progress"
             submission.update({
                 "schema_version": "handshake-submission-v1",
-                "status": "in_progress",
+                "status": next_submission_status,
                 "answers": answers,
                 "stages": stages[-120:],
                 "updated_at": datetime.utcnow().isoformat(),
             })
             sandbox.submission_payload = submission
-            sandbox.status = "in_progress"
-            previous_status = handshake.status
-            handshake.status = "in_progress"
+            sandbox.status = next_submission_status
+            handshake.status = next_handshake_status
             handshake.state_version += 1
             handshake.updated_at = datetime.utcnow()
             session.add(HandshakeEvent(
@@ -226,7 +241,7 @@ class HandshakeDomainService:
                 "title": "Handshake odeslán",
                 "content": f"Tvoje řešení pro pozici {handshake.job_id} bylo odesláno firmě ke kontrole.",
                 "type": "handshake",
-                "link": f"/candidate/handshake/{handshake.id}"
+                "link": f"/candidate/journey/{handshake.job_id}"
             })
             
             return await HandshakeDomainService._hydrate_handshake_response(session, handshake)
@@ -334,7 +349,7 @@ class HandshakeDomainService:
                         "title": status_labels[status],
                         "content": f"Stav tvého handshaku pro pozici {handshake.job_id} se změnil na {status}.",
                         "type": "handshake",
-                        "link": f"/candidate/handshake/{handshake.id}"
+                        "link": f"/candidate/journey/{handshake.job_id}"
                     })
                 
                 return True
@@ -357,6 +372,7 @@ class HandshakeDomainService:
         if not next_status:
             raise ValueError("Unsupported handshake decision.")
         candidate_user_id: Optional[str] = None
+        job_id: Optional[str] = None
         async with async_session_factory() as session:
             if not await HandshakeDomainService._has_company_access(session, user_id, company_id):
                 return None
@@ -370,6 +386,7 @@ class HandshakeDomainService:
             if not handshake:
                 return None
             candidate_user_id = str(handshake.user_id)
+            job_id = handshake.job_id
             previous_status = handshake.status
             handshake.status = next_status
             handshake.state_version += 1
@@ -396,7 +413,7 @@ class HandshakeDomainService:
                 "title": "Firma rozhodla o handshaku",
                 "content": "Firma posunula tvůj handshake do dalšího stavu.",
                 "type": "handshake",
-                "link": f"/candidate/handshake/{handshake_id}",
+                "link": f"/candidate/journey/{job_id or handshake_id}",
             })
         return await HandshakeDomainService.get_company_handshake_readout(user_id, company_id, handshake_id)
 
@@ -1298,7 +1315,7 @@ class HandshakeDomainService:
                 "id": step_id,
                 "title": _clean_text(step.get("title"), 160) or " ".join(part.capitalize() for part in str(step_id).replace("-", "_").split("_")),
                 "prompt": _clean_text(step.get("prompt"), 600),
-                "body": _clean_text(answer, 1800),
+                "body": _answer_text(answer, 1800),
                 "source": "handshake_answer",
                 "updated_at": data.get("updated_at"),
                 "elapsed_ms": data.get("elapsed_ms"),
@@ -1318,6 +1335,18 @@ class HandshakeDomainService:
             "handshake_id": str(handshake.id),
             "job_id": handshake.job_id,
             "company_id": str(handshake.company_id) if handshake.company_id else None,
+            "status": handshake.status,
+            "match_score": score,
+            "answers": {
+                item["id"]: {
+                    "title": item["title"],
+                    "prompt": item["prompt"],
+                    "body": item["body"],
+                    "updated_at": item["updated_at"],
+                    "elapsed_ms": item["elapsed_ms"],
+                }
+                for item in evidence
+            },
             "anonymous_first": not reveal_identity,
             "identity": {
                 "locked": not reveal_identity,

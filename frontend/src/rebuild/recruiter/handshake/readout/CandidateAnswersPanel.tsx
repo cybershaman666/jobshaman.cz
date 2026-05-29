@@ -38,7 +38,22 @@ export const CandidateAnswersPanel: React.FC<CandidateAnswersPanelProps> = ({
         let displayValue: React.ReactNode = value;
 
         // Format specific answer types
-        if (typeof value === 'string') {
+        if (value && typeof value === 'object' && !Array.isArray(value) && ('body' in value || 'prompt' in value || 'title' in value)) {
+          const item = value as { title?: string; prompt?: string; body?: string };
+          displayLabel = item.title || displayLabel;
+          displayValue = (
+            <div className="space-y-3">
+              {item.prompt ? (
+                <div className="rounded-[8px] bg-slate-50 p-3 text-xs font-semibold leading-5 text-slate-500">
+                  {item.prompt}
+                </div>
+              ) : null}
+              <div className="whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                {item.body || ''}
+              </div>
+            </div>
+          );
+        } else if (typeof value === 'string') {
           displayValue = (
             <div className="whitespace-pre-wrap text-sm text-slate-700 leading-6">
               {value}

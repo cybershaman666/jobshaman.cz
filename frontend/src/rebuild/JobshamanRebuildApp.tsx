@@ -13,7 +13,7 @@ import {
 
 import { cn } from './cn';
 import { fetchJobByIdV2, fetchJobsWithFiltersV2 } from '../services/jobServiceV2';
-import { createCompany, deleteCVDocument, getRecruiterCompany, getUserCVDocuments, updateCVDocumentParsedData, updateCompanyProfile, updateUserCVSelection, updateUserProfile, uploadApplicationMessageAttachment, uploadUserProfilePhoto } from '../services/v2UserService';
+import { acceptInvitation, createCompany, deleteCVDocument, getRecruiterCompany, getUserCVDocuments, updateCVDocumentParsedData, updateCompanyProfile, updateUserCVSelection, updateUserProfile, uploadApplicationMessageAttachment, uploadUserProfilePhoto } from '../services/v2UserService';
 import {
   fetchCandidateApplicationDetail,
   fetchCandidateApplicationMessages,
@@ -26,6 +26,7 @@ import {
   aiAssistCompanyChallenge,
   aiDraftCompanyChallenge,
   createCompanyChallenge,
+  deleteCompanyChallenge,
   listCompanyChallenges,
   publishCompanyChallenge,
   updateCompanyChallenge,
@@ -71,6 +72,7 @@ const CandidateInsightsPage = React.lazy(() => import('./candidate/CandidateInsi
 const CandidateHandshakeLayout = React.lazy(() => import('./candidate/handshake/CandidateHandshakeLayout').then(m => ({ default: m.CandidateHandshakeLayout })));
 const CandidateApplicationsPage = React.lazy(() => import('./candidate/CandidateApplicationsPage').then(m => ({ default: m.CandidateApplicationsPage })));
 const CandidateLearningPage = React.lazy(() => import('./candidate/CandidateLearningPage').then(m => ({ default: m.CandidateLearningPage })));
+const TheRitual = React.lazy(() => import('../cybershaman/ritual/TheRitual').then(m => ({ default: m.TheRitual })));
 import { deriveDashboardMetrics, deriveRecruiterCalendar, deriveRolePipelineStats, deriveTalentPool } from './derivations';
 const RecruiterActivationPage = React.lazy(() => import('./recruiter/RecruiterShell').then(m => ({ default: m.RecruiterActivationPage })));
 const RecruiterShell = React.lazy(() => import('./recruiter/RecruiterShell').then(m => ({ default: m.RecruiterShell })));
@@ -185,6 +187,8 @@ const JobshamanRebuildApp: React.FC = () => {
   );
   const [authOpen, setAuthOpen] = React.useState(false);
   const [authIntent, setAuthIntent] = React.useState<AuthIntent>('candidate');
+  const [acceptingInvite, setAcceptingInvite] = React.useState(false);
+  const [inviteError, setInviteError] = React.useState<string | null>(null);
   const [marketplaceQuery, setMarketplaceQuery] = React.useState('');
   const [marketplaceFilters, setMarketplaceFilters] = React.useState<MarketplaceFilters>(() => buildDefaultMarketplaceFilters(getDefaultCandidatePreferences()));
   const [recruiterSearch, setRecruiterSearch] = React.useState('');
@@ -377,7 +381,24 @@ const JobshamanRebuildApp: React.FC = () => {
     signOutUser,
   ]);
 
-  const recruiterCompany = React.useMemo(() => (companyProfile ? mapCompanyProfileToCompany(companyProfile) : null), [companyProfile]);
+  const recruiterCompany = React.useMemo(() => {
+    if (!companyProfile) return null;
+    const mapped = mapCompanyProfileToCompany(companyProfile);
+    // Always enrich reviewer with logged-in user's identity — userProfile is the authoritative
+    // source for the recruiter's own name and photo. Fall back to DB data only when missing.
+    const enrichedName = userProfile.name || userProfile.email || mapped.reviewer.name;
+    const enrichedAvatarUrl = userProfile.photo || mapped.reviewer.avatarUrl;
+    const isGenericRole = !mapped.reviewer.role || mapped.reviewer.role === 'Recruiter';
+    return {
+      ...mapped,
+      reviewer: {
+        ...mapped.reviewer,
+        name: enrichedName,
+        role: isGenericRole ? 'Founder / Hiring lead' : mapped.reviewer.role,
+        avatarUrl: enrichedAvatarUrl,
+      },
+    };
+  }, [companyProfile, userProfile.email, userProfile.name, userProfile.photo]);
   const recruiterActiveTab = route.kind === 'recruiter'
     ? route.tab === 'dashboard'
       ? 'overview'
@@ -431,6 +452,43 @@ const JobshamanRebuildApp: React.FC = () => {
   React.useEffect(() => {
     checkPaymentStatus();
   }, []);
+
+  React.useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const tokenFromUrl = searchParams.get('token');
+
+    if (pathname === '/accept-invitation' && tokenFromUrl) {
+      sessionStorage.setItem('pending_invitation_token', tokenFromUrl);
+      navigate('/');
+      if (!userProfile.isLoggedIn) {
+        setAuthIntent('recruiter');
+        setAuthOpen(true);
+      }
+      return;
+    }
+
+    const pendingToken = sessionStorage.getItem('pending_invitation_token');
+    if (pendingToken && userProfile.isLoggedIn && userProfile.id && !acceptingInvite) {
+      const performAccept = async () => {
+        setAcceptingInvite(true);
+        setInviteError(null);
+        try {
+          await acceptInvitation(pendingToken);
+          sessionStorage.removeItem('pending_invitation_token');
+          // Refresh user session/profile to pick up recruiter role and company profile
+          await handleSessionRestoration(userProfile.id as string, true);
+          navigate('/recruiter');
+        } catch (err: any) {
+          console.error('Failed to accept invitation:', err);
+          setInviteError(err?.message || 'Nelze přijmout pozvánku. Token je pravděpodobně neplatný nebo expirovaný.');
+          sessionStorage.removeItem('pending_invitation_token');
+        } finally {
+          setAcceptingInvite(false);
+        }
+      };
+      void performAccept();
+    }
+  }, [pathname, userProfile.isLoggedIn, userProfile.id, navigate, handleSessionRestoration, acceptingInvite]);
 
   const syncedProfileIdRef = React.useRef<string | null>(null);
   React.useEffect(() => {
@@ -590,7 +648,7 @@ const JobshamanRebuildApp: React.FC = () => {
       try {
         const result = await fetchJobsWithFiltersV2(
           marketplacePage,
-          60,
+          50,
           {
             countryCode: marketplaceFilters.crossBorder || marketplaceFilters.city.trim() ? undefined : preferences.taxProfile.countryCode,
             includeRecommendations: false,
@@ -716,6 +774,11 @@ const JobshamanRebuildApp: React.FC = () => {
     preferences.searchRadiusKm,
     preferences.taxProfile.countryCode,
   ]);
+
+  const handleMarketplaceLoadMore = React.useCallback(() => {
+    if (marketplaceLoading || !marketplaceHasMore) return;
+    setMarketplacePage((current) => current + 1);
+  }, [marketplaceHasMore, marketplaceLoading]);
 
   const roleLibrary = React.useMemo(() => {
     const merged = new Map<string, Role>();
@@ -1317,39 +1380,50 @@ const JobshamanRebuildApp: React.FC = () => {
 
     setJourneySubmitting(true);
     try {
-      if (userProfile.id && payload.role.source === 'curated' && !applicationId) {
-        let result: { status?: string; application_id?: string; application?: unknown } | null = null;
-        const handshake = await startHandshake(payload.role.id);
-        applicationId = handshake.handshake_id || applicationId;
+      if (userProfile.id && payload.role.source === 'curated') {
         if (!applicationId) {
-          throw new Error('Handshake session did not return an id.');
+          const handshake = await startHandshake(payload.role.id);
+          applicationId = handshake.handshake_id || applicationId;
+          if (!applicationId) {
+            throw new Error('Handshake session did not return an id.');
+          }
+          applicationStatus = handshake.status || handshake.session?.status || applicationStatus;
+          for (const [stepId, answer] of Object.entries(payload.session.answers || {})) {
+            await patchHandshakeAnswer(applicationId, stepId, answer, stepId);
+          }
         }
-        applicationStatus = handshake.status || handshake.session?.status || applicationStatus;
-        for (const [stepId, answer] of Object.entries(payload.session.answers || {})) {
-          await patchHandshakeAnswer(applicationId, stepId, answer, stepId);
-        }
-        const externalValue = String(payload.session.answers.external_link || '').trim();
-        if (/^https?:\/\//i.test(externalValue)) {
+
+        const externalSubmissions = Array.isArray(payload.session.answers.external_submissions)
+          ? payload.session.answers.external_submissions
+          : [];
+        const legacyExternalValue = String(payload.session.answers.external_link || '').trim();
+        const normalizedExternalSubmissions = [
+          ...externalSubmissions,
+          ...(legacyExternalValue
+            ? [{
+                provider: 'other',
+                external_url: legacyExternalValue,
+                comment: String(payload.session.answers.external_link_comment || '').trim(),
+              }]
+            : []),
+        ];
+        for (const item of normalizedExternalSubmissions) {
+          const externalUrl = String((item as any)?.external_url || '').trim();
+          if (!/^https?:\/\//i.test(externalUrl)) continue;
           await addExternalHandshakeSubmission(applicationId, {
-            provider: 'other',
-            external_url: externalValue,
-            comment: String(payload.session.answers.external_link_comment || '').trim() || null,
+            provider: (['notion', 'canva', 'figma', 'google_docs', 'miro', 'other'].includes(String((item as any)?.provider || '').trim())
+              ? String((item as any)?.provider || '').trim()
+              : 'other') as any,
+            external_url: externalUrl,
+            comment: String((item as any)?.comment || '').trim() || null,
             evidence_required: true,
             visibility: 'company_review',
           });
         }
+
         const finalized = await finalizeHandshake(applicationId, payload.reviewerSummary);
         applicationStatus = finalized.session?.status || finalized.status || applicationStatus;
-        result = {
-          status: finalized.status || finalized.session?.status || 'submitted',
-          application_id: finalized.handshake_id,
-          application: finalized.application as any,
-        };
-        if (!result?.application_id && !result?.status) {
-          throw new Error('Handshake submission could not be stored.');
-        }
-        applicationId = result?.application_id || applicationId;
-        applicationStatus = result?.status || applicationStatus;
+        applicationId = finalized.handshake_id || applicationId;
       }
 
       setSessionForRole(payload.role.id, (current) => ({
@@ -1491,6 +1565,7 @@ const JobshamanRebuildApp: React.FC = () => {
         handshake_materials: company.handshakeMaterials,
         marketplace_media: {
           cover_url: company.coverImage,
+          video_url: company.marketplaceVideoUrl || null,
           gallery_urls: company.gallery.map((asset) => asset.url),
           visual_tone: 'balanced',
         },
@@ -1531,6 +1606,10 @@ const JobshamanRebuildApp: React.FC = () => {
     firstStep: string;
     salaryFrom: number | null;
     salaryTo: number | null;
+    hoursPerWeek?: number | null;
+    employmentType?: Role['employmentType'];
+    benefits?: string[];
+    workPerks?: string[];
     skills: string[];
     assessmentTasks?: AssessmentTask[];
     handshakeBlueprint?: Record<string, any>;
@@ -1550,11 +1629,15 @@ const JobshamanRebuildApp: React.FC = () => {
       title: input.title,
       role_family: input.roleFamily,
       summary: input.summary,
-      description: `${input.summary}\n\n${t('rebuild.recruiter.first_step_label', { defaultValue: 'First step' })}: ${input.firstStep}`,
+      description: input.summary,
       skills: input.skills,
       salary_from: input.salaryFrom,
       salary_to: input.salaryTo,
       salary_currency: currency,
+      hours_per_week: input.hoursPerWeek ?? null,
+      employment_type: input.employmentType ?? null,
+      benefits: input.benefits || [],
+      work_perks: input.workPerks || [],
       work_model: input.workModel,
       location: input.location,
       first_reply_prompt: input.firstStep,
@@ -1564,6 +1647,10 @@ const JobshamanRebuildApp: React.FC = () => {
       editor_state: {
         source: 'rebuild_challenge_form',
         role_family: input.roleFamily,
+        hours_per_week: input.hoursPerWeek ?? null,
+        employment_type: input.employmentType ?? null,
+        benefits: input.benefits || [],
+        work_perks: input.workPerks || [],
         created_at: now,
       },
     });
@@ -1579,6 +1666,10 @@ const JobshamanRebuildApp: React.FC = () => {
         location: role.location,
         salary_from: role.salaryFrom,
         salary_to: role.salaryTo,
+        hours_per_week: role.hoursPerWeek,
+        employment_type: role.employmentType,
+        benefits: role.benefits,
+        work_perks: role.workPerks,
         currency: role.currency,
         description: role.description,
         challenge: role.challenge,
@@ -1687,10 +1778,23 @@ const JobshamanRebuildApp: React.FC = () => {
     await refreshRecruiterJobs().catch(() => undefined);
   }, [localCompanyRoles, recruiterCompany, companyProfile, recruiterJobs, setRecruiterJobs, refreshRecruiterJobs, setLocalCompanyRoles, t]);
 
+  const handleDeleteRole = React.useCallback(async (roleId: string) => {
+    const isLocalChallenge = localCompanyRoles.some((r) => r.id === roleId);
+    if (!isLocalChallenge) {
+      throw new Error(t('rebuild.recruiter.delete_supported_only_native', { defaultValue: 'Permanent deletion is currently supported only for native company challenges.' }));
+    }
+    await deleteCompanyChallenge(roleId);
+    setLocalCompanyRoles((current) => current.filter((item) => item.id !== roleId));
+    setMarketplaceRoles((current) => current.filter((item) => item.id !== roleId));
+    setRecruiterJobs((current) => current.filter((item) => String(item.id) !== String(roleId)));
+    await refreshRecruiterJobs().catch(() => undefined);
+  }, [localCompanyRoles, refreshRecruiterJobs, setLocalCompanyRoles, setRecruiterJobs, t]);
+
 
   const isStandaloneDashboardRoute =
     route.kind === 'admin'
     || route.kind === 'marketplace'
+    || route.kind === 'ritual'
     || route.kind === 'candidate-role'
     || route.kind === 'candidate-imported'
     || route.kind === 'candidate-journey'
@@ -1713,6 +1817,44 @@ const JobshamanRebuildApp: React.FC = () => {
       <div className="relative min-h-screen overflow-x-hidden text-[color:var(--shell-text-primary)]">
         {!isStandaloneDashboardRoute ? <AppBackdrop /> : null}
         <AuthPanel open={authOpen} initialIntent={authIntent} onClose={() => setAuthOpen(false)} onSignedIn={(intent) => void handleSignedIn(intent)} navigate={navigate} t={t} />
+
+        {acceptingInvite && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="flex flex-col items-center gap-4 rounded-xl border border-slate-800 bg-slate-900 p-8 shadow-2xl">
+              <Loader2 className="h-12 w-12 animate-spin text-[#12AFCB]" />
+              <div className="text-lg font-semibold text-slate-100">
+                Přijímání pozvánky do firmy...
+              </div>
+              <div className="text-sm text-slate-400">
+                Přiřazujeme váš účet k týmu.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {inviteError && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="flex max-w-md flex-col items-center gap-4 rounded-xl border border-red-900/50 bg-slate-900 p-8 text-center shadow-2xl">
+              <div className="rounded-full bg-red-950/50 p-3 text-red-400">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-8 w-8">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m0-10.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.75c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.249-8.25-3.286zm0 13.036h.008v.008H12v-.008z" />
+                </svg>
+              </div>
+              <div className="text-lg font-semibold text-slate-100 font-sans">
+                Pozvánku se nepodařilo přijmout
+              </div>
+              <div className="text-sm text-slate-400 font-sans">
+                {inviteError}
+              </div>
+              <button
+                onClick={() => setInviteError(null)}
+                className="mt-2 rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-slate-200 hover:bg-slate-700 hover:text-white transition-colors"
+              >
+                Zavřít
+              </button>
+            </div>
+          </div>
+        )}
 
         <React.Suspense fallback={
           <div className="flex min-h-[60vh] w-full items-center justify-center">
@@ -1749,7 +1891,7 @@ const JobshamanRebuildApp: React.FC = () => {
             candidateApplications={candidateApplications}
             onSignOut={handleSignOutToCompanyEntry}
             onCompanySwitch={handleCompanySwitch}
-            onLoadMore={() => setMarketplacePage((current) => current + 1)}
+            onLoadMore={handleMarketplaceLoadMore}
             onLoadMoreCategory={handleMarketplaceCategoryLoadMore}
             onToggleSavedRole={handleToggleSavedRole}
             loadingCategoryId={marketplaceCategoryLoading}
@@ -1814,7 +1956,7 @@ const JobshamanRebuildApp: React.FC = () => {
 
         {route.kind === 'candidate-journey' && activeRole && activeBlueprint && activeSession ? (
           renderCandidateWorkspace(<CandidateHandshakeLayout
-            handshakeId={activeRole.id}
+            handshakeId={activeSession.applicationId || ''}
             role={activeRole}
             company={resolveCompany(activeRole, companyLibrary) || companyLibrary[0]}
             blueprint={activeBlueprint}
@@ -1823,7 +1965,7 @@ const JobshamanRebuildApp: React.FC = () => {
             userProfile={userProfile}
             activeCvDocument={activeCvDocument}
             onNavigateBack={() => navigate('/candidate/marketplace')}
-            onNavigateToStep={(stepId) => navigate(`/candidate/handshake/${activeRole.id}/${stepId}`)}
+            onNavigateToStep={(stepId) => navigate(`/candidate/journey/${activeRole.id}/${stepId}`)}
             onFinalizeHandshake={async (session, score) => {
               await handleFinalizeJourney({
                 role: activeRole,
@@ -1847,6 +1989,15 @@ const JobshamanRebuildApp: React.FC = () => {
             }}
             finalizeBusy={journeySubmitting}
           />)
+        ) : null}
+
+        {route.kind === 'ritual' ? (
+          <TheRitual
+            userProfile={userProfile}
+            setUserProfile={setUserProfile}
+            handleSessionRestoration={handleSessionRestoration}
+            onComplete={() => navigate('/candidate/insights')}
+          />
         ) : null}
 
         {showCandidatePreLanding ? (
@@ -1985,6 +2136,7 @@ const JobshamanRebuildApp: React.FC = () => {
               onAiAssistChallenge={handleAiAssistRecruiterChallenge}
               onPublishChallenge={handlePublishRecruiterChallenge}
               onUpdateRoleStatus={handleUpdateRoleStatus}
+              onDeleteRole={handleDeleteRole}
               onRefreshRoles={handleRefreshRecruiterRoles}
               onUploadCompanyAsset={handleUploadCompanyAsset}
               brandSaving={brandSaving}
@@ -2002,6 +2154,20 @@ const JobshamanRebuildApp: React.FC = () => {
               i18n={i18n}
             />
           )
+        ) : null}
+
+        {route.kind === 'accept-invitation' ? (
+          <div className="flex min-h-[60vh] w-full items-center justify-center">
+            <div className="flex flex-col items-center gap-4">
+              <div className="relative h-12 w-12">
+                <div className="absolute inset-0 rounded-full border-4 border-[color:var(--accent-soft)]"></div>
+                <div className="absolute inset-0 animate-spin rounded-full border-4 border-[color:var(--accent)] border-t-transparent"></div>
+              </div>
+              <div className="text-sm font-medium text-[color:var(--dashboard-text-muted)] animate-pulse">
+                Ověřování pozvánky...
+              </div>
+            </div>
+          </div>
         ) : null}
         </React.Suspense>
       </div>

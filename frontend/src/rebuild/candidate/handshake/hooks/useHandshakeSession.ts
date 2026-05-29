@@ -28,6 +28,30 @@ export const useHandshakeSession = (
   const lastSavedAnswersRef = useRef<string>(JSON.stringify(initialSession.answers || {}));
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
+  useEffect(() => {
+    setSession((prev) => ({
+      ...prev,
+      applicationId: initialSession.applicationId || prev.applicationId,
+      applicationStatus: initialSession.applicationStatus || prev.applicationStatus,
+      backendSession: initialSession.backendSession || prev.backendSession,
+      slotAvailability: initialSession.slotAvailability || prev.slotAvailability,
+      liveHydratedAt: initialSession.liveHydratedAt || prev.liveHydratedAt,
+      currentStepId: initialSession.currentStepId || prev.currentStepId,
+      answers: {
+        ...(initialSession.answers || {}),
+        ...(prev.answers || {}),
+      },
+    }));
+  }, [
+    initialSession.applicationId,
+    initialSession.applicationStatus,
+    initialSession.backendSession,
+    initialSession.currentStepId,
+    initialSession.liveHydratedAt,
+    initialSession.slotAvailability,
+    initialSession.answers,
+  ]);
+
   /**
    * Update answer for a specific step
    */

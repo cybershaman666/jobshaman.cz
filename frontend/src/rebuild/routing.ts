@@ -7,6 +7,7 @@ export type PublicPage = 'home' | 'companies' | 'terms' | 'privacy' | 'contact';
 export type AppRoute =
   | { kind: 'marketplace' }
   | { kind: 'admin' }
+  | { kind: 'ritual' }
   | { kind: 'public'; page: PublicPage }
   | { kind: 'candidate-role'; roleId: string }
   | { kind: 'candidate-imported'; roleId: string }
@@ -15,13 +16,21 @@ export type AppRoute =
   | { kind: 'candidate-applications' }
   | { kind: 'candidate-jcfpm' }
   | { kind: 'candidate-learning' }
-  | { kind: 'recruiter'; tab: RecruiterTab };
+  | { kind: 'recruiter'; tab: RecruiterTab }
+  | { kind: 'accept-invitation'; token: string };
+
 
 export const routeFromPath = (pathname: string): AppRoute => {
   const cleanPath = pathname.split('#')[0]?.split('?')[0] || '/';
   const parts = getPathPartsWithoutLocale(cleanPath);
   if (parts.length === 0) return { kind: 'public', page: 'home' };
+  if (parts[0] === 'accept-invitation') {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token') || '';
+    return { kind: 'accept-invitation', token };
+  }
   if (parts[0] === 'admin') return { kind: 'admin' };
+  if (parts[0] === 'ritual') return { kind: 'ritual' };
   if (parts[0] === 'firmy' || parts[0] === 'companies') return { kind: 'public', page: 'companies' };
   if (parts[0] === 'obchodni-podminky' || parts[0] === 'terms' || parts[0] === 'podminky-uziti') return { kind: 'public', page: 'terms' };
   if (parts[0] === 'ochrana-osobnich-udaju' || parts[0] === 'privacy' || parts[0] === 'privacy-policy') return { kind: 'public', page: 'privacy' };
@@ -29,7 +38,7 @@ export const routeFromPath = (pathname: string): AppRoute => {
   if (parts[0] === 'jobs' && parts[1]) return { kind: 'candidate-imported', roleId: parts[1] };
   if (parts[0] === 'candidate' && parts[1] === 'role' && parts[2]) return { kind: 'candidate-role', roleId: parts[2] };
   if (parts[0] === 'candidate' && parts[1] === 'imported' && parts[2]) return { kind: 'candidate-imported', roleId: parts[2] };
-  if (parts[0] === 'candidate' && parts[1] === 'journey' && parts[2]) return { kind: 'candidate-journey', roleId: parts[2], stepId: parts[3] };
+  if (parts[0] === 'candidate' && (parts[1] === 'journey' || parts[1] === 'handshake') && parts[2]) return { kind: 'candidate-journey', roleId: parts[2], stepId: parts[3] };
   if ((parts[0] === 'candidate' && parts[1] === 'marketplace') || parts[0] === 'marketplace') return { kind: 'marketplace' };
   if (parts[0] === 'candidate' && parts[1] === 'profile') return { kind: 'candidate-insights' };
   if (parts[0] === 'candidate' && (parts[1] === 'learning' || parts[1] === 'kurzy' || parts[1] === 'uceni')) return { kind: 'candidate-learning' };

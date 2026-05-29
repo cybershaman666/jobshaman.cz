@@ -25,7 +25,7 @@ export interface BillingVerificationResult {
 }
 
 const SUBSCRIPTION_STATUS_CACHE_KEY = 'subscription_status_cache_v1';
-const SUBSCRIPTION_STATUS_CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+const SUBSCRIPTION_STATUS_CACHE_MAX_AGE_MS = 30 * 60 * 1000; // 30 minutes
 const subscriptionStatusInFlight = new Map<string, Promise<SubscriptionStatus>>();
 
 type SubscriptionStatus = {

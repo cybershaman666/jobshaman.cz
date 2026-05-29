@@ -65,6 +65,7 @@ export interface Company {
   headquarters: string;
   narrative: string;
   coverImage: string;
+  marketplaceVideoUrl?: string;
   logo: string;
   logoAsset?: StoredAsset | null;
   coverAsset?: StoredAsset | null;
@@ -112,7 +113,10 @@ export interface Role {
   companyName?: string;
   companyLogo?: string;
   companyCoverImage?: string;
+  companyVideoUrl?: string;
+  companyGallery?: StoredAsset[];
   companyNarrative?: string;
+  companyReviewer?: ReviewerProfile;
   title: string;
   team: string;
   location: string;
@@ -140,6 +144,9 @@ export interface Role {
   importedNote?: string;
   skills: string[];
   benefits: string[];
+  hoursPerWeek?: number | null;
+  employmentType?: 'full_time' | 'part_time' | 'contract' | 'gig' | null;
+  workPerks?: string[];
   coordinates: { lat: number; lng: number };
   blueprintId?: string;
   assessmentTasks?: Array<Record<string, any>>;

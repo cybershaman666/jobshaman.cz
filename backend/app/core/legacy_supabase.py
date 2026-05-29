@@ -1,7 +1,7 @@
 import os
 from typing import Any, Dict
 
-from supabase import create_client
+from supabase import create_client, ClientOptions
 
 
 def _supabase_config() -> tuple[str | None, str | None]:
@@ -20,7 +20,15 @@ def get_legacy_supabase_client():
     url, key = _supabase_config()
     if not url or not key:
         return None
-    return create_client(url, key)
+    try:
+        options = ClientOptions(
+            postgrest_client_timeout=5.0,
+            storage_client_timeout=5,
+            function_client_timeout=5,
+        )
+        return create_client(url, key, options=options)
+    except Exception:
+        return None
 
 
 def _safe_row(response: Any) -> Dict[str, Any]:

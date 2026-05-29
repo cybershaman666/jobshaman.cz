@@ -63,6 +63,7 @@ const isDefaultPragueCoordinates = (coordinates?: { lat: number; lon: number } |
 
 const isRemoteRole = (role: Role): boolean => String(role.workModel || '').toLowerCase().includes('remote');
 const RECOMMENDATION_PAGE_SIZE = 24;
+const MARKETPLACE_FEED_PAGE_SIZE = 50;
 type MarketplaceFocus = 'all' | 'immediate' | 'curated';
 type RoleCandidate = { role: Role; distanceKm: number };
 export type RoleClusterId = 'management' | 'operations' | 'business' | 'digital' | 'services' | 'other';
@@ -409,6 +410,8 @@ export const MarketplaceV2: React.FC<{
   const [focusMode, setFocusMode] = React.useState<MarketplaceFocus>('all');
   const [filtersOpen, setFiltersOpen] = React.useState(false);
   const [activeCategoryId, setActiveCategoryId] = React.useState<RoleClusterId | null>(null);
+  const loadMoreSentinelRef = React.useRef<HTMLDivElement | null>(null);
+  const autoLoadTimerRef = React.useRef<number | null>(null);
 
   const navItems = [
     { id: 'home', label: t('rebuild.nav.home', { defaultValue: 'Domů' }), icon: LayoutDashboard, path: '/candidate/insights' },
@@ -500,6 +503,15 @@ export const MarketplaceV2: React.FC<{
       return a.distanceKm - b.distanceKm;
     });
   }, [commuteFilterActive, filters.city, visibleRoles, effectiveCoordinates]);
+  const loadedCatalogCandidates = React.useMemo(() => {
+    return roles.map((role) => {
+      if (!effectiveCoordinates) return { role, distanceKm: Infinity };
+      return {
+        role,
+        distanceKm: getDistance(effectiveCoordinates.lat, effectiveCoordinates.lon, role.coordinates.lat, role.coordinates.lng),
+      };
+    });
+  }, [effectiveCoordinates, roles]);
   const nearbyRoles = React.useMemo(() => (
     commuteFilterActive ? rolesWithDistance.filter(({ role, distanceKm }) => (
       Number.isFinite(distanceKm)
@@ -518,6 +530,7 @@ export const MarketplaceV2: React.FC<{
         !commuteFilterActive
         || filters.city.trim().length > 0
         || isRemoteRole(role)
+        || !Number.isFinite(distanceKm)
         || (Number.isFinite(distanceKm) && distanceKm <= localRadiusKm)
       ));
 
@@ -530,8 +543,10 @@ export const MarketplaceV2: React.FC<{
       const bLocalBoost = localRoleIds.has(b.role.id) ? -2 : 0;
       const aRemoteBoost = isRemoteRole(a.role) ? 0 : -1;
       const bRemoteBoost = isRemoteRole(b.role) ? 0 : -1;
-      const scoreA = aLocalBoost + aRemoteBoost;
-      const scoreB = bLocalBoost + bRemoteBoost;
+      const aUnknownDistancePenalty = Number.isFinite(a.distanceKm) || isRemoteRole(a.role) ? 0 : 3;
+      const bUnknownDistancePenalty = Number.isFinite(b.distanceKm) || isRemoteRole(b.role) ? 0 : 3;
+      const scoreA = aLocalBoost + aRemoteBoost + aUnknownDistancePenalty;
+      const scoreB = bLocalBoost + bRemoteBoost + bUnknownDistancePenalty;
       if (scoreA !== scoreB) return scoreA - scoreB;
       return a.distanceKm - b.distanceKm;
     });
@@ -627,7 +642,7 @@ export const MarketplaceV2: React.FC<{
   React.useEffect(() => {
     setVisibleRecommendationCount(RECOMMENDATION_PAGE_SIZE);
     setActiveCategoryId(null);
-  }, [filters, focusMode, localRadiusKm, preferences.address, roles.length, searchValue]);
+  }, [filters, focusMode, localRadiusKm, preferences.address, searchValue]);
 
   // Smarter city extraction from address
   const locationLabel = React.useMemo(() => {
@@ -664,11 +679,19 @@ export const MarketplaceV2: React.FC<{
       ? parts.join(' · ')
       : t('rebuild.marketplace.search_cta', { defaultValue: 'Hledat pozici, firmu nebo město' });
   }, [filters.city, filters.remoteOnly, filters.roleFamily, filters.workArrangement, searchValue, t]);
-  const baseFeedCandidates = activeCategorySection
-    ? activeCategorySection.candidates
-    : commuteFilterActive
-      ? scopedRecommendationCandidates
-      : visibleRecommendedCandidates;
+  const baseFeedCandidates = React.useMemo(() => {
+    const primary = activeCategorySection
+      ? activeCategorySection.candidates
+      : scopedRecommendationCandidates;
+    const merged = new Map<string, RoleCandidate>();
+    primary.forEach((candidate) => merged.set(candidate.role.id, candidate));
+    if (!activeCategorySection) {
+      loadedCatalogCandidates.forEach((candidate) => {
+        if (!merged.has(candidate.role.id)) merged.set(candidate.role.id, candidate);
+      });
+    }
+    return Array.from(merged.values());
+  }, [activeCategorySection, loadedCatalogCandidates, scopedRecommendationCandidates]);
   const feedCandidates = baseFeedCandidates.slice(0, visibleRecommendationCount);
   const hasMoreFeedCandidates = visibleRecommendationCount < baseFeedCandidates.length;
   const recommendedFeed = feedCandidates.slice(0, 2);
@@ -719,6 +742,45 @@ export const MarketplaceV2: React.FC<{
       workArrangement: tabId === 'remote' ? 'all' : tabId,
     }));
   };
+  const handleFeedLoadMore = React.useCallback(() => {
+    if (hasMoreFeedCandidates) {
+      setVisibleRecommendationCount((current) => Math.min(current + MARKETPLACE_FEED_PAGE_SIZE, baseFeedCandidates.length));
+      return;
+    }
+    if (hasMore && onLoadMore && !loading) {
+      setVisibleRecommendationCount((current) => current + MARKETPLACE_FEED_PAGE_SIZE);
+      onLoadMore();
+    }
+  }, [baseFeedCandidates.length, hasMore, hasMoreFeedCandidates, loading, onLoadMore]);
+
+  React.useEffect(() => {
+    const sentinel = loadMoreSentinelRef.current;
+    if (!sentinel) return undefined;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return;
+        if (autoLoadTimerRef.current !== null) return;
+        autoLoadTimerRef.current = window.setTimeout(() => {
+          autoLoadTimerRef.current = null;
+          if (hasMoreFeedCandidates) {
+            setVisibleRecommendationCount((current) => Math.min(current + MARKETPLACE_FEED_PAGE_SIZE, baseFeedCandidates.length));
+          }
+        }, 180);
+      },
+      { root: null, rootMargin: '520px 0px 760px', threshold: 0.01 },
+    );
+
+    observer.observe(sentinel);
+    return () => {
+      observer.disconnect();
+      if (autoLoadTimerRef.current !== null) {
+        window.clearTimeout(autoLoadTimerRef.current);
+        autoLoadTimerRef.current = null;
+      }
+    };
+  }, [baseFeedCandidates.length, hasMoreFeedCandidates]);
+
   return (
     <>
       <SearchFiltersModal
@@ -753,7 +815,7 @@ export const MarketplaceV2: React.FC<{
         }
       >
         <MarketplaceSchema roles={visibleRoles} t={t} />
-        <div className="space-y-9 pb-12">
+        <div className="space-y-9 scroll-smooth pb-12">
           <section className="relative overflow-hidden rounded-[28px] bg-[radial-gradient(circle_at_82%_35%,rgba(18,175,203,0.11),transparent_30%),linear-gradient(135deg,rgba(255,255,255,0.86),rgba(248,252,253,0.82)_52%,rgba(255,248,237,0.62))] shadow-[0_28px_90px_-72px_rgba(15,23,42,0.34)] dark:bg-[radial-gradient(circle_at_82%_35%,rgba(18,175,203,0.16),transparent_30%),linear-gradient(135deg,rgba(15,23,42,0.86),rgba(15,23,42,0.76)_52%,rgba(30,41,59,0.68))]">
             <div className="marketplace-hero-halo absolute right-[-2%] top-4 hidden h-72 w-72 rounded-full bg-[#12afcb]/10 blur-3xl lg:block" />
             <div className="pointer-events-none absolute top-0 bottom-[96px] right-0 z-0 hidden w-[74%] overflow-hidden md:block lg:w-[78%] xl:w-[80%]">
@@ -832,11 +894,13 @@ export const MarketplaceV2: React.FC<{
                   <button
                     type="button"
                     onClick={() => setFiltersOpen(true)}
-                    className="flex min-h-14 flex-1 items-center gap-3 rounded-full bg-white px-5 text-left text-sm font-semibold text-slate-500 shadow-[0_18px_44px_-32px_rgba(15,23,42,0.3)] transition hover:text-slate-800 focus:outline-none focus:ring-4 focus:ring-[#12afcb]/15 dark:bg-slate-950/86 dark:text-slate-400 dark:hover:text-slate-100"
+                    className="flex min-h-16 flex-1 items-center gap-3 rounded-full border border-white/85 bg-white/96 px-5 text-left text-[15px] font-bold text-slate-700 shadow-[0_24px_62px_-34px_rgba(15,23,42,0.46)] ring-2 ring-[#12afcb]/16 backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-white hover:text-slate-950 hover:shadow-[0_30px_74px_-38px_rgba(15,23,42,0.54)] focus:outline-none focus:ring-4 focus:ring-[#12afcb]/25 dark:border-white/10 dark:bg-slate-950/92 dark:text-slate-200 dark:hover:text-slate-100"
                   >
-                    <Search size={18} className="shrink-0 text-slate-400" />
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e6fbff] text-[#0f95ac] dark:bg-cyan-950/70 dark:text-cyan-300">
+                      <Search size={18} />
+                    </span>
                     <span className="min-w-0 flex-1 truncate">{searchTriggerLabel}</span>
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[image:var(--shell-button-primary-bg)] text-white shadow-[0_12px_28px_-18px_rgba(18,175,203,0.78)]">
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[image:var(--shell-button-primary-bg)] text-white shadow-[0_16px_34px_-18px_rgba(18,175,203,0.86)]">
                       <Search size={18} />
                     </span>
                   </button>
@@ -950,16 +1014,17 @@ export const MarketplaceV2: React.FC<{
               ))}
             </div>
             <div className="flex flex-col items-center gap-3">
+              <div ref={loadMoreSentinelRef} className="h-2 w-full" aria-hidden="true" />
               {hasMoreFeedCandidates ? (
-                <button type="button" onClick={() => setVisibleRecommendationCount((current) => current + RECOMMENDATION_PAGE_SIZE)} className="inline-flex h-11 items-center gap-2 rounded-xl bg-white/82 px-6 text-[13px] font-black text-[#0f95ac] shadow-[0_12px_32px_-28px_rgba(15,23,42,0.28)] transition hover:bg-[#f1fbfd] dark:bg-slate-900 dark:text-cyan-300">
-                  {t('rebuild.marketplace.load_more', { defaultValue: 'Zobrazit další nabídky' })}
+                <button type="button" onClick={handleFeedLoadMore} className="inline-flex h-11 items-center gap-2 rounded-xl bg-white/82 px-6 text-[13px] font-black text-[#0f95ac] shadow-[0_12px_32px_-28px_rgba(15,23,42,0.28)] transition hover:bg-[#f1fbfd] dark:bg-slate-900 dark:text-cyan-300">
+                  {t('rebuild.marketplace.load_more_count', { defaultValue: 'Zobrazit dalších {{count}} nabídek', count: Math.min(MARKETPLACE_FEED_PAGE_SIZE, baseFeedCandidates.length - visibleRecommendationCount) })}
                   <ChevronDown size={15} />
                 </button>
               ) : null}
               {hasMore && onLoadMore ? (
-                <button type="button" onClick={onLoadMore} disabled={loading} className="inline-flex h-11 items-center gap-2 rounded-xl bg-white/82 px-6 text-[13px] font-black text-slate-700 shadow-[0_12px_32px_-28px_rgba(15,23,42,0.28)] transition hover:bg-white disabled:cursor-wait disabled:opacity-70 dark:bg-slate-900 dark:text-slate-200">
+                <button type="button" onClick={handleFeedLoadMore} disabled={loading} className="inline-flex h-11 items-center gap-2 rounded-xl bg-white/82 px-6 text-[13px] font-black text-slate-700 shadow-[0_12px_32px_-28px_rgba(15,23,42,0.28)] transition hover:bg-white disabled:cursor-wait disabled:opacity-70 dark:bg-slate-900 dark:text-slate-200">
                   {loading ? <Loader2 size={15} className="animate-spin" /> : null}
-                  {loading ? t('rebuild.marketplace.loading_catalog', { defaultValue: 'Načítám katalog' }) : t('rebuild.marketplace.load_from_db', { defaultValue: 'Načíst další z databáze' })}
+                  {loading ? t('rebuild.marketplace.loading_catalog', { defaultValue: 'Načítám katalog' }) : t('rebuild.marketplace.load_next_from_db', { defaultValue: 'Načíst dalších {{count}} z databáze', count: MARKETPLACE_FEED_PAGE_SIZE })}
                   <span className="text-slate-400">{roles.length.toLocaleString('cs-CZ')} / {totalCount.toLocaleString('cs-CZ')}</span>
                 </button>
               ) : null}

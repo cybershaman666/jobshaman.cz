@@ -14,6 +14,29 @@ const COUNTRY_LABELS: Record<Role['countryCode'], string> = {
 
 const normalizeText = (value: unknown) => String(value || '').trim();
 
+const getCompanyProfile = (job: any) => {
+  const profile = job.companyProfile || job.company_profile;
+  return profile && typeof profile === 'object' ? profile : null;
+};
+
+const buildCompanyGalleryAssets = (profile: any): Role['companyGallery'] => {
+  if (!profile || typeof profile !== 'object') return [];
+  const brandGallery = profile.brand_assets?.gallery;
+  if (Array.isArray(brandGallery) && brandGallery.length > 0) return brandGallery;
+
+  const urls = [
+    ...(Array.isArray(profile.marketplace_media?.gallery_urls) ? profile.marketplace_media.gallery_urls : []),
+    ...(Array.isArray(profile.gallery_urls) ? profile.gallery_urls : []),
+  ].map((url) => normalizeText(url)).filter(Boolean);
+
+  return Array.from(new Set(urls)).map((url, index) => ({
+    id: `company-gallery-${index}`,
+    name: `Gallery ${index + 1}`,
+    url,
+    download_url: url,
+  }));
+};
+
 const normalizeCountryCode = (job: any): Role['countryCode'] => {
   const regionText = [
     job.location,
@@ -259,7 +282,15 @@ const inferVisualDomain = (job: any, roleFamily: RoleFamily): CandidateDomainKey
 };
 
 const inferHeroImage = (job: any, roleFamily: RoleFamily, companyName: string, title: string): string => {
-  const explicit = normalizeText(job.hero_image || job.company_cover_image || job.payload_json?.hero_image);
+  const companyProfile = getCompanyProfile(job);
+  const explicit = normalizeText(
+    job.hero_image
+    || job.company_cover_image
+    || companyProfile?.marketplace_media?.cover_url
+    || companyProfile?.cover_url
+    || companyProfile?.gallery_urls?.[0]
+    || job.payload_json?.hero_image,
+  );
   if (explicit) return explicit;
 
   return getStockCoverForDomain(
@@ -362,12 +393,29 @@ const mapJobToRole = (job: any, source: Role['source'] = 'imported'): Role => {
   const firstStep = normalizeText(job.payload_json?.first_reply_prompt || job.editor_state?.first_reply_prompt)
     || (job.url ? 'Otevři původní nabídku a ověř aktuální podmínky.' : 'Ulož si nabídku a ověř podmínky před odpovědí.');
   const liveBlueprint = normalizeHandshakeBlueprint(job, roleFamily, title, firstStep);
+  const companyProfile = getCompanyProfile(job);
+  const companyGallery = buildCompanyGalleryAssets(companyProfile);
+  const reviewerAvatarAsset = companyProfile?.brand_assets?.reviewer_avatar || null;
+  const primaryMember = Array.isArray(companyProfile?.members) ? companyProfile.members[0] : null;
 
   return {
     id: String(job.id),
     companyId: normalizeText(job.company_id) || `imported-${companyName.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'company'}`,
     companyName,
-    companyLogo: job.company_logo,
+    companyLogo: job.company_logo || companyProfile?.logo_url,
+    companyCoverImage: companyProfile?.marketplace_media?.cover_url || companyProfile?.cover_url || companyGallery?.[0]?.url || undefined,
+    companyVideoUrl: companyProfile?.marketplace_media?.video_url || undefined,
+    companyGallery,
+    companyNarrative: companyProfile?.narrative || companyProfile?.description || companyProfile?.philosophy || undefined,
+    companyReviewer: primaryMember ? {
+      name: normalizeText(primaryMember.name) || 'Hiring Team',
+      role: normalizeText(primaryMember.companyRole || primaryMember.role) || 'Recruiter',
+      avatarUrl: reviewerAvatarAsset?.url || primaryMember.avatar || companyProfile?.logo_url || '',
+      intro: normalizeText(primaryMember.teamBio || companyProfile?.tone || companyProfile?.philosophy) || 'We want to understand your signal before we talk live.',
+      meetingLabel: 'Intro Call',
+      durationMinutes: 25,
+      tool: 'Google Meet',
+    } : undefined,
     title,
     team: normalizeText(job.education_level || job.contract_type || job.source_kind) || 'Imported feed',
     location,
@@ -380,8 +428,8 @@ const mapJobToRole = (job: any, source: Role['source'] = 'imported'): Role => {
     salaryTo: Number(job.salary_to || 0),
     currency,
     heroImage: inferHeroImage(job, roleFamily, companyName, title),
-    summary: summary || description.slice(0, 240),
-    challenge: summary || 'Tahle importovaná nabídka čeká na ověření detailů.',
+    summary: summary || description,
+    challenge: normalizeText(job.challenge || job.challenge_format || job.payload_json?.challenge) || summary || 'Tahle importovaná nabídka čeká na ověření detailů.',
     mission: description || summary || 'Detail nabídky je převzatý z externího zdroje.',
     firstStep,
     description,
@@ -558,7 +606,10 @@ export const fetchJobsWithFiltersV2 = async (
       totalCount,
     };
   } catch (error) {
-    console.error('V2 Job Service Error:', error);
+    const isAbort = error instanceof Error && (error.name === 'AbortError' || error.message?.includes('aborted'));
+    if (!isAbort) {
+      console.error('V2 Job Service Error:', error);
+    }
     return { jobs: [], sections: [], hasMore: false, totalCount: 0 };
   }
 };

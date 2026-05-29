@@ -10,6 +10,6 @@ WORKDIR /app
 COPY backend/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
-COPY backend /app
+COPY . /app
 
-CMD ["sh", "scripts/start_backend.sh"]
+CMD ["sh", "backend/scripts/start_backend.sh"]

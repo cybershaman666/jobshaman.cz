@@ -33,6 +33,8 @@ import {
   textareaClass,
 } from '../ui/shellStyles';
 import { roleFamilyLabel } from '../shellDomain';
+import { MarkdownEditor } from '../shared/MarkdownEditor';
+import { MarkdownContent } from '../shared/MarkdownContent';
 
 export type RoleEditorStep = 'essence' | 'skills' | 'handshake' | 'logistics' | 'review';
 
@@ -80,6 +82,12 @@ export const RoleEditorV2: React.FC<RoleEditorProps> = ({
   const [salaryFrom, setSalaryFrom] = React.useState(initialRole?.salaryFrom?.toString() || '');
   const [salaryTo, setSalaryTo] = React.useState(initialRole?.salaryTo?.toString() || '');
   const [currency, setCurrency] = React.useState<Role['currency']>(initialRole?.currency || 'CZK');
+  const [hoursPerWeek, setHoursPerWeek] = React.useState(initialRole?.hoursPerWeek?.toString() || '40');
+  const [employmentType, setEmploymentType] = React.useState<Role['employmentType']>(initialRole?.employmentType || 'full_time');
+  const [benefits, setBenefits] = React.useState<string[]>(initialRole?.benefits || []);
+  const [newBenefit, setNewBenefit] = React.useState('');
+  const [workPerks, setWorkPerks] = React.useState<string[]>(initialRole?.workPerks || []);
+  const [newPerk, setNewPerk] = React.useState('');
 
   const [aiBusy, setAiBusy] = React.useState(false);
   const [aiSuccess, setAiSuccess] = React.useState(false);
@@ -195,6 +203,10 @@ export const RoleEditorV2: React.FC<RoleEditorProps> = ({
       salaryFrom: salaryFrom ? parseInt(salaryFrom) : null,
       salaryTo: salaryTo ? parseInt(salaryTo) : null,
       currency,
+      hoursPerWeek: hoursPerWeek ? parseInt(hoursPerWeek) : null,
+      employmentType,
+      benefits,
+      workPerks,
       assessmentTasks,
       handshakeBlueprint: {
         steps: blueprintSteps,
@@ -357,19 +369,21 @@ export const RoleEditorV2: React.FC<RoleEditorProps> = ({
                     </label>
                   </div>
 
-                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
-                    {t('rebuild.editor.problem_statement', { defaultValue: 'Problem Statement / Challenge' })}
+                  <div className="block text-sm font-bold text-slate-700 dark:text-slate-300">
+                    <div>{t('rebuild.editor.problem_statement', { defaultValue: 'Problem Statement / Challenge' })}</div>
                     <span className="mt-1 block text-xs font-normal text-slate-500 leading-5">
                       {t('rebuild.editor.challenge_hint', { defaultValue: 'What specific problem will this person solve? Why does this role exist right now?' })}
                     </span>
-                    <textarea 
-                      value={summary} 
-                      onChange={e => setSummary(e.target.value)} 
-                      rows={4} 
+                    <MarkdownEditor
+                      value={summary}
+                      onChange={setSummary}
+                      t={t}
                       placeholder={t('rebuild.editor.challenge_placeholder', { defaultValue: 'e.g. Our current dashboard takes 5 seconds to load. We need someone to lead the performance refactor...' })}
-                      className={textareaClass} 
+                      minHeightClassName="min-h-[230px]"
+                      headingFallback={t('rebuild.editor.role_heading_text', { defaultValue: 'Why this role exists' })}
+                      bulletsFallback={t('rebuild.editor.role_bullets_text', { defaultValue: 'The core challenge\nWhat success looks like\nWhat makes the work meaningful' })}
                     />
-                  </label>
+                  </div>
 
                   <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
                     {t('rebuild.editor.mission', { defaultValue: 'Long-term Mission' })}
@@ -654,6 +668,136 @@ export const RoleEditorV2: React.FC<RoleEditorProps> = ({
                       </select>
                     </label>
                   </div>
+
+                  <div className="grid gap-6 md:grid-cols-2">
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
+                      {t('rebuild.editor.hours_per_week', { defaultValue: 'Hours per Week' })}
+                      <input 
+                        type="number" 
+                        value={hoursPerWeek} 
+                        onChange={e => setHoursPerWeek(e.target.value)} 
+                        min="1"
+                        max="100"
+                        placeholder={t('rebuild.editor.hours_placeholder', { defaultValue: 'e.g. 40' })}
+                        className={fieldClass} 
+                      />
+                    </label>
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
+                      {t('rebuild.editor.employment_type', { defaultValue: 'Employment Type' })}
+                      <select 
+                        value={employmentType || ''} 
+                        onChange={e => setEmploymentType((e.target.value as any) || 'full_time')} 
+                        className={fieldClass}
+                      >
+                        <option value="full_time">{t('rebuild.editor.employment_full_time', { defaultValue: 'Full-time' })}</option>
+                        <option value="part_time">{t('rebuild.editor.employment_part_time', { defaultValue: 'Part-time' })}</option>
+                        <option value="contract">{t('rebuild.editor.employment_contract', { defaultValue: 'Contract/OSVČ' })}</option>
+                        <option value="gig">{t('rebuild.editor.employment_gig', { defaultValue: 'Gig/One-time' })}</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <div className="space-y-4">
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
+                      {t('rebuild.editor.benefits', { defaultValue: 'Benefits & Compensation' })}
+                      <div className="flex gap-2 mt-2">
+                        <input 
+                          type="text"
+                          value={newBenefit}
+                          onChange={e => setNewBenefit(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && newBenefit.trim()) {
+                              if (!benefits.includes(newBenefit.trim())) {
+                                setBenefits([...benefits, newBenefit.trim()]);
+                              }
+                              setNewBenefit('');
+                            }
+                          }}
+                          placeholder={t('rebuild.editor.benefit_placeholder', { defaultValue: 'e.g. Bonus, Pension' })}
+                          className={cn(fieldClass, 'flex-1')}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (newBenefit.trim() && !benefits.includes(newBenefit.trim())) {
+                              setBenefits([...benefits, newBenefit.trim()]);
+                              setNewBenefit('');
+                            }
+                          }}
+                          className={cn(secondaryButtonClass, 'px-4')}
+                        >
+                          <Plus size={16} />
+                        </button>
+                      </div>
+                      {benefits.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          {benefits.map(b => (
+                            <span key={b} className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg text-sm font-bold text-emerald-700 dark:text-emerald-300">
+                              {b}
+                              <button
+                                type="button"
+                                onClick={() => setBenefits(benefits.filter(x => x !== b))}
+                                className="hover:opacity-70"
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </label>
+                  </div>
+
+                  <div className="space-y-4">
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
+                      {t('rebuild.editor.work_perks', { defaultValue: 'Work Perks (Home Office, Dog-Friendly, etc.)' })}
+                      <div className="flex gap-2 mt-2">
+                        <input 
+                          type="text"
+                          value={newPerk}
+                          onChange={e => setNewPerk(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && newPerk.trim()) {
+                              if (!workPerks.includes(newPerk.trim())) {
+                                setWorkPerks([...workPerks, newPerk.trim()]);
+                              }
+                              setNewPerk('');
+                            }
+                          }}
+                          placeholder={t('rebuild.editor.perk_placeholder', { defaultValue: 'e.g. Home office, Dog-friendly, Relocation package' })}
+                          className={cn(fieldClass, 'flex-1')}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (newPerk.trim() && !workPerks.includes(newPerk.trim())) {
+                              setWorkPerks([...workPerks, newPerk.trim()]);
+                              setNewPerk('');
+                            }
+                          }}
+                          className={cn(secondaryButtonClass, 'px-4')}
+                        >
+                          <Plus size={16} />
+                        </button>
+                      </div>
+                      {workPerks.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          {workPerks.map(p => (
+                            <span key={p} className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-sm font-bold text-blue-700 dark:text-blue-300">
+                              {p}
+                              <button
+                                type="button"
+                                onClick={() => setWorkPerks(workPerks.filter(x => x !== p))}
+                                className="hover:opacity-70"
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </label>
+                  </div>
                 </div>
               </div>
             )}
@@ -677,11 +821,13 @@ export const RoleEditorV2: React.FC<RoleEditorProps> = ({
                       <span className="px-3 py-1 bg-emerald-500 rounded-full text-[10px] font-bold uppercase tracking-wider">{t('rebuild.editor.preview_tag', { defaultValue: 'Skill-First Handshake' })}</span>
                     </div>
                     <h4 className="mt-6 text-4xl font-black tracking-tight leading-[0.95]">{title}</h4>
-                    <p className="mt-4 text-lg text-white/70 leading-8 max-w-2xl">{summary}</p>
+                    <MarkdownContent value={summary} className="mt-4 max-w-2xl text-lg text-white/70 prose-headings:text-white prose-strong:text-white prose-em:text-white/80" />
                     <div className="mt-8 flex flex-wrap gap-4 text-sm font-bold text-white/50">
                       <div className="flex items-center gap-2"><MapPin size={16} /> {location}</div>
                       <div className="flex items-center gap-2"><Clock size={16} /> {workModel}</div>
                       <div className="flex items-center gap-2"><Zap size={16} /> {salaryFrom && salaryTo ? `${salaryFrom} - ${salaryTo} ${currency}` : t('rebuild.editor.salary_tbd', { defaultValue: 'Salary TBD' })}</div>
+                      {hoursPerWeek && <div className="flex items-center gap-2"><Briefcase size={16} /> {hoursPerWeek} {t('rebuild.editor.hours', { defaultValue: 'h/week' })}</div>}
+                      {employmentType && <div className="flex items-center gap-2"><Settings size={16} /> {t(`rebuild.editor.employment_${employmentType}`, { defaultValue: employmentType })}</div>}
                     </div>
                   </div>
                   
@@ -692,6 +838,24 @@ export const RoleEditorV2: React.FC<RoleEditorProps> = ({
                         {skills.map(s => <span key={s} className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-sm font-bold">{s}</span>)}
                       </div>
                     </div>
+
+                    {benefits.length > 0 && (
+                      <div>
+                        <h5 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">{t('rebuild.editor.benefits', { defaultValue: 'Benefits & Compensation' })}</h5>
+                        <div className="flex flex-wrap gap-2">
+                          {benefits.map(b => <span key={b} className="px-3 py-1.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-lg text-sm font-bold">{b}</span>)}
+                        </div>
+                      </div>
+                    )}
+
+                    {workPerks.length > 0 && (
+                      <div>
+                        <h5 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">{t('rebuild.editor.work_perks', { defaultValue: 'Work Perks' })}</h5>
+                        <div className="flex flex-wrap gap-2">
+                          {workPerks.map(p => <span key={p} className="px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-bold">{p}</span>)}
+                        </div>
+                      </div>
+                    )}
 
                     <div>
                       <h5 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">{t('rebuild.editor.handshake_journey', { defaultValue: 'Handshake Journey' })}</h5>

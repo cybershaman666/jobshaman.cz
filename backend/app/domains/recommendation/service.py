@@ -205,6 +205,60 @@ def _component(
     }
 
 
+def _is_english_job(job: Dict[str, Any]) -> bool:
+    lang = str(job.get("language_code") or "").lower()
+    if lang in ("en", "eng", "english"):
+        return True
+    
+    # Analyze text content
+    title = str(job.get("title") or "")
+    desc = str(job.get("description") or "")
+    text_haystack = " " + " ".join([
+        title,
+        desc,
+        " ".join(job.get("tags") or []),
+        " ".join(job.get("benefits") or []),
+    ]).lower() + " "
+    
+    # Check explicit indicators
+    if any(kw in text_haystack for kw in [" english ", " anglicky ", " angličtina ", " angielski ", " angielskiego "]):
+        return True
+        
+    # Check common English stopwords/pronouns/connectives
+    english_words = [
+        " the ", " and ", " with ", " for ", " that ", " this ", " you ", " your ", " we ", " our ", 
+        " candidate ", " requirements ", " experience ", " description ", " responsibilities "
+    ]
+    # Count how many of these common English words are present
+    match_count = sum(1 for w in english_words if w in text_haystack)
+    if match_count >= 3:
+        return True
+        
+    return False
+
+
+def _job_matches_search_params(job: Dict[str, Any], search_params: Dict[str, Any]) -> bool:
+    # 1. Country filter
+    if "country" in search_params:
+        # Check explicit country or infer
+        country = _normalize_country(job.get("country_code"))
+        if not country:
+            payload = job.get("payload_json") if isinstance(job.get("payload_json"), dict) else {}
+            country = _normalize_country(payload.get("country_code") or payload.get("country"))
+        if not country:
+            # Fallback to _infer_country
+            country = _infer_country(job)
+        if country != search_params["country"]:
+            return False
+            
+    # 2. Language filter
+    if "language" in search_params:
+        if search_params["language"] == "en":
+            if not _is_english_job(job):
+                return False
+    return True
+
+
 class RecommendationDomainService:
     ALGORITHM_VERSION = "v2.0.0"
 
@@ -231,7 +285,11 @@ class RecommendationDomainService:
     }
 
     @staticmethod
-    async def build_candidate_feed(user_id: str, limit: int = 60) -> Dict[str, Any]:
+    async def build_candidate_feed(
+        user_id: str,
+        limit: int = 60,
+        search_params: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
         """
         Hybrid retrieval pipeline with caching:
           1. Check cache for recent results
@@ -245,7 +303,7 @@ class RecommendationDomainService:
         # --- Step -1: Check Cache ---
         now = time.time()
         cached = RecommendationDomainService.FEED_CACHE.get(user_id)
-        if cached and (now - cached["timestamp"] < RecommendationDomainService.CACHE_TTL_SECONDS):
+        if not search_params and cached and (now - cached["timestamp"] < RecommendationDomainService.CACHE_TTL_SECONDS):
             # Only return if limit matches or is smaller (simple cache policy)
             if cached.get("limit", 0) >= limit:
                 logger.info("Serving cached recommendation feed for user %s", user_id)
@@ -256,6 +314,11 @@ class RecommendationDomainService:
         signals = await IdentityDomainService.list_identity_signals(user_id)
         preferences = _safe_json(profile.get("preferences") if profile else None, {})
         candidate_preferences = _extract_candidate_preferences(profile, preferences)
+
+        if search_params:
+            candidate_preferences["near_border"] = True
+            if "country" in search_params:
+                candidate_preferences["domestic_country"] = search_params["country"]
 
         # Build candidate text for both token matching and embedding
         candidate_text = " ".join(
@@ -346,6 +409,8 @@ class RecommendationDomainService:
             )
             for job in merged_jobs
         ]
+        if search_params:
+            scored = [item for item in scored if _job_matches_search_params(item["job"], search_params)]
         scored = [item for item in scored if item["fit_score"] >= 15]
 
         # Boost vector-recalled items: if a job was found via semantic search,
@@ -422,11 +487,12 @@ class RecommendationDomainService:
         }
 
         # Store in cache
-        RecommendationDomainService.FEED_CACHE[user_id] = {
-            "timestamp": now,
-            "limit": limit,
-            "data": result_data
-        }
+        if not search_params:
+            RecommendationDomainService.FEED_CACHE[user_id] = {
+                "timestamp": now,
+                "limit": limit,
+                "data": result_data
+            }
 
         return result_data
 

@@ -2,6 +2,7 @@ import json
 import uuid
 import asyncio
 import hashlib
+import logging
 from collections import OrderedDict
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -13,12 +14,15 @@ from sqlmodel import select
 
 from app.core.database import engine
 from app.core.legacy_supabase import fetch_legacy_company_for_user
+from app.core.config import APP_PUBLIC_URL
 import secrets
-from app.domains.identity.models import User
+from app.domains.identity.models import CandidateProfile, User
 from app.domains.identity.service import IdentityDomainService
 from app.domains.reality.models import Company, CompanyUser, Job
 from app.services.azure_ai_client import AzureAIClientError, call_ai_json
 from app.services.email import send_teammate_invitation_email
+
+logger = logging.getLogger(__name__)
 
 
 def _safe_json_loads(value: Optional[str], fallback: Any) -> Any:
@@ -44,6 +48,17 @@ def _clean_text(value: Any, limit: int = 3000) -> str:
     if value is None:
         return ""
     return " ".join(str(value).strip().split())[:limit]
+
+
+def _clean_markdown_text(value: Any, limit: int = 5000) -> str:
+    if value is None:
+        return ""
+    text_value = str(value).replace("\r\n", "\n").replace("\r", "\n").strip()
+    lines = [" ".join(line.strip().split()) for line in text_value.split("\n")]
+    normalized = "\n".join(lines)
+    while "\n\n\n" in normalized:
+        normalized = normalized.replace("\n\n\n", "\n\n")
+    return normalized[:limit]
 
 
 def _slug_key(value: str) -> str:
@@ -103,6 +118,42 @@ def _normalize_member_profiles(payload: Dict[str, Any]) -> list[dict[str, Any]]:
 
 
 class RealityDomainService:
+    @staticmethod
+    async def _ensure_company_reviewer_profile(session: AsyncSession, company: Company, user_id: str) -> None:
+        profile_data = _safe_json_loads(company.profile_data, {})
+        members = profile_data.get("members") if isinstance(profile_data.get("members"), list) else []
+        has_real_member = any(
+            isinstance(member, dict) and _clean_text(member.get("name"), 180) and _clean_text(member.get("name"), 180) != "Hiring Team"
+            for member in members
+        )
+        if has_real_member:
+            return
+
+        user_uuid = uuid.UUID(user_id)
+        user_result = await session.execute(select(User).where(User.id == user_uuid))
+        user = user_result.scalar_one_or_none()
+        profile_result = await session.execute(select(CandidateProfile).where(CandidateProfile.user_id == user_uuid))
+        profile = profile_result.scalar_one_or_none()
+        display_name = _clean_text(profile.full_name if profile else "", 180) or _clean_text(user.email.split("@")[0] if user else "", 180)
+        if not display_name:
+            return
+
+        profile_data["members"] = [{
+            "id": f"{company.id}-owner",
+            "userId": str(user_uuid),
+            "name": display_name,
+            "email": user.email if user else "",
+            "role": "admin",
+            "avatar": profile.avatar_url if profile else None,
+            "joinedAt": datetime.utcnow().isoformat(),
+            "companyRole": "Founder / Hiring lead",
+            "teamBio": company.tone or company.philosophy or "",
+            "linkedProfile": True,
+            "status": "active",
+            "source": "owner",
+        }]
+        company.profile_data = json.dumps(profile_data, ensure_ascii=False)
+
     @staticmethod
     async def _company_for_user_in_session(session: AsyncSession, user_id: str) -> Optional[Company]:
         result = await session.execute(
@@ -303,22 +354,29 @@ class RealityDomainService:
     @staticmethod
     def _serialize_opportunity(job: Job, company: Optional[Company] = None) -> Dict[str, Any]:
         skills = _safe_json_value(job.skills_required, [])
+        benefits = _safe_json_value(job.benefits, []) if job.benefits else []
+        work_perks = _safe_json_value(job.work_perks, []) if job.work_perks else []
         assessment_tasks = _safe_json_value(job.assessment_tasks, [])
         handshake_blueprint = _safe_json_value(job.handshake_blueprint_v1, {})
         capacity_policy = _safe_json_value(job.capacity_policy, {})
         editor_state = _safe_json_value(job.editor_state, {})
         company_name = company.name if company else "Jobshaman company"
+        company_profile = RealityDomainService._serialize_company(company) if company else None
         return {
             "id": str(job.id),
             "legacy_job_id": str(job.id),
             "company_id": str(job.company_id),
             "company_name": company_name,
             "company": company_name,
+            "company_profile": company_profile,
             "title": job.title,
             "summary": job.summary or "",
             "description": job.description or job.summary or "",
             "role_summary": job.summary,
-            "benefits": [],
+            "benefits": benefits if isinstance(benefits, list) else [],
+            "work_perks": work_perks if isinstance(work_perks, list) else [],
+            "hours_per_week": job.hours_per_week,
+            "employment_type": job.employment_type,
             "tags": skills if isinstance(skills, list) else [],
             "skills_required": skills if isinstance(skills, list) else [],
             "salary_from": job.salary_from,
@@ -938,6 +996,13 @@ class RealityDomainService:
         members = profile_data.get("members") or []
         handshake_materials = profile_data.get("handshake_materials") or profile_data.get("brand_assets", {}).get("handshake_materials") or []
         brand_assets = profile_data.get("brand_assets") or {}
+        
+        legacy_supabase = profile_data.get("legacy_supabase")
+        azure_saved_at = profile_data.get("azure_company_saved_at")
+        needs_migration = False
+        if legacy_supabase and not azure_saved_at:
+            needs_migration = True
+
         return {
             "id": str(company.id),
             "name": company.name,
@@ -963,6 +1028,7 @@ class RealityDomainService:
             "team_member_profiles": profile_data.get("team_member_profiles"),
             "brand_assets": brand_assets if isinstance(brand_assets, dict) else {},
             "handshake_materials": handshake_materials if isinstance(handshake_materials, list) else [],
+            "needs_azure_migration": needs_migration,
         }
 
     @staticmethod
@@ -1174,8 +1240,9 @@ class RealityDomainService:
             company = await RealityDomainService._company_for_user_in_session(session, user_id)
             if not company:
                 return None
+            await RealityDomainService._ensure_company_reviewer_profile(session, company, user_id)
             title = _clean_text(payload.get("title"), 180) or "Nová výzva"
-            summary = _clean_text(payload.get("summary") or payload.get("role_summary"), 1200)
+            summary = _clean_markdown_text(payload.get("summary") or payload.get("role_summary"), 5000)
             role_family = _clean_text(payload.get("role_family") or payload.get("roleFamily") or "operations", 80)
             skills = _string_list(payload.get("skills") or payload.get("skills_required"))
             tasks = _safe_json_value(payload.get("assessment_tasks"), [])
@@ -1189,7 +1256,7 @@ class RealityDomainService:
                 capacity = {"candidate_slots_required": 1, "company_slots_total": 25, "max_active_handshakes": 25}
             editor_state = _safe_json_value(payload.get("editor_state"), {})
             editor_state.update({
-                "company_goal": _clean_text(payload.get("company_goal") or summary, 1200),
+                "company_goal": _clean_markdown_text(payload.get("company_goal") or summary, 5000),
                 "first_reply_prompt": _clean_text(payload.get("first_reply_prompt") or payload.get("firstStep") or "", 1200),
                 "role_family": role_family,
                 "ai_confirmed": bool(editor_state.get("ai_confirmed", False)),
@@ -1198,13 +1265,17 @@ class RealityDomainService:
                 company_id=company.id,
                 title=title,
                 summary=summary,
-                description=_clean_text(payload.get("description") or summary, 5000),
+                description=_clean_markdown_text(payload.get("description") or summary, 5000),
                 salary_from=payload.get("salary_from"),
                 salary_to=payload.get("salary_to"),
                 currency=_clean_text(payload.get("currency") or payload.get("salary_currency") or "CZK", 12) or "CZK",
                 work_model=_clean_text(payload.get("work_model") or "Hybrid", 40) or "Hybrid",
                 location=_clean_text(payload.get("location") or payload.get("location_public") or company.address or "", 240),
+                hours_per_week=payload.get("hours_per_week"),
+                employment_type=_clean_text(payload.get("employment_type"), 40) if payload.get("employment_type") else None,
                 skills_required=json.dumps(skills, ensure_ascii=False),
+                benefits=json.dumps(_string_list(payload.get("benefits")), ensure_ascii=False),
+                work_perks=json.dumps(_string_list(payload.get("work_perks")), ensure_ascii=False),
                 is_active=False,
                 status="draft",
                 source_kind="native_challenge",
@@ -1231,14 +1302,16 @@ class RealityDomainService:
             if not job or not await RealityDomainService._has_company_access(session, user_id, job.company_id):
                 return None
             company = await session.get(Company, job.company_id)
+            if company:
+                await RealityDomainService._ensure_company_reviewer_profile(session, company, user_id)
             if job.status == "published" and payload.get("status") != "archived":
                 raise ValueError("Published challenges can only be archived or edited via a new draft.")
             if "title" in payload:
                 job.title = _clean_text(payload.get("title"), 180) or job.title
             if "summary" in payload or "role_summary" in payload:
-                job.summary = _clean_text(payload.get("summary") or payload.get("role_summary"), 1200)
+                job.summary = _clean_markdown_text(payload.get("summary") or payload.get("role_summary"), 5000)
             if "description" in payload:
-                job.description = _clean_text(payload.get("description"), 5000)
+                job.description = _clean_markdown_text(payload.get("description"), 5000)
             if "salary_from" in payload:
                 job.salary_from = payload.get("salary_from")
             if "salary_to" in payload:
@@ -1249,8 +1322,16 @@ class RealityDomainService:
                 job.work_model = _clean_text(payload.get("work_model"), 40) or job.work_model
             if "location" in payload or "location_public" in payload:
                 job.location = _clean_text(payload.get("location") or payload.get("location_public"), 240)
+            if "hours_per_week" in payload:
+                job.hours_per_week = payload.get("hours_per_week")
+            if "employment_type" in payload:
+                job.employment_type = _clean_text(payload.get("employment_type"), 40) if payload.get("employment_type") else None
             if "skills" in payload or "skills_required" in payload:
                 job.skills_required = json.dumps(_string_list(payload.get("skills") or payload.get("skills_required")), ensure_ascii=False)
+            if "benefits" in payload:
+                job.benefits = json.dumps(_string_list(payload.get("benefits")), ensure_ascii=False)
+            if "work_perks" in payload:
+                job.work_perks = json.dumps(_string_list(payload.get("work_perks")), ensure_ascii=False)
             if "assessment_tasks" in payload:
                 job.assessment_tasks = _safe_json_value(payload.get("assessment_tasks"), [])
             if "handshake_blueprint_v1" in payload:
@@ -1264,7 +1345,7 @@ class RealityDomainService:
             editor_state.update(_safe_json_value(payload.get("editor_state"), {}))
             for key in ("company_goal", "first_reply_prompt"):
                 if key in payload:
-                    editor_state[key] = _clean_text(payload.get(key), 1200)
+                    editor_state[key] = _clean_markdown_text(payload.get(key), 5000)
             job.editor_state = editor_state
             job.updated_by = uuid.UUID(user_id)
             job.updated_at = datetime.utcnow()
@@ -1275,6 +1356,17 @@ class RealityDomainService:
             return RealityDomainService._serialize_opportunity(job, company)
 
     @staticmethod
+    async def delete_company_challenge(user_id: str, challenge_id: str) -> bool:
+        async with AsyncSession(engine) as session:
+            result = await session.execute(select(Job).where(Job.id == uuid.UUID(challenge_id)))
+            job = result.scalar_one_or_none()
+            if not job or not await RealityDomainService._has_company_access(session, user_id, job.company_id):
+                return False
+            await session.delete(job)
+            await session.commit()
+            return True
+
+    @staticmethod
     async def ai_assist_company_challenge(user_id: str, challenge_id: str, payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         async with AsyncSession(engine) as session:
             result = await session.execute(select(Job).where(Job.id == uuid.UUID(challenge_id)))
@@ -1283,7 +1375,7 @@ class RealityDomainService:
                 return None
             company = await session.get(Company, job.company_id)
             role_family = _clean_text(_safe_json_value(job.editor_state, {}).get("role_family") or payload.get("role_family") or "operations", 80)
-            problem = _clean_text(payload.get("problem_statement") or job.summary or job.description, 1200)
+            problem = _clean_markdown_text(payload.get("problem_statement") or job.summary or job.description, 5000)
             try:
                 raw_output, model_result = await asyncio.to_thread(
                     call_ai_json,
@@ -1322,7 +1414,7 @@ class RealityDomainService:
                 "jcfpm_policy": ai_output.get("jcfpm_policy"),
             })
             job.title = _clean_text(ai_output.get("title"), 180) or job.title
-            job.summary = _clean_text(ai_output.get("problem_statement"), 1800) or job.summary
+            job.summary = _clean_markdown_text(ai_output.get("problem_statement"), 5000) or job.summary
             job.assessment_tasks = tasks
             job.handshake_blueprint_v1 = blueprint
             job.editor_state = editor_state
@@ -1349,7 +1441,7 @@ class RealityDomainService:
             
         role_family = _clean_text(payload.get("role_family") or "operations", 80)
         title = _clean_text(payload.get("title"), 180) or "Nová výzva"
-        summary = _clean_text(payload.get("summary") or payload.get("problem_statement"), 1800)
+        summary = _clean_markdown_text(payload.get("summary") or payload.get("problem_statement"), 5000)
         try:
             raw_output, model_result = await asyncio.to_thread(
                 call_ai_json,
@@ -1573,7 +1665,8 @@ class RealityDomainService:
                 invited_name=name,
                 company_name=company_name,
                 inviter_name=inviter_name,
-                invitation_token=token
+                invitation_token=token,
+                app_url=APP_PUBLIC_URL
             )
             
             # Only save invitation if email was sent successfully
@@ -1608,6 +1701,19 @@ class RealityDomainService:
                 return None
 
             # Accept invitation
+            # FIX: Prevent unique constraint violation when accepting invitation
+            existing_membership = await session.execute(
+                select(CompanyUser).where(
+                    CompanyUser.user_id == user_uuid,
+                    CompanyUser.company_id == invitation.company_id,
+                )
+            )
+            if existing_membership.scalar_one_or_none():
+                # Membership already exists; do not re-link invitation
+                # Optionally set invitation as used/expired or remove it
+                invitation.status = "expired"
+                await session.commit()
+                return None
             invitation.user_id = user_uuid
             invitation.status = "active"
             invitation.invitation_token = None # Clear token
@@ -1710,14 +1816,19 @@ class RealityDomainService:
                 inviter = inviter_res.scalar_one_or_none()
                 inviter_name = inviter.email if inviter else "Kolega"
 
-                await asyncio.to_thread(
+                email_sent = await asyncio.to_thread(
                     send_teammate_invitation_email,
                     to_email=invited_email,
                     invited_name=invited_name,
                     company_name=company_name,
                     inviter_name=inviter_name,
-                    invitation_token=token
+                    invitation_token=token,
+                    app_url=APP_PUBLIC_URL
                 )
+                
+                if not email_sent:
+                    logger.warning(f"Failed to resend invitation email to {invited_email}. Email service unavailable.")
+                    return {"status": "email_failed", "error": "Email service unavailable. Please try again later."}
 
                 return {"status": "resent", "id": str(member_id), "email": invited_email}
             except Exception as e:

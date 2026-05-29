@@ -1,14 +1,15 @@
+import logging
+import os
 from html import escape
 
-from ..core.config import APPLICATION_NOTIFICATION_EMAIL, RESEND_API_KEY
+from ..core.config import APPLICATION_NOTIFICATION_EMAIL
 
 try:
     import resend
 except ModuleNotFoundError:
     resend = None
 
-if RESEND_API_KEY and resend is not None:
-    resend.api_key = RESEND_API_KEY
+logger = logging.getLogger(__name__)
 
 
 _CZ_VOCATIVE_OVERRIDES = {
@@ -75,17 +76,33 @@ def _to_czech_vocative(first_name: str) -> str:
     return name
 
 def send_email(to_email: str, subject: str, html: str):
-    if not RESEND_API_KEY:
-        print("⚠️ Resend API key missing. Email not sent.")
-        print(f"   To: {to_email}")
-        print(f"   Subject: {subject}")
+    # Read API key directly from environment at call time.
+    # IMPORTANT: Do NOT import from config module — config constants are frozen
+    # at first import. On Azure Container Apps, Key Vault secrets are injected
+    # into the environment AFTER the container starts, so reading os.environ
+    # here guarantees we always get the live value.
+    _api_key = (
+        os.environ.get("RESEND_API_KEY")
+        or os.environ.get("RESEND-API-KEY")
+        or os.environ.get("VITE_RESEND_API_KEY")
+        or ""
+    ).strip()
+
+    if not _api_key:
+        logger.warning("⚠️ RESEND_API_KEY is missing or empty. Email not sent. to=%s subject=%s", to_email, subject)
         return False
     if resend is None:
-        # Dev mode: log the email instead of sending (for testing without resend package)
-        print("📧 DEV MODE: Email would be sent (resend package not installed)")
-        print(f"   To: {to_email}")
-        print(f"   Subject: {subject}")
-        return True  # Return True in dev mode to allow testing flow
+        logger.warning("📧 resend package not installed. Email not sent. to=%s subject=%s", to_email, subject)
+        return False
+
+    # Always set api_key fresh (safe to call multiple times)
+    resend.api_key = _api_key
+
+    # Diagnostic: log key metadata to verify correct secret is loaded in production
+    _key_len = len(_api_key)
+    _key_preview = f"{_api_key[:6]}...{_api_key[-4:]}" if _key_len > 10 else "(too short)"
+    logger.info("🔑 Resend API key loaded: len=%d prefix/suffix=%s", _key_len, _key_preview)
+
     try:
         params = {
             "from": "JobShaman <floki@jobshaman.cz>",
@@ -94,9 +111,10 @@ def send_email(to_email: str, subject: str, html: str):
             "html": html,
         }
         resend.Emails.send(params)
+        logger.info("✅ Email sent to %s", to_email)
         return True
     except Exception as e:
-        print(f"❌ Failed to send email to {to_email}: {e}")
+        logger.error("❌ Failed to send email to %s: %s", to_email, e, exc_info=True)
         return False
 
 

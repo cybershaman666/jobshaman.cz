@@ -62,7 +62,7 @@ export const CandidateHandshakeLayout: React.FC<CandidateHandshakeLayoutProps> =
   const { t } = useTranslation();
 
   // Session state management
-  const { session, updateAnswer, isDirty, isSaving } = useHandshakeSession(
+  const { session, updateAnswer, isDirty, isSaving, saveAnswers } = useHandshakeSession(
     handshakeId,
     initialSession,
     {
@@ -106,6 +106,7 @@ export const CandidateHandshakeLayout: React.FC<CandidateHandshakeLayoutProps> =
   // Submit handler
   const handleSubmit = async () => {
     try {
+      await saveAnswers();
       await onFinalizeHandshake(session, candidateScore);
     } catch (error) {
       console.error('Failed to finalize handshake', error);
@@ -200,6 +201,7 @@ export const CandidateHandshakeLayout: React.FC<CandidateHandshakeLayoutProps> =
             isSubmitting={finalizeBusy}
             onSubmit={handleSubmit}
             onUpdateAnswer={updateAnswer}
+            isSaving={isSaving}
           />
         );
 
@@ -316,10 +318,10 @@ export const CandidateHandshakeLayout: React.FC<CandidateHandshakeLayoutProps> =
               <button
                 type="button"
                 onClick={goToNextStep}
-                disabled={!nextStep || finalizeBusy}
+                disabled={!nextStep || finalizeBusy || isSaving}
                 className={cn(primaryButtonClass, 'inline-flex gap-2 disabled:opacity-50 disabled:cursor-not-allowed')}
               >
-                {t('rebuild.journey.next', { defaultValue: 'Next' })}
+                {isSaving ? t('rebuild.journey.saving', { defaultValue: 'Saving...' }) : t('rebuild.journey.next', { defaultValue: 'Next' })}
                 <ArrowRight size={16} />
               </button>
             ) : null}

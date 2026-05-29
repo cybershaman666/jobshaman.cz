@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, ArrowRight, Loader2 } from 'lucide-react';
-import { useUserProfile } from '../../hooks/useUserProfile';
 import { savePendingAuthConsent, signInWithEmail, signInWithOAuthProvider, signUpWithEmail, updateUserProfile } from '../../services/v2UserService';
 import { buildUserProfileUpdatesFromAIProfile, completeProfileOnboardingFromStory } from '../../services/aiProfileService';
 import type { UserProfile } from '../../types';
@@ -56,8 +55,12 @@ const ParticleBackground = () => (
   </div>
 );
 
-export const TheRitual: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
-  const { userProfile, setUserProfile, handleSessionRestoration } = useUserProfile();
+export const TheRitual: React.FC<{
+  userProfile: UserProfile;
+  setUserProfile: (updates: Partial<UserProfile>) => void;
+  handleSessionRestoration: (userId: string, force?: boolean) => Promise<void>;
+  onComplete: () => void;
+}> = ({ userProfile, setUserProfile, handleSessionRestoration, onComplete }) => {
   
   const [phase, setPhase] = useState<'intro' | 'auth' | 'quest' | 'birth'>(
     userProfile.isLoggedIn ? 'intro' : 'auth'
@@ -88,19 +91,21 @@ export const TheRitual: React.FC<{ onComplete: () => void }> = ({ onComplete }) 
   const [questError, setQuestError] = useState('');
 
   const completeWithProfileUpdates = async (updates: Partial<UserProfile>) => {
+    const basePrefs = userProfile.preferences || { workLifeBalance: 50, financialGoals: 50, commuteTolerance: 60, priorities: [] };
+    const mergedPrefs = {
+      ...basePrefs,
+      ...(updates.preferences || {}),
+      candidate_onboarding_v2: {
+        ...(userProfile.preferences?.candidate_onboarding_v2 || {}),
+        ...((updates.preferences as any)?.candidate_onboarding_v2 || {}),
+        completed_at: new Date().toISOString(),
+        last_step: 'profile_nudge' as const,
+      },
+    } as UserProfile['preferences'];
     const completedUpdates: Partial<UserProfile> = {
       ...updates,
       story: updates.story || userProfile.story || 'Tvůj příběh byl úspěšně zmapován.',
-      preferences: {
-        ...(userProfile.preferences || {}),
-        ...(updates.preferences || {}),
-        candidate_onboarding_v2: {
-          ...(userProfile.preferences?.candidate_onboarding_v2 || {}),
-          ...((updates.preferences as any)?.candidate_onboarding_v2 || {}),
-          completed_at: new Date().toISOString(),
-          last_step: 'profile_nudge' as const,
-        },
-      },
+      preferences: mergedPrefs,
     };
 
     if (userProfile.id) {

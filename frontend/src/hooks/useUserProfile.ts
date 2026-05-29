@@ -10,6 +10,7 @@ import {
     consumePendingAuthConsent
 } from '../services/v2UserService';
 import { refreshCsrfTokenIfNeeded, clearCsrfToken } from '../services/csrfService';
+import { clearDialogueCache } from '../services/v2DialogueService';
 import { BACKEND_URL, SEARCH_BACKEND_URL } from '../constants';
 import { supabase } from '../services/supabaseClient';
 import { clearSupabaseAuthStorage } from '../services/supabaseClient';
@@ -64,16 +65,18 @@ export const useUserProfile = () => {
     const lastSuccessfulRestorationRef = useRef<{ userId: string; at: number } | null>(null);
     const RESTORATION_DEDUPE_WINDOW_MS = 60_000;
     // Session restoration and profile management
-    const handleSessionRestoration = async (userId: string) => {
+    const handleSessionRestoration = async (userId: string, force?: boolean) => {
         if (!userId) return;
         if (restorationInProgressRef.current === userId) return;
         if (
+            !force &&
             lastSuccessfulRestorationRef.current?.userId === userId &&
             (Date.now() - lastSuccessfulRestorationRef.current.at) < RESTORATION_DEDUPE_WINDOW_MS
         ) return;
 
         restorationInProgressRef.current = userId;
         try {
+            clearDialogueCache();
             const { isValid } = await verifyAuthSession('handleSessionRestoration');
             if (!isValid) {
                 restorationInProgressRef.current = null;
@@ -204,6 +207,7 @@ export const useUserProfile = () => {
             if (error?.message?.includes('Refresh Token')) clearSupabaseAuthStorage();
         } finally {
             clearCsrfToken();
+            clearDialogueCache();
             setUserProfile(DEFAULT_USER_PROFILE);
             setCompanyProfile(null);
             setViewState(ViewState.LIST);

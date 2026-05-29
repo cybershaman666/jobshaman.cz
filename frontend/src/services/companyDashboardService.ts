@@ -120,10 +120,10 @@ export const fetchV2CompanyHandshakeReadout = async (
 ): Promise<Record<string, any> | null> => {
     if (!companyId || !handshakeId) return null;
     try {
-        const response = await ApiService.get<{ status?: string; data?: { readout?: Record<string, any> } }>(
+        const response = await ApiService.get<{ status?: string; data?: Record<string, any> }>(
             `/company/${encodeURIComponent(companyId)}/handshakes/${encodeURIComponent(handshakeId)}/readout`
         );
-        return response.data?.readout || null;
+        return response.data || null;
     } catch {
         return null;
     }
