@@ -15,6 +15,7 @@ dist-ssr
 # Environment files with secrets
 .env*
 **/.env*
+frontend/.env.production
 !backend/.env.example
 !**/*.env.example
 
