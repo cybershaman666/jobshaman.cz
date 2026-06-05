@@ -70,8 +70,8 @@ export const SearchFiltersModal: React.FC<{
   const labelClass = 'block text-[0.68rem] font-bold uppercase tracking-[0.16em] text-slate-500';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-white/80 p-3 backdrop-blur-sm dark:bg-slate-950/80 md:p-6">
-      <div className="grid h-[calc(100dvh-1.5rem)] w-full max-w-[64rem] overflow-hidden rounded-[1.15rem] border border-white/60 bg-[#ffffff] shadow-[0_30px_90px_-36px_rgba(8,16,22,0.72)] dark:border-white/10 dark:bg-slate-900 md:h-[calc(100dvh-3rem)] md:grid-cols-[20rem_minmax(0,1fr)]">
+    <div className="fixed inset-0 z-50 flex items-end justify-center overflow-hidden bg-white/80 p-0 backdrop-blur-sm dark:bg-slate-950/80 sm:items-center sm:p-4 md:p-6">
+      <div className="grid w-full max-w-[64rem] max-h-[92dvh] overflow-hidden rounded-t-[1.4rem] rounded-b-none border border-white/60 bg-[#ffffff] shadow-[0_-20px_90px_-36px_rgba(8,16,22,0.72)] dark:border-white/10 dark:bg-slate-900 sm:max-h-[90dvh] sm:rounded-[1.15rem] sm:shadow-[0_30px_90px_-36px_rgba(8,16,22,0.72)] md:grid-cols-[20rem_minmax(0,1fr)]">
         <aside className="relative hidden overflow-hidden bg-[linear-gradient(160deg,#fbfdff_0%,#f5f8f9_48%,#eef5f5_100%)] px-9 py-10 dark:bg-[linear-gradient(160deg,#0f172a_0%,#1e293b_48%,#0f172a_100%)] md:flex md:min-h-0 md:flex-col">
           <img src="/logo-transparent.png" alt="Jobshaman" className="dark:hidden h-12 w-12 rounded-full object-contain" loading="eager" />
           <img src="/logodark.png" alt="Jobshaman" className="hidden dark:block h-12 w-12 rounded-full object-contain" loading="eager" />
@@ -91,7 +91,7 @@ export const SearchFiltersModal: React.FC<{
           </div>
         </aside>
 
-        <section key="filters-main" className="relative min-h-0 overflow-y-auto overscroll-contain bg-[#ffffff] px-5 py-6 pb-0 dark:bg-slate-900 md:px-8 md:py-8 md:pb-0">
+        <section key="filters-main" className="relative flex min-h-0 flex-col overflow-y-auto overscroll-contain bg-[#ffffff] px-5 py-6 dark:bg-slate-900 md:px-8 md:py-8">
           <button
             type="button"
             onClick={onClose}
@@ -254,7 +254,7 @@ export const SearchFiltersModal: React.FC<{
             </div>
           </div>
 
-          <div className="sticky bottom-0 -mx-5 mt-7 flex flex-col gap-3 border-t border-slate-200 bg-white/96 px-5 py-4 shadow-[0_-18px_34px_-30px_rgba(15,23,42,0.42)] dark:border-slate-800 dark:bg-slate-900/96 sm:flex-row md:-mx-8 md:px-8">
+          <div className="sticky bottom-0 -mx-5 mt-auto flex flex-col gap-3 border-t border-slate-200 bg-white/96 px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-18px_34px_-30px_rgba(15,23,42,0.42)] dark:border-slate-800 dark:bg-slate-900/96 sm:flex-row md:-mx-8 md:px-8">
             <button type="button" onClick={onReset} className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-5 text-sm font-bold text-slate-700 dark:text-slate-300 transition hover:bg-slate-50 dark:hover:bg-slate-700">
               {t('rebuild.marketplace.reset_filters', { defaultValue: 'Resetovat' })}
             </button>

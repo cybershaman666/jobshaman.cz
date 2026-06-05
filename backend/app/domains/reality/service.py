@@ -531,19 +531,85 @@ class RealityDomainService:
             params["country"] = country_filter
         extra_conditions: List[str] = []
         if query_filter:
-            extra_conditions.append(
-                """
-                AND (
-                  LOWER(COALESCE(title, '')) LIKE :query_like
-                  OR LOWER(COALESCE(company, '')) LIKE :query_like
-                  OR LOWER(COALESCE(location, '')) LIKE :query_like
-                  OR LOWER(COALESCE(role_summary, '')) LIKE :query_like
-                  OR LOWER(COALESCE(description, '')) LIKE :query_like
-                  OR LOWER(COALESCE(tags::text, '')) LIKE :query_like
-                )
-                """
-            )
-            params["query_like"] = f"%{query_filter}%"
+            from app.services.search_intelligence import enrich_search_query
+            try:
+                enriched = enrich_search_query(query_filter, "cs")
+                expanded_terms = enriched.get("expanded_terms") or []
+                must_terms = enriched.get("must_terms") or []
+                normalized = enriched.get("normalized_query") or query_filter
+            except Exception as e:
+                logger.warning(f"AI search enrichment failed: {e}")
+                expanded_terms = []
+                must_terms = []
+                normalized = query_filter
+
+            # Collect terms to search (AND logic)
+            terms = [t.strip().lower() for t in normalized.split() if t.strip()]
+            if not terms:
+                terms = [t.strip().lower() for t in query_filter.split() if t.strip()]
+
+            # Enforce must terms
+            for mt in must_terms:
+                mt_lower = mt.strip().lower()
+                if mt_lower not in terms:
+                    terms.append(mt_lower)
+
+            # Build query conditions for each term
+            for index, term in enumerate(terms[:10]):
+                param_name = f"query_term_{index}"
+                
+                # Check for synonyms in expanded terms
+                synonyms = []
+                for exp in expanded_terms:
+                    exp_lower = exp.strip().lower()
+                    if exp_lower != term and len(exp_lower) >= 3:
+                        synonyms.append(exp_lower)
+                
+                if synonyms:
+                    synonym_conditions = []
+                    # Original term match
+                    synonym_conditions.append(
+                        f"""
+                        (LOWER(COALESCE(title, '')) LIKE :{param_name}
+                         OR LOWER(COALESCE(company, '')) LIKE :{param_name}
+                         OR LOWER(COALESCE(location, '')) LIKE :{param_name}
+                         OR LOWER(COALESCE(role_summary, '')) LIKE :{param_name}
+                         OR LOWER(COALESCE(description, '')) LIKE :{param_name}
+                         OR LOWER(COALESCE(tags::text, '')) LIKE :{param_name})
+                        """
+                    )
+                    params[param_name] = f"%{term}%"
+                    
+                    # Synonym matches (OR)
+                    for s_idx, syn in enumerate(synonyms[:3]):
+                        syn_param = f"query_term_{index}_syn_{s_idx}"
+                        synonym_conditions.append(
+                            f"""
+                            (LOWER(COALESCE(title, '')) LIKE :{syn_param}
+                             OR LOWER(COALESCE(company, '')) LIKE :{syn_param}
+                             OR LOWER(COALESCE(location, '')) LIKE :{syn_param}
+                             OR LOWER(COALESCE(role_summary, '')) LIKE :{syn_param}
+                             OR LOWER(COALESCE(description, '')) LIKE :{syn_param}
+                             OR LOWER(COALESCE(tags::text, '')) LIKE :{syn_param})
+                            """
+                        )
+                        params[syn_param] = f"%{syn}%"
+                    
+                    extra_conditions.append(f"AND ({' OR '.join(synonym_conditions)})")
+                else:
+                    extra_conditions.append(
+                        f"""
+                        AND (
+                          LOWER(COALESCE(title, '')) LIKE :{param_name}
+                          OR LOWER(COALESCE(company, '')) LIKE :{param_name}
+                          OR LOWER(COALESCE(location, '')) LIKE :{param_name}
+                          OR LOWER(COALESCE(role_summary, '')) LIKE :{param_name}
+                          OR LOWER(COALESCE(description, '')) LIKE :{param_name}
+                          OR LOWER(COALESCE(tags::text, '')) LIKE :{param_name}
+                        )
+                        """
+                    )
+                    params[param_name] = f"%{term}%"
         if city_filter:
             extra_conditions.append("AND LOWER(COALESCE(location, payload_json->>'location', '')) LIKE :city_like")
             params["city_like"] = f"%{city_filter}%"

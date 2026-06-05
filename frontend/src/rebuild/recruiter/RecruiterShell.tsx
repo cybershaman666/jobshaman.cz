@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import {
   AlertCircle,
   Archive,
@@ -1129,7 +1130,7 @@ export const RecruiterShell: React.FC<{
       onPrimaryActionClick={() => navigate('/recruiter/roles')}
       currentLanguage={currentLanguage}
       onLanguageChange={onLanguageChange}
-      contentClassName={tab === 'roles' ? 'max-w-none' : undefined}
+      contentClassName={(tab === 'roles' || tab === 'talent-pool') ? 'max-w-none' : undefined}
       actionRegion={
         <button type="button" onClick={() => navigate('/candidate/insights')} className={secondaryButtonClass}>
           {t('rebuild.recruiter.candidate_view', { defaultValue: 'Candidate view' })}
@@ -1594,7 +1595,7 @@ export const RecruiterShell: React.FC<{
               {/* View Layout rendering */}
               {viewMode === 'board' ? (
                 /* 📋 KANBAN BOARD VIEW */
-                <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 overflow-x-auto pb-4 scrollbar-thin">
+                <div className="flex flex-col lg:flex-row gap-6 overflow-x-auto pb-4 scrollbar-thin w-full items-start">
                   {[
                     { id: 'talent-pool', label: 'Talent Pool', color: 'border-slate-200 dark:border-slate-800/60 bg-slate-50/20 dark:bg-slate-900/10' },
                     { id: 'applied', label: 'Přihlášení', color: 'border-amber-500/10 bg-amber-500/[0.02]' },
@@ -1605,7 +1606,7 @@ export const RecruiterShell: React.FC<{
                   ].map((col) => {
                     const colCandidates = visibleCandidateInsights.filter((c) => getCandidateStage(c) === col.id);
                     return (
-                      <div key={col.id} className={cn("rounded-[28px] border p-4 space-y-4 flex flex-col min-h-[500px] min-w-[240px]", col.color)}>
+                      <div key={col.id} className={cn("rounded-[28px] border p-4 space-y-4 flex flex-col min-h-[500px] w-full lg:w-[280px] lg:shrink-0", col.color)}>
                         <div className="flex items-center justify-between px-1">
                           <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">{col.label}</h3>
                           <span className="rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-[10px] font-black text-slate-500 dark:text-slate-400">
@@ -1839,16 +1840,16 @@ export const RecruiterShell: React.FC<{
               )}
 
               {/* 🚪 RIGHT SIDE SLIDE-OVER DRAWER FOR PROFILE DETAIL */}
-              {isSlideOverOpen && selectedCandidate && (
+              {isSlideOverOpen && selectedCandidate && createPortal(
                 <>
                   {/* Backdrop blur layer */}
                   <div
-                    className="fixed inset-0 z-40 bg-slate-950/40 backdrop-blur-md transition-opacity duration-300 animate-in fade-in"
+                    className="fixed inset-0 z-[100] bg-slate-950/40 backdrop-blur-md transition-opacity duration-300 animate-in fade-in"
                     onClick={() => setIsSlideOverOpen(false)}
                   />
 
                   {/* Drawer Content */}
-                  <div className="fixed inset-y-0 right-0 z-50 w-full max-w-4xl bg-slate-50 dark:bg-slate-950 shadow-2xl border-l border-slate-200 dark:border-slate-800/80 transform transition-transform duration-300 ease-out overflow-y-auto p-0 flex flex-col translate-x-0">
+                  <div className="fixed inset-y-0 right-0 z-[101] w-full max-w-4xl bg-slate-50 dark:bg-slate-950 shadow-2xl border-l border-slate-200 dark:border-slate-800/80 transform transition-transform duration-300 ease-out overflow-y-auto p-0 flex flex-col translate-x-0">
                     
                     {/* Header Archetype gradient banner */}
                     {(() => {
@@ -2622,7 +2623,8 @@ export const RecruiterShell: React.FC<{
                       </div>
                     </div>
                   </div>
-                </>
+                </>,
+                document.body
               )}
             </div>
           ) : null}

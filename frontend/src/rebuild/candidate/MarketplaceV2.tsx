@@ -207,9 +207,9 @@ const JobFeedCard: React.FC<{
   return (
     <article
       className={cn(
-        'group flex h-full min-w-0 flex-col rounded-2xl bg-white/88 p-5 text-slate-950 shadow-[0_18px_52px_-40px_rgba(15,23,42,0.24)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_26px_70px_-46px_rgba(15,23,42,0.3)] dark:bg-slate-900/92 dark:text-slate-100',
-        isFeatured && 'md:p-6',
-        isWild && 'border-l-4 border-amber-400 bg-[#fff8ed] shadow-[0_18px_52px_-40px_rgba(176,84,21,0.18)] hover:bg-[#fffdf8] hover:shadow-[0_24px_64px_-40px_rgba(176,84,21,0.24)]',
+        'group flex h-full min-w-0 flex-col rounded-2xl bg-white/90 p-5 text-slate-950 shadow-[0_12px_40px_-32px_rgba(15,23,42,0.15)] ring-1 ring-slate-200/50 transition duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-[0_20px_50px_-24px_rgba(15,23,42,0.2)] dark:bg-slate-900/90 dark:text-slate-100 dark:ring-slate-800/50 dark:hover:bg-slate-900',
+        isFeatured && 'ring-1 ring-cyan-500/20 bg-gradient-to-br from-cyan-500/[0.02] to-cyan-500/[0.06] shadow-[0_18px_52px_-30px_rgba(18,175,203,0.15)] hover:shadow-[0_24px_64px_-24px_rgba(18,175,203,0.25)] dark:from-cyan-500/[0.01] dark:to-cyan-500/[0.04]',
+        isWild && 'ring-1 ring-amber-400/20 bg-gradient-to-br from-amber-500/[0.02] to-amber-500/[0.06] shadow-[0_18px_52px_-40px_rgba(245,158,11,0.15)] hover:shadow-[0_24px_64px_-36px_rgba(245,158,11,0.25)] dark:from-amber-500/[0.01] dark:to-amber-500/[0.04]',
       )}
     >
       <div className="flex items-start justify-between gap-4">
@@ -222,8 +222,8 @@ const JobFeedCard: React.FC<{
             )}
           </div>
           <div className="min-w-0">
-            <div className="truncate text-[13px] font-bold text-slate-900 dark:text-slate-100">{role.companyName || t('rebuild.marketplace.company_unknown', { defaultValue: 'Firma' })}</div>
-            <div className="mt-0.5 flex items-center gap-1 text-[11px] font-medium text-slate-500">
+            <div className="truncate text-[13px] font-black text-slate-900 dark:text-slate-100">{role.companyName || t('rebuild.marketplace.company_unknown', { defaultValue: 'Firma' })}</div>
+            <div className="mt-0.5 flex items-center gap-1 text-[11px] font-bold text-slate-500">
               <span>{role.source === 'curated' ? t('rebuild.marketplace.verified_company', { defaultValue: 'Ověřená firma' }) : t('rebuild.marketplace.imported_source', { defaultValue: 'Importovaná nabídka' })}</span>
               {role.source === 'curated' ? <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> : null}
             </div>
@@ -240,39 +240,41 @@ const JobFeedCard: React.FC<{
           <Bookmark size={17} className={saved ? 'fill-[#0f95ac] text-[#0f95ac]' : ''} />
         </button>
       </div>
+
       {isWild ? (
-        <span className="mt-4 inline-flex rounded-full bg-amber-100 px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-amber-700">Skvělá volba</span>
+        <span className="mt-3.5 self-start inline-flex items-center gap-1.5 rounded-full bg-amber-100/80 dark:bg-amber-950/40 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-300">
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+          {t('rebuild.marketplace.badge_best_fit', { defaultValue: 'Doporučujeme' })}
+        </span>
       ) : null}
 
-      <button type="button" onClick={onOpen} className="mt-5 text-left">
-        <h3 className={cn('font-black leading-snug tracking-normal text-slate-950 transition group-hover:text-[#0f95ac] dark:text-slate-100', isFeatured ? 'text-[22px]' : 'text-[17px]')}>
+      <button type="button" onClick={onOpen} className="mt-4 text-left">
+        <h3 className={cn('font-black leading-snug tracking-normal text-slate-950 transition group-hover:text-[#0f95ac] dark:text-slate-100', isFeatured ? 'text-[20px]' : 'text-[17px]')}>
           {role.title}
         </h3>
-        <p className={cn('mt-3 text-sm leading-6 text-slate-600 dark:text-slate-400', isFeatured ? 'line-clamp-3' : 'line-clamp-2')}>
-          {role.summary || role.description || role.roleSummary}
-        </p>
       </button>
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-3 flex flex-wrap gap-1.5">
         {tags.map((tag) => (
-          <span key={tag} className="rounded-md bg-[#eef8fb] px-2.5 py-1 text-[11px] font-bold text-[#08788a] dark:bg-cyan-950/50 dark:text-cyan-300">{tag}</span>
+          <span key={tag} className="rounded bg-[#eef8fb] px-2 py-0.5 text-[11px] font-bold text-[#08788a] dark:bg-cyan-950/40 dark:text-cyan-300">{tag}</span>
         ))}
       </div>
 
-      <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-6">
+      <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-100 dark:border-slate-800/60 mt-4">
         <div className="min-w-0">
-          <div className="text-[15px] font-black text-slate-950 dark:text-slate-100">{salary}</div>
-          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] font-semibold text-slate-500">
-            <span className="inline-flex items-center gap-1"><MapPin size={12} />{distanceLabel} · {role.location}</span>
+          <div className="text-[14px] font-black text-slate-950 dark:text-slate-100">{salary}</div>
+          <div className="mt-1 flex flex-wrap gap-x-2.5 gap-y-1 text-[11px] font-semibold text-slate-500">
+            <span className="inline-flex items-center gap-1"><MapPin size={12} />{distanceLabel}</span>
+            <span className="text-slate-300 dark:text-slate-700">•</span>
             <span className="inline-flex items-center gap-1"><Clock3 size={12} />{role.workModel}</span>
           </div>
         </div>
-        {isFeatured ? (
-          <button type="button" onClick={onOpen} className="inline-flex h-10 items-center gap-2 rounded-xl bg-[image:var(--shell-button-primary-bg)] px-4 text-[12px] font-black text-white shadow-[0_14px_28px_-20px_rgba(18,175,203,0.72)] transition hover:bg-[image:var(--shell-button-primary-hover)]">
-            {t('rebuild.marketplace.offer_detail', { defaultValue: 'Detail nabídky' })}
-            <ArrowRight size={15} />
-          </button>
-        ) : null}
+        <button type="button" onClick={onOpen} className={cn("inline-flex h-8 items-center gap-1 rounded-xl px-3 text-[11px] font-black transition", 
+          isFeatured ? "bg-[image:var(--shell-button-primary-bg)] text-white hover:bg-[image:var(--shell-button-primary-hover)] shadow-sm" : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700"
+        )}>
+          {t('rebuild.marketplace.offer_detail', { defaultValue: 'Detail' })}
+          <ArrowRight size={13} />
+        </button>
       </div>
     </article>
   );
@@ -977,12 +979,12 @@ export const MarketplaceV2: React.FC<{
               </button>
             </div>
             {recommendedFeed.length > 0 ? (
-              <div className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(18rem,0.85fr)]">
-                {recommendedFeed.map((candidate, index) => (
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {recommendedFeed.map((candidate) => (
                   <JobFeedCard
                     key={candidate.role.id}
                     candidate={candidate}
-                    variant={index === 0 ? 'featured' : 'compact'}
+                    variant={latestWildRoleIds.has(String(candidate.role.id)) ? 'wild' : 'compact'}
                     saved={savedRoleIds?.includes(String(candidate.role.id))}
                     onOpen={() => navigate(getRolePath(candidate.role))}
                     onToggleSaved={() => onToggleSavedRole?.(candidate.role.id)}
@@ -1016,7 +1018,7 @@ export const MarketplaceV2: React.FC<{
                 <ChevronDown size={15} />
               </button>
             </div>
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {latestFeed.map((candidate) => (
                 <JobFeedCard
                   key={candidate.role.id}
