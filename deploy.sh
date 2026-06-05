@@ -8,6 +8,9 @@ set -euo pipefail
 RESOURCE_GROUP="jobshaman-prod"
 SUBSCRIPTION_ID="11888792-a2ac-495b-b5d4-0210ea95dd52"
 
+echo "==== NASTAVENÍ AZURE SUBSCRIPTION ===="
+az account set --subscription "$SUBSCRIPTION_ID"
+
 ### --- FRONTEND --- ###
 echo "==== BUILD FRONTENDU ===="
 cd frontend
@@ -24,27 +27,27 @@ SWA_CLI_DEPLOYMENT_TOKEN="$DEPLOYMENT_TOKEN" npx -y @azure/static-web-apps-cli d
 
 ### --- BACKEND --- ###
 echo "==== BUILD & DEPLOY BACKENDU ===="
-# Předpokládá se build/push docker image a update Azure Container App
 CONTAINER_APP_NAME="jobshaman-api"
-ACR_NAME="mangorock"
+ACR_NAME="jobshamanacr"
 IMAGE_NAME="jobshaman-api"
 IMAGE_TAG=$(git rev-parse --short HEAD)
 
-echo "Docker build..."
-docker build -t $ACR_NAME.azurecr.io/$IMAGE_NAME:$IMAGE_TAG ./backend
-
-echo "Docker přihlášení k ACR..."
-az acr login --name "$ACR_NAME"
-
-echo "Push image do ACR..."
-docker push $ACR_NAME.azurecr.io/$IMAGE_NAME:$IMAGE_TAG
+echo "Build a push image v cloudu přes Azure ACR build..."
+az acr build \
+    --registry "$ACR_NAME" \
+    --image "$IMAGE_NAME:$IMAGE_TAG" \
+    --image "$IMAGE_NAME:latest" \
+    --file backend/Dockerfile \
+    .
 
 echo "Update Azure Container App na novou image..."
+NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 az containerapp update \
     --name "$CONTAINER_APP_NAME" \
     --resource-group "$RESOURCE_GROUP" \
     --image "$ACR_NAME.azurecr.io/$IMAGE_NAME:$IMAGE_TAG" \
-    --subscription "$SUBSCRIPTION_ID"
+    --subscription "$SUBSCRIPTION_ID" \
+    --set-env-vars V2_DEPLOY_TIME="$NOW"
 
 echo
 echo "==== HOTOVO ===="
