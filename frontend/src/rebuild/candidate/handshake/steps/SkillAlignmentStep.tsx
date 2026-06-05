@@ -43,10 +43,10 @@ export const SkillAlignmentStep: React.FC<SkillAlignmentStepProps> = ({
     <StepContainer step={step} stepIndex={stepIndex} totalSteps={totalSteps}>
       <div className="space-y-6">
         <div>
-          <h3 className="text-sm font-semibold text-slate-700">
+          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
             {t('rebuild.journey.select_skills', { defaultValue: 'Select Your Top Skills (3-5)' })}
           </h3>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
             {t('rebuild.journey.skills_help_match', { defaultValue: 'Help us understand which skills you want to use in this role.' })}
           </p>
         </div>
@@ -63,8 +63,8 @@ export const SkillAlignmentStep: React.FC<SkillAlignmentStepProps> = ({
                 className={cn(
                   'rounded-[12px] border-2 px-4 py-3 text-left font-medium transition-all',
                   isSelected
-                    ? 'border-[#1f5fbf] bg-[#dbeafe] text-[#1f5fbf] shadow-md'
-                    : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                    ? 'border-[#1f5fbf] bg-[#dbeafe] text-[#1f5fbf] dark:border-blue-500/80 dark:bg-blue-950/60 dark:text-blue-300 shadow-md'
+                    : 'border-slate-200 bg-white text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 hover:border-slate-300 hover:bg-slate-50 dark:hover:border-slate-700 dark:hover:bg-slate-800'
                 )}
               >
                 <div className="flex items-center gap-3">
@@ -72,8 +72,8 @@ export const SkillAlignmentStep: React.FC<SkillAlignmentStepProps> = ({
                     className={cn(
                       'h-5 w-5 rounded border-2 transition-all',
                       isSelected
-                        ? 'border-[#1f5fbf] bg-[#1f5fbf]'
-                        : 'border-slate-300'
+                        ? 'border-[#1f5fbf] bg-[#1f5fbf] dark:border-blue-500 dark:bg-blue-500'
+                        : 'border-slate-300 dark:border-slate-700'
                     )}
                   >
                     {isSelected && (
@@ -90,8 +90,8 @@ export const SkillAlignmentStep: React.FC<SkillAlignmentStepProps> = ({
         </div>
 
         {/* Selected Count */}
-        <div className="rounded-[12px] bg-slate-50 p-4 border border-slate-200">
-          <div className="text-sm font-semibold text-slate-700">
+        <div className="rounded-[12px] bg-slate-50 dark:bg-slate-900/50 p-4 border border-slate-200 dark:border-slate-800">
+          <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">
             {t('rebuild.journey.selected', { defaultValue: 'Selected Skills' })}: {selectedSkills.length} / 5
           </div>
           {selectedSkills.length > 0 && (
@@ -99,13 +99,13 @@ export const SkillAlignmentStep: React.FC<SkillAlignmentStepProps> = ({
               {selectedSkills.map((skill) => (
                 <span
                   key={skill}
-                  className="inline-flex items-center gap-2 rounded-full bg-[#dbeafe] px-3 py-1 text-sm font-medium text-[#1f5fbf]"
+                  className="inline-flex items-center gap-2 rounded-full bg-[#dbeafe] dark:bg-blue-950/60 px-3 py-1 text-sm font-medium text-[#1f5fbf] dark:text-blue-300"
                 >
                   {skill}
                   <button
                     type="button"
                     onClick={() => toggleSkill(skill)}
-                    className="hover:text-[#0f4a8f]"
+                    className="hover:text-[#0f4a8f] dark:hover:text-blue-200"
                   >
                     ✕
                   </button>

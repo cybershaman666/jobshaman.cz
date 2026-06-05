@@ -308,7 +308,7 @@ const deriveIdentityNarrative = (userProfile: UserProfile, t?: (k: string, d: st
         : humanSignals
           ? (t ? t('rebuild.profile.narrative_human', 'Silný signál směřuje k rolím, kde se propojuje dopad na lidi, změna systému a práce s nejasností.') : 'Silný signál směřuje k rolím, kde se propojuje dopad na lidi, změna systému a práce s nejasností.')
           : (t ? t('rebuild.profile.narrative_creator', 'AI z tvého onboardingu čte směr, ve kterém máš tvořit, né jen vykonávat.') : 'AI z tvého onboardingu čte směr, ve kterém máš tvořit, né jen vykonávat.'))
-    : (t ? t('rebuild.profile.complete_test_narrative', 'Dokonči JCFPM test a Cybershaman ti vytvoří přesnou pracovní identitu.') : 'Dokonči JCFPM test a Cybershaman ti vytvoří přesnou pracovní identitu.');
+    : (t ? t('rebuild.profile.complete_test_narrative', 'Dokonči JobFit Kompas a Shami ti zpřesní pracovní identitu.') : 'Dokonči JobFit Kompas a Shami ti zpřesní pracovní identitu.');
 
   const directions = isJcfpmComplete
     ? [
@@ -332,8 +332,8 @@ const deriveIdentityNarrative = (userProfile: UserProfile, t?: (k: string, d: st
     feedMode: isJcfpmComplete ? feedMode : 'Standard matching',
     coreSignalEvent,
     jhiWeights: isJcfpmComplete ? jhiWeights : [],
-    burnoutRisk: isJcfpmComplete ? (routineAversion ? (t ? t('rebuild.profile.burnout_risk_routine', 'Rutinní administrativní role') : 'Rutinní administrativní role') : (t ? t('rebuild.profile.burnout_risk_no_autonomy', 'Role bez autonomie a dlouhodobého smyslu') : 'Role bez autonomie a dlouhodobého smyslu')) : (t ? t('rebuild.profile.to_be_refined_jcfpm', 'Bude upřesněno po JCFPM') : 'Bude upřesněno po JCFPM'),
-    strongZone: isJcfpmComplete ? (builderSignals ? (t ? t('rebuild.profile.strong_zone_builder', 'Komplexní návrh systémů bez existující šablony') : 'Komplexní návrh systémů bez existující šablony') : (t ? t('rebuild.profile.strong_zone_creator', 'Tvorba nových struktur a orientace v nejasnosti') : 'Tvorba nových struktur a orientace v nejasnosti')) : (t ? t('rebuild.profile.to_be_refined_jcfpm', 'Bude upřesněno po JCFPM') : 'Bude upřesněno po JCFPM'),
+    burnoutRisk: isJcfpmComplete ? (routineAversion ? (t ? t('rebuild.profile.burnout_risk_routine', 'Rutinní administrativní role') : 'Rutinní administrativní role') : (t ? t('rebuild.profile.burnout_risk_no_autonomy', 'Role bez autonomie a dlouhodobého smyslu') : 'Role bez autonomie a dlouhodobého smyslu')) : (t ? t('rebuild.profile.to_be_refined_jcfpm', 'Bude upřesněno po JobFit Kompasu') : 'Bude upřesněno po JobFit Kompasu'),
+    strongZone: isJcfpmComplete ? (builderSignals ? (t ? t('rebuild.profile.strong_zone_builder', 'Komplexní návrh systémů bez existující šablony') : 'Komplexní návrh systémů bez existující šablony') : (t ? t('rebuild.profile.strong_zone_creator', 'Tvorba nových struktur a orientace v nejasnosti') : 'Tvorba nových struktur a orientace v nejasnosti')) : (t ? t('rebuild.profile.to_be_refined_jcfpm', 'Bude upřesněno po JobFit Kompasu') : 'Bude upřesněno po JobFit Kompasu'),
   };
 };
 
@@ -561,7 +561,7 @@ const education = React.useMemo(
 
     const isJcfpmComplete = !!userProfile.preferences?.jcfpm_v1 || !!userProfile.hasAssessment;
     const archetypeTitle = userProfile.preferences?.jcfpm_v1?.archetype?.title || userProfile.jobTitle || t('rebuild.profile.profile_composing', 'Profil se skládá...');
-    const archetypeCopy = userProfile.preferences?.jcfpm_v1?.archetype?.description || userProfile.story || t('rebuild.profile.complete_test_narrative', 'Doplň pár klíčových signálů a Cybershaman ti zpřesní pracovní identitu i doporučené role.');
+    const archetypeCopy = userProfile.preferences?.jcfpm_v1?.archetype?.description || userProfile.story || t('rebuild.profile.complete_test_narrative', 'Doplň pár klíčových signálů a Shami ti zpřesní pracovní identitu i doporučené role.');
     const jhiIndex = Math.max(520, Math.min(980, Math.round(completion * 8.7)));
     const desiredSalary = userProfile.preferences?.desired_salary_min
       ? `${userProfile.preferences.desired_salary_min.toLocaleString(userProfile.preferredLocale || 'cs')} ${(userProfile.preferredLocale === 'cs' || userProfile.preferredLocale === 'sk') ? 'Kč' : 'EUR'}`
@@ -833,7 +833,7 @@ const education = React.useMemo(
                         <div className="text-[13px] text-amber-900 font-medium">{t('rebuild.profile.empty_profile_title', 'Tvůj pracovní profil je zatím prázdný')}</div>
                         <p className="mt-1 text-[12px] text-amber-800/80 leading-relaxed">{t('rebuild.profile.empty_profile_desc', 'Pro aktivaci AI analýzy tvé identity a silných stránek je potřeba dokončit test.')}</p>
                         <button type="button" onClick={() => navigate('/candidate/jcfpm')} className="mt-3 text-[13px] font-bold text-amber-900 flex items-center gap-1">
-                          {t('rebuild.profile.start_jcfpm_test', 'Spustit JCFPM test')} <ChevronRight size={14} />
+                          {t('rebuild.profile.start_jcfpm_test', 'Spustit JobFit Kompas')} <ChevronRight size={14} />
                         </button>
                       </div>
                     )}
@@ -881,7 +881,7 @@ const education = React.useMemo(
                 </div>
                 {!isJcfpmComplete && (
                    <div className="mb-4 p-3 rounded-lg bg-slate-50 border border-dashed border-slate-200 text-center">
-                     <p className="text-[12px] text-slate-500">{t('rebuild.profile.strengths_after_jcfpm', 'Dovednosti se zobrazí po JCFPM')}</p>
+                     <p className="text-[12px] text-slate-500">{t('rebuild.profile.strengths_after_jcfpm', 'Dovednosti se zobrazí po JobFit Kompasu')}</p>
                    </div>
                 )}
                 <div className="grid grid-cols-2 gap-3 text-[12px]">
@@ -1176,7 +1176,7 @@ const education = React.useMemo(
             <div className="grid gap-5 xl:grid-cols-[minmax(0,1.7fr)_320px] xl:items-end">
               <div>
                 <div className="text-[1.55rem] font-semibold tracking-[-0.04em] text-[color:var(--dashboard-text-strong)]">{t('rebuild.profile.profile_growth_title', 'Profil roste s tebou')}</div>
-                <p className="mt-2 text-sm leading-7 text-[color:var(--dashboard-text-body)]">{t('rebuild.profile.profile_growth_desc', 'Čím víc informací doplníš, tím lépe ti Cybershaman najde ty pravé příležitosti.')}</p>
+                <p className="mt-2 text-sm leading-7 text-[color:var(--dashboard-text-body)]">{t('rebuild.profile.profile_growth_desc', 'Čím víc informací doplníš, tím přesněji Shami najde relevantní příležitosti.')}</p>
 
                 <div className="mt-4 flex items-center gap-4">
                   <div className="h-2.5 flex-1 rounded-full bg-[color:var(--dashboard-track)]">
@@ -1202,7 +1202,7 @@ const education = React.useMemo(
 
               <div className="rounded-[24px] border border-[color:color-mix(in_srgb,var(--dashboard-card-border)_45%,transparent)] bg-[linear-gradient(160deg,rgba(255,255,255,0.94),rgba(247,242,234,0.9))] p-5">
                 <div className="text-[1.25rem] font-semibold text-[color:var(--dashboard-text-strong)]">{t('rebuild.profile.not_sure_title', 'Nejsi si jistý?')}</div>
-                <p className="mt-2 text-sm leading-7 text-[color:var(--dashboard-text-body)]">{t('rebuild.profile.not_sure_desc', 'Cybershaman ti pomůže doplnit tvůj profil krok za krokem.')}</p>
+                <p className="mt-2 text-sm leading-7 text-[color:var(--dashboard-text-body)]">{t('rebuild.profile.not_sure_desc', 'Shami ti pomůže doplnit profil krok za krokem.')}</p>
                 <button type="button" onClick={() => navigate('/candidate/insights#mentor')} className={cn(secondaryButtonClass, 'mt-4 rounded-[16px] px-4 py-2.5 text-sm')}>
                   <Sparkles size={16} /> {t('rebuild.profile.talk_to_us', 'Promluvit si')}
                 </button>

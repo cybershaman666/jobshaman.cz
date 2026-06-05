@@ -1652,9 +1652,18 @@ export interface CVDocument {
     skills?: string[];
     workHistory?: WorkExperience[];
     education?: Education[];
+    languages?: CandidateLanguage[];
     cvText?: string;
     cvAiText?: string;
+    __meta?: {
+      parseStatus?: 'pending' | 'ready' | 'failed' | string;
+      parseError?: string | null;
+      parsedAt?: string;
+      parserVersion?: string;
+    };
   };
+  parseStatus?: 'pending' | 'ready' | 'failed' | string;
+  parseError?: string | null;
   uploadedAt: string;
   lastUsed?: string; // When this CV was last used for application
   parsedAt?: string;
@@ -1830,6 +1839,9 @@ export interface CandidateOnboardingProgressV2 {
   started_at?: string;
   completed_at?: string;
   last_step?: CandidateOnboardingFlowStep;
+  flow_step?: string;
+  cv_step_skipped_at?: string;
+  profile_review_completed_at?: string;
   selected_intent?: CandidateOnboardingIntent | null;
   interest_reveal?: string;
   profile_nudge_completed_at?: string;

@@ -20,6 +20,11 @@ const toProfile = (payload: any): UserProfile | null => {
   }
   const migrated = preferences?.v2_migration?.legacy_profile || {};
   const profileFields = preferences?.v2_profile || {};
+  const parsedLanguages = Array.isArray(profileFields.languages)
+    ? profileFields.languages
+    : Array.isArray(migrated.languages)
+      ? migrated.languages
+      : tryParseJsonArray(profileFields.languages);
 
   return {
     id: user.supabase_id || user.id,
@@ -40,7 +45,7 @@ const toProfile = (payload: any): UserProfile | null => {
     cvAiText: profileFields.cvAiText || migrated.cv_ai_text || '',
     cvUrl: profileFields.cvUrl || migrated.cv_url || '',
     skills: Array.isArray(profile?.skills) ? profile.skills : tryParseJsonArray(profile?.skills),
-    languages: Array.isArray(profileFields.languages) ? profileFields.languages : Array.isArray(migrated.languages) ? migrated.languages : [],
+    languages: parsedLanguages,
     workHistory: Array.isArray(profileFields.workHistory) ? profileFields.workHistory : Array.isArray(migrated.work_history) ? migrated.work_history : [],
     education: Array.isArray(profileFields.education) ? profileFields.education : Array.isArray(migrated.education) ? migrated.education : [],
     strengths: Array.isArray(profileFields.strengths) ? profileFields.strengths : Array.isArray(migrated.strengths) ? migrated.strengths : [],

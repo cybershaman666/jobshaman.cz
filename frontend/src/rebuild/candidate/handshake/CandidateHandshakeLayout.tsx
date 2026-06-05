@@ -156,6 +156,8 @@ export const CandidateHandshakeLayout: React.FC<CandidateHandshakeLayoutProps> =
 
       case 'challenge_response':
       case 'scenario_response':
+      case 'task_workspace':
+      case 'reflection':
         return (
           <ChallengeResponseStep
             step={currentStep}
@@ -167,6 +169,7 @@ export const CandidateHandshakeLayout: React.FC<CandidateHandshakeLayoutProps> =
         );
 
       case 'work_sample':
+      case 'portfolio_or_proof':
         return (
           <WorkSampleStep
             step={currentStep}
@@ -179,6 +182,7 @@ export const CandidateHandshakeLayout: React.FC<CandidateHandshakeLayoutProps> =
         );
 
       case 'schedule_slot':
+      case 'schedule_request':
         return (
           <ScheduleStep
             step={currentStep}
@@ -206,27 +210,27 @@ export const CandidateHandshakeLayout: React.FC<CandidateHandshakeLayoutProps> =
         );
 
       default:
-        return <div className="text-center text-slate-600 py-8">Unknown step type: {stepType}</div>;
+        return <div className="text-center text-slate-600 dark:text-slate-400 py-8">Unknown step type: {stepType}</div>;
     }
   };
 
   return (
     <div className={cn(shellPageClass, 'space-y-6', className)}>
       {/* Header with navigation */}
-      <div className="rounded-[12px] border border-slate-200 bg-white px-4 py-3 shadow-[0_18px_50px_-44px_rgba(15,23,42,0.34)] sticky top-0 z-10">
+      <div className="rounded-[12px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-3 shadow-[0_18px_50px_-44px_rgba(15,23,42,0.34)] sticky top-0 z-10">
         <div className="flex flex-wrap items-center justify-between gap-4">
           {/* Back button + Breadcrumb */}
           <div className="flex min-w-0 items-center gap-3">
             <button
               type="button"
               onClick={onNavigateBack}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-[8px] border border-slate-200 text-slate-500 transition hover:border-[#1f5fbf] hover:text-[#1f5fbf]"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-[8px] border border-slate-200 dark:border-slate-800 text-slate-500 transition hover:border-[#1f5fbf] hover:text-[#1f5fbf]"
             >
               <ArrowLeft size={16} />
             </button>
             <div className="min-w-0">
               <div className="truncate text-sm font-bold text-[#1f5fbf]">{company.name}</div>
-              <div className="truncate text-xs text-slate-500">{role.title}</div>
+              <div className="truncate text-xs text-slate-500 dark:text-slate-400">{role.title}</div>
             </div>
           </div>
 
@@ -241,7 +245,7 @@ export const CandidateHandshakeLayout: React.FC<CandidateHandshakeLayoutProps> =
                   'shrink-0 border-b-2 px-3 py-2 text-sm font-semibold transition',
                   step.id === currentStep.id
                     ? 'border-[#1f5fbf] text-[#1f5fbf]'
-                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                    : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'
                 )}
               >
                 {step.title}
@@ -252,15 +256,15 @@ export const CandidateHandshakeLayout: React.FC<CandidateHandshakeLayoutProps> =
           {/* Step counter + status */}
           <div className="flex items-center gap-4">
             <div className="hidden text-right text-xs text-slate-500 sm:block">
-              <div className="font-bold uppercase tracking-[0.14em] text-slate-400">
+              <div className="font-bold uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500">
                 {t('rebuild.journey.step_count', { current: stepIndex + 1, total: blueprint.steps.length })}
               </div>
-              <div className="text-xs">{blueprint.overview}</div>
+              <div className="text-xs dark:text-slate-400">{blueprint.overview}</div>
             </div>
 
             {/* Auto-save indicator */}
             {isDirty && (
-              <div className="flex items-center gap-1 text-xs text-amber-600">
+              <div className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-500">
                 <Loader2 size={14} className="animate-spin" />
                 {t('rebuild.journey.saving', { defaultValue: 'Saving...' })}
               </div>
@@ -278,7 +282,7 @@ export const CandidateHandshakeLayout: React.FC<CandidateHandshakeLayoutProps> =
 
       {/* Slot availability warning */}
       {session.slotAvailability && !session.slotAvailability.available && (
-        <div className="rounded-[12px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+        <div className="rounded-[12px] border border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/20 px-4 py-3 text-sm font-semibold text-amber-800 dark:text-amber-300">
           {session.slotAvailability.reason === 'candidate_slots_full'
             ? t('rebuild.journey.candidate_slots_full', {
                 defaultValue: 'All your active handshake slots are currently occupied. Close or finish another handshake before starting this one.',
@@ -296,7 +300,7 @@ export const CandidateHandshakeLayout: React.FC<CandidateHandshakeLayoutProps> =
           {renderStepContent()}
 
           {/* Navigation buttons */}
-          <div className="flex items-center justify-between gap-4 rounded-[12px] border border-slate-200 bg-white px-6 py-4">
+          <div className="flex items-center justify-between gap-4 rounded-[12px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-6 py-4">
             <button
               type="button"
               onClick={goToPreviousStep}
@@ -310,7 +314,7 @@ export const CandidateHandshakeLayout: React.FC<CandidateHandshakeLayoutProps> =
               {t('rebuild.journey.previous', { defaultValue: 'Previous' })}
             </button>
 
-            <div className="text-xs text-slate-600 font-medium">
+            <div className="text-xs text-slate-600 dark:text-slate-400 font-medium">
               {t('rebuild.journey.step', { defaultValue: 'Step' })} {stepIndex + 1} {t('rebuild.journey.of', { defaultValue: 'of' })} {blueprint.steps.length}
             </div>
 
@@ -331,7 +335,7 @@ export const CandidateHandshakeLayout: React.FC<CandidateHandshakeLayoutProps> =
         {/* Right: Candidate packet + progress */}
         <aside className="space-y-4">
           {/* Progress */}
-          <div className="rounded-[12px] border border-slate-200 bg-white p-4">
+          <div className="rounded-[12px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
             <ProgressFlow
               steps={blueprint.steps}
               currentIndex={stepIndex}

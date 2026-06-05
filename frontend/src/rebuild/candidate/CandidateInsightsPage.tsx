@@ -46,6 +46,8 @@ export const CandidateInsightsPage: React.FC<{
   onWithdrawApplication: () => Promise<void>;
   onToggleSavedRole: (roleId: string) => void;
   onUploadPhoto: (file: File) => Promise<void>;
+  onUpgradePremium?: () => void;
+  premiumBusy?: boolean;
   onSignOut?: () => void;
   onCompanySwitch?: () => void;
   currentLanguage?: string;
@@ -74,6 +76,8 @@ export const CandidateInsightsPage: React.FC<{
   onSelectApplication,
   onToggleSavedRole,
   onUploadPhoto,
+  onUpgradePremium,
+  premiumBusy,
   onSignOut,
   onCompanySwitch,
   currentLanguage,
@@ -106,6 +110,8 @@ export const CandidateInsightsPage: React.FC<{
       onSelectCv={onSelectCv}
       onDeleteCv={onDeleteCv}
       onUploadPhoto={onUploadPhoto}
+      onUpgradePremium={onUpgradePremium}
+      premiumBusy={premiumBusy}
       onSignOut={onSignOut}
       onCompanySwitch={onCompanySwitch}
       currentLanguage={currentLanguage}

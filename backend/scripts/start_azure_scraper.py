@@ -16,7 +16,6 @@ Environment Variables:
   - JOBS_POSTGRES_WRITE_MAIN: Write to main jobs table (default: true)
 """
 
-import asyncio
 import os
 import sys
 import logging
@@ -36,7 +35,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from backend.scripts.run_unified_jobs_ingest import run_unified_ingest
 
 
-async def main():
+def main():
     """Run the scraper job."""
     logger.info("=" * 80)
     logger.info("🕷️  JobShaman Scraper Job (Azure Container Instance)")
@@ -56,11 +55,11 @@ async def main():
 
         # Run the scraper
         logger.info("\n🚀 Starting unified jobs ingest...")
-        await run_unified_ingest()
+        exit_code = run_unified_ingest()
 
         logger.info("\n✅ Scraper job completed successfully!")
         logger.info(f"Completed at: {datetime.now().isoformat()}")
-        return 0
+        return exit_code
 
     except Exception as e:
         logger.error(f"\n❌ Scraper job failed with error:", exc_info=True)
@@ -69,5 +68,5 @@ async def main():
 
 
 if __name__ == "__main__":
-    exit_code = asyncio.run(main())
+    exit_code = main()
     sys.exit(exit_code)

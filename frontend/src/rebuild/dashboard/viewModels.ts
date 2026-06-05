@@ -127,8 +127,7 @@ export const buildCandidateDashboardViewModel = (
   const isJcfpmComplete = !!snapshot || !!userProfile.hasAssessment;
   const isOnboardingComplete = 
     !!userProfile.preferences?.candidate_onboarding_v2?.completed_at || 
-    !!userProfile.preferences?.activation_v1?.onboarding_completed_at ||
-    (!!userProfile.story && userProfile.story.length > 20);
+    !!userProfile.preferences?.activation_v1?.onboarding_completed_at;
 
   const archetype = snapshot?.archetype;
   const archetypeTitle = archetype?.title || archetype?.title_en || userProfile.jobTitle || (isJcfpmComplete ? t('rebuild.dashboard.default_archetype', { defaultValue: 'Visionary Architect' }) : '');
@@ -145,7 +144,7 @@ export const buildCandidateDashboardViewModel = (
   const recommendedGrowthTitle = t('rebuild.dashboard.growth_title', { defaultValue: 'Improve your {{source}}', source: String(growthSource).toLowerCase() });
   const recommendedGrowthCopy = snapshot
     ? t('rebuild.dashboard.growth_copy_ready', { defaultValue: 'Training focused on deeper analysis, working with assumptions and more precise decision making.' })
-    : t('rebuild.dashboard.growth_copy_pending', { defaultValue: 'Complete your JCFPM profile and Cybershaman will recommend a precise growth training.' });
+    : t('rebuild.dashboard.growth_copy_pending', { defaultValue: 'Dokonči JobFit Kompas a Shami doporučí přesnější růstový směr.' });
 
   const blindSeeds = isJcfpmComplete && lowScores.length > 0
     ? lowScores.slice(0, 3)
@@ -157,7 +156,7 @@ export const buildCandidateDashboardViewModel = (
     resonanceScore,
     recommendedGrowthTitle,
     recommendedGrowthCopy,
-    growthMeta: snapshot ? t('rebuild.dashboard.growth_meta_ready', { defaultValue: '2 weeks • 5 lessons • 30 min/day' }) : t('rebuild.dashboard.growth_meta_pending', { defaultValue: 'Precise map unlocks after JCFPM' }),
+    growthMeta: snapshot ? t('rebuild.dashboard.growth_meta_ready', { defaultValue: '2 weeks • 5 lessons • 30 min/day' }) : t('rebuild.dashboard.growth_meta_pending', { defaultValue: 'Přesná mapa se odemkne po JobFit Kompasu' }),
     growthProgress: snapshot ? 60 : 24,
     blindSpots: blindSeeds.map((score, index) => {
       const percentile = clamp(Number(score.percentile || 62), 35, 88);
@@ -188,7 +187,7 @@ export const buildCandidateDashboardViewModel = (
       { id: 'status', label: t('rebuild.dashboard.data_status', { defaultValue: 'Data status' }), value: applications.length > 0 ? t('rebuild.dashboard.status_actual', { defaultValue: 'Actual' }) : t('rebuild.dashboard.status_sync', { defaultValue: 'Sync' }), icon: 'sparkles' },
     ],
     quickActions: [
-      { id: 'jcfpm', label: 'JCFPM', tone: 'primary' },
+      { id: 'jcfpm', label: 'JobFit Kompas', tone: 'primary' },
       { id: 'marketplace', label: 'Marketplace', tone: 'secondary' },
       { id: 'profile', label: t('rebuild.dashboard.save_profile', { defaultValue: 'Save profile' }), tone: 'secondary' },
       { id: 'save-role', label: t('rebuild.dashboard.save_top_role', { defaultValue: 'Save top role' }), tone: 'secondary' },

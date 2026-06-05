@@ -524,7 +524,7 @@ export const mapCandidateToInsight = (candidate: Candidate, t: any): CandidateIn
   // Build recommendation text from real bio or fallback
   const recommendation = realBio
     ? realBio
-    : t('rebuild.adapters.talent_pool_rec', { defaultValue: 'Registered candidate in talent pool. Detailed story, onboarding, JCFPM and sensitive signals will appear after explicit sharing or an active handshake.' });
+    : t('rebuild.adapters.talent_pool_rec', { defaultValue: 'Registrovaný kandidát v talent poolu. Detailní profil, onboarding, JobFit Kompas a citlivé signály se zobrazí až po výslovném sdílení nebo aktivním handshaku.' });
 
   // Merge skills: real skills + onboarding inferred skills
   const allSkills = [...new Set([...candidate.skills, ...onboardingSkills])];
@@ -585,7 +585,7 @@ export const mapApplicationToInsight = (
       : t('rebuild.adapters.app_completed', { defaultValue: 'Candidate completed the response via Jobshaman. Check the materials and decide on the next step.' }),
     internalNote: [
       application.hasCv ? t('rebuild.adapters.cv_attached', { defaultValue: 'CV attached.' }) : t('rebuild.adapters.cv_not_attached', { defaultValue: 'CV not attached yet.' }),
-      application.hasJcfpm ? t('rebuild.adapters.jcfpm_shared', { defaultValue: 'JCFPM shared ({{level}}).', level: application.jcfpmShareLevel || 'summary' }) : t('rebuild.adapters.jcfpm_not_shared', { defaultValue: 'JCFPM not shared yet.' }),
+      application.hasJcfpm ? t('rebuild.adapters.jcfpm_shared', { defaultValue: 'JobFit Kompas sdílen ({{level}}).', level: application.jcfpmShareLevel || 'summary' }) : t('rebuild.adapters.jcfpm_not_shared', { defaultValue: 'JobFit Kompas zatím není sdílen.' }),
       application.status ? t('rebuild.adapters.status_label', { defaultValue: 'Status: {{status}}.', status: application.status }) : null,
     ].filter(Boolean).join(' '),
     skills: topSignals.map((label, index) => ({

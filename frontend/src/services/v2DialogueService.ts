@@ -8,6 +8,8 @@ import type {
   DialogueSummary,
 } from '../types';
 import ApiService from './apiService';
+import { getSubscriptionStatus } from './serverSideBillingService';
+import { supabase } from './supabaseClient';
 
 const ACTIVE_STATUSES = new Set(['pending', 'reviewed', 'shortlisted']);
 
@@ -172,12 +174,23 @@ export const fetchMyDialoguesWithCapacity = async (limit = 80): Promise<{
   const handshakes = unwrapData<any[]>(response);
   const dialogues = Array.isArray(handshakes) ? handshakes.map(mapHandshakeToSummary).filter((item) => item.id) : [];
   const active = dialogues.filter((item) => ACTIVE_STATUSES.has(String(item.status))).length;
+  let slotLimit = 5;
+  try {
+    const session = await supabase?.auth.getSession();
+    const userId = session?.data?.session?.user?.id;
+    if (userId) {
+      const subscription = await getSubscriptionStatus(userId);
+      slotLimit = subscription.dialogueSlotsAvailable || slotLimit;
+    }
+  } catch {
+    slotLimit = 5;
+  }
   return {
     dialogues,
     candidateCapacity: {
       active,
-      limit: 5,
-      remaining: Math.max(0, 5 - active),
+      limit: slotLimit,
+      remaining: Math.max(0, slotLimit - active),
     },
   };
 };

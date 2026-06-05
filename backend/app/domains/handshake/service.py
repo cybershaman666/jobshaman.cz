@@ -12,6 +12,7 @@ from typing import List, Optional, Dict, Any
 import uuid
 from datetime import datetime
 import json
+from app.services.azure_ai_client import call_ai_json
 
 TERMINAL_STATUSES = {"completed", "rejected", "withdrawn", "closed"}
 OPEN_STATUSES = {"initiated", "in_progress", "submitted", "company_reviewing", "mutual_handshake"}
@@ -945,9 +946,11 @@ class HandshakeDomainService:
     def _build_assignment_payload(job: Dict[str, Any], candidate_context: Dict[str, Any]) -> Dict[str, Any]:
         payload = _safe_dict(job.get("payload_json"))
         ai_analysis = _safe_dict(job.get("ai_analysis"))
-        blueprint = _safe_dict(job.get("handshake_blueprint_v1")) or _safe_dict(payload.get("handshake_blueprint_v1")) or HandshakeDomainService._default_blueprint(job)
+        stored_blueprint = _safe_dict(job.get("handshake_blueprint_v1")) or _safe_dict(payload.get("handshake_blueprint_v1"))
+        has_custom_blueprint = bool(stored_blueprint and stored_blueprint.get("steps"))
+        blueprint = stored_blueprint if has_custom_blueprint else HandshakeDomainService._default_blueprint(job)
         assessment_tasks = _safe_list(job.get("assessment_tasks")) or _safe_list(payload.get("assessment_tasks"))
-        if assessment_tasks:
+        if assessment_tasks and not has_custom_blueprint:
             steps = list(_safe_list(blueprint.get("steps")))
             existing_step_ids = {str(_safe_dict(step).get("id")) for step in steps if _safe_dict(step).get("id")}
             for task in assessment_tasks:
@@ -974,9 +977,9 @@ class HandshakeDomainService:
                 "id": "jcfpm_profile",
                 "type": "jcfpm_profile",
                 "phase": "review",
-                "title": "JCFPM pracovní profil",
-                "prompt": "Dokončete krátký JCFPM profil. Výsledek se použije v assessment readoutu a nebude se opakovat, pokud jej už máte hotový.",
-                "instructions": "JCFPM pomáhá firmě číst pracovní styl, hodnoty a způsob rozhodování vedle praktického úkolu.",
+                "title": "JobFit Kompas",
+                "prompt": "Dokončete krátký JobFit Kompas. Výsledek se použije v assessment readoutu a nebude se opakovat, pokud jej už máte hotový.",
+                "instructions": "JobFit Kompas pomáhá firmě číst pracovní styl, hodnoty a způsob rozhodování vedle praktického úkolu.",
                 "timebox_minutes": 8,
                 "required": True,
                 "reuse_existing": True,
@@ -989,7 +992,7 @@ class HandshakeDomainService:
                 steps.insert(review_index, {
                     "id": "jcfpm_profile",
                     "type": "jcfpm_profile",
-                    "title": "JCFPM",
+                    "title": "JobFit Kompas",
                     "prompt": jcfpm_task["prompt"],
                     "required": True,
                     "phase": "review",
@@ -1325,6 +1328,136 @@ class HandshakeDomainService:
         external_runs = _safe_list(session_payload.get("external_runs"))
         schedule_slot = _safe_dict(answers.get("schedule_slot")).get("answer") if isinstance(answers.get("schedule_slot"), dict) else answers.get("schedule_slot")
         slot_state = _safe_list(session_payload.get("slot_reservations"))
+        
+        ai_readout = None
+        if evidence:
+            import logging
+            logger = logging.getLogger(__name__)
+            try:
+                sandbox_result = await session.execute(
+                    select(SandboxSession).where(SandboxSession.handshake_id == handshake.id)
+                )
+                sandbox = sandbox_result.scalar_one_or_none()
+                if sandbox:
+                    sub_payload = _safe_dict(sandbox.submission_payload)
+                    if "ai_readout_v2" in sub_payload:
+                        ai_readout = _safe_dict(sub_payload.get("ai_readout_v2"))
+                    else:
+                        job_snapshot = _safe_dict(session_payload.get("job_snapshot"))
+                        job_title = job_snapshot.get("title") or handshake.job_id
+                        job_goal = job_snapshot.get("description_excerpt") or ""
+                        
+                        answers_text = ""
+                        for idx, item in enumerate(evidence):
+                            answers_text += f"Step {idx+1}: {item['title']}\nPrompt: {item['prompt']}\nCandidate Answer: {item['body']}\n\n"
+                            
+                        candidate_headline = _clean_text(profile_fields.get("jobTitle") or candidate_context.get("job_title"), 160)
+                        candidate_location = _clean_text(profile.location if profile else candidate_context.get("location"), 180)
+                        candidate_skills_str = ", ".join(live_skills if live_skills else _safe_list(candidate_context.get("skills")))
+                        candidate_bio = _clean_text(profile.bio if profile else "", 1200)
+                        candidate_values = ", ".join(_safe_list(_safe_dict(session_payload.get("candidate_context")).get("jcfpm", {}).get("values")))
+                        candidate_motivations = ", ".join(_safe_list(_safe_dict(session_payload.get("candidate_context")).get("jcfpm", {}).get("motivations")))
+                        candidate_archetype = _safe_dict(_safe_dict(session_payload.get("candidate_context")).get("jcfpm", {}).get("archetype", {})).get("title") or ""
+                        
+                        ai_prompt = f"""
+You are an expert HR recruitment auditor. Evaluate the candidate's answers and onboarding profile for the role of "{job_title}".
+Provide a deep, recruiter-useful analysis. Do not praise generic skills (like "good communication" or "motivation"). Focus on:
+1. Practical competency and judgment (evidence-based logic, trade-offs, how they handle edge cases/risk).
+2. Mindset and Team/Culture fit (mentality, approach, whether they prefer structured guidance vs high autonomy, action-bias vs over-analysis, communication tone).
+3. Critical gaps and risks (red flags, weak spots, what needs further validation).
+
+Job / Challenge Context:
+- Role Title: {job_title}
+- Company: {job_snapshot.get("company", "the company")}
+- Role Excerpt / Goal: {job_goal}
+
+Candidate Profile Details:
+- Current Headline: {candidate_headline}
+- Location: {candidate_location}
+- Skills: {candidate_skills_str}
+- Bio/Personal Story: {candidate_bio}
+- Workplace Archetype: {candidate_archetype}
+- Values & Motivations: Values: {candidate_values} | Motivations: {candidate_motivations}
+
+Candidate Handshake Answers:
+{answers_text}
+
+Return STRICT JSON:
+{{
+  "match_score": 85,
+  "headline": "A short summary headline in Czech/Slovak, depending on candidate/job language (e.g. 'Silný technický profil s tahem na branku, ale slabší týmovou zkušeností.')",
+  "summary": "Detailed executive candidate summary in Czech/Slovak.",
+  "strengths": ["Strength 1 in Czech/Slovak", "Strength 2 in Czech/Slovak", "Strength 3 in Czech/Slovak"],
+  "risks": ["Risk 1 in Czech/Slovak", "Risk 2 in Czech/Slovak"],
+  "team_fit": "Detailed analysis of team fit, mentality, work style, strengths, alignment in Czech/Slovak.",
+  "scorecards": [
+    {{
+      "key": "competency_1",
+      "label": "Role-specific competency/skill label in Czech/Slovak (e.g. 'Návrh architektury', 'Práce s onsite riziky', 'Klientská empatie')",
+      "score": 90,
+      "comment": "Specific evaluation comment based on answers in Czech/Slovak."
+    }},
+    {{
+      "key": "competency_2",
+      "label": "Competency 2 in Czech/Slovak",
+      "score": 75,
+      "comment": "Specific evaluation comment based on answers in Czech/Slovak."
+    }},
+    {{
+      "key": "competency_3",
+      "label": "Competency 3 in Czech/Slovak",
+      "score": 80,
+      "comment": "Specific evaluation comment based on answers in Czech/Slovak."
+    }}
+  ],
+  "follow_up_questions": [
+    "Targeted validation/interview question 1 in Czech/Slovak based on their gaps",
+    "Targeted validation/interview question 2 in Czech/Slovak"
+  ]
+}}
+
+Ensure all text descriptions are written in the candidate's preferred language (Czech/Slovak if Czech/Slovak is used in job/answers, else English).
+Do NOT include any markdown formatting or wrapping outside the JSON. Return only the JSON object.
+""".strip()
+                        ai_data, _result = call_ai_json(ai_prompt, timeout=60)
+                        
+                        match_score = max(0, min(100, int(ai_data.get("match_score", score))))
+                        ai_readout = {
+                            "headline": _clean_text(ai_data.get("headline")),
+                            "summary": _clean_text(ai_data.get("summary"), 2000),
+                            "match_score": match_score,
+                            "strengths": _safe_list(ai_data.get("strengths")),
+                            "risks": _safe_list(ai_data.get("risks")),
+                            "team_fit": _clean_text(ai_data.get("team_fit"), 2000),
+                            "scorecards": _safe_list(ai_data.get("scorecards")),
+                            "follow_up_questions": _safe_list(ai_data.get("follow_up_questions")),
+                        }
+                        
+                        updated_submission = dict(_safe_dict(sandbox.submission_payload))
+                        updated_submission["ai_readout_v2"] = ai_readout
+                        sandbox.submission_payload = updated_submission
+                        session.add(sandbox)
+                        
+                        handshake.match_score_snapshot = float(match_score)
+                        session.add(handshake)
+                        await session.commit()
+            except Exception as e:
+                logger.error(f"Failed to generate dynamic AI readout for handshake {handshake.id}: {e}")
+                ai_readout = None
+
+        final_score = ai_readout.get("match_score", score) if ai_readout else score
+        final_headline = ai_readout.get("headline") or f"{alias}: praktický výstup připravený k review"
+        final_summary = ai_readout.get("summary") or "Kandidát dokončil nativní Jobshaman handshake. Readout zvýrazňuje kvalitu úsudku, konkrétnost a práci s rizikem bez odhalení identity."
+        final_scorecards = ai_readout.get("scorecards") or [
+            {"key": "evidence", "label": "Práce s důkazy", "score": score},
+            {"key": "judgment", "label": "Úsudek", "score": max(50, score - 4)},
+            {"key": "execution", "label": "Praktičnost", "score": max(50, score - 8)},
+        ]
+        final_strengths = ai_readout.get("strengths") or (["Strukturovaná odpověď", "Viditelný rozhodovací postup"] if evidence else ["Handshake zahájen"])
+        final_risks = ai_readout.get("risks") or ([] if evidence else ["Zatím chybí dokončené odpovědi"])
+        final_team_fit = ai_readout.get("team_fit") or ""
+        final_follow_up = ai_readout.get("follow_up_questions") or []
+
         next_step = "Pozvat kandidáta do mutual handshake, zamítnout, nebo uzavřít proces."
         if handshake.status in {"mutual_handshake", "completed"}:
             next_step = "Navázat živým rozhovorem podle domluveného slotu."
@@ -1336,7 +1469,7 @@ class HandshakeDomainService:
             "job_id": handshake.job_id,
             "company_id": str(handshake.company_id) if handshake.company_id else None,
             "status": handshake.status,
-            "match_score": score,
+            "match_score": final_score,
             "answers": {
                 item["id"]: {
                     "title": item["title"],
@@ -1356,8 +1489,8 @@ class HandshakeDomainService:
                 "avatar_url": profile.avatar_url if reveal_identity and profile else None,
                 "reveal_reason": "identity_revealed" if reveal_identity else "anonymous_first_readout",
             },
-            "headline": f"{alias}: praktický výstup připravený k review",
-            "summary": "Kandidát dokončil nativní Jobshaman handshake. Readout zvýrazňuje kvalitu úsudku, konkrétnost a práci s rizikem bez odhalení identity.",
+            "headline": final_headline,
+            "summary": final_summary,
             "profile_summary": {
                 "name": profile.full_name if profile else None,
                 "headline": _clean_text(profile_fields.get("jobTitle"), 160),
@@ -1368,13 +1501,11 @@ class HandshakeDomainService:
                 "work_preferences": _safe_list(profile_fields.get("workPreferences")),
                 "inferred_skills": _safe_list(profile_fields.get("inferredSkills")),
             },
-            "scorecards": [
-                {"key": "evidence", "label": "Práce s důkazy", "score": score},
-                {"key": "judgment", "label": "Úsudek", "score": max(50, score - 4)},
-                {"key": "execution", "label": "Praktičnost", "score": max(50, score - 8)},
-            ],
-            "strengths": ["Strukturovaná odpověď", "Viditelný rozhodovací postup"] if evidence else ["Handshake zahájen"],
-            "risks": [] if evidence else ["Zatím chybí dokončené odpovědi"],
+            "scorecards": final_scorecards,
+            "strengths": final_strengths,
+            "risks": final_risks,
+            "team_fit": final_team_fit,
+            "follow_up_questions": final_follow_up,
             "jcfpm_summary": _safe_dict(_safe_dict(session_payload.get("candidate_context")).get("jcfpm")),
             "evidence_sections": evidence,
             "external_runs": external_runs,

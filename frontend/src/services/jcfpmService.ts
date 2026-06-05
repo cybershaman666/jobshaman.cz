@@ -1087,7 +1087,7 @@ export const fetchJcfpmItems = async (): Promise<JcfpmItem[]> => {
       }).filter(Boolean)
     ).size;
     if (poolCount >= 108) return normalized;
-    throw new Error(`JCFPM items not seeded sufficiently (found ${poolCount} keys, expected at least 108)`);
+    throw new Error(`JobFit Kompas items not seeded sufficiently (found ${poolCount} keys, expected at least 108)`);
   };
 
   const fetchFromBackendPublic = async () => {
@@ -1098,7 +1098,7 @@ export const fetchJcfpmItems = async (): Promise<JcfpmItem[]> => {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal
-      }), 20000, 'JCFPM items timeout');
+      }), 20000, 'JobFit Kompas items timeout');
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
         const detail = error.detail || error.message || `HTTP ${response.status}`;
@@ -1127,7 +1127,7 @@ export const fetchJcfpmItems = async (): Promise<JcfpmItem[]> => {
       }
     }
 
-    console.warn('Failed to fetch JCFPM from backend, falling back to Supabase:', backendErr);
+    console.warn('Failed to fetch JobFit Kompas from backend, falling back to Supabase:', backendErr);
     const supabaseItems = await fetchItemsFromSupabase();
     return ensureSeeded(supabaseItems);
   }
@@ -1137,7 +1137,7 @@ export const fetchLatestJcfpm = async (): Promise<JcfpmSnapshotV1 | null> => {
   const response = await withTimeout(authenticatedFetch(`${BACKEND_URL}/candidate/jcfpm/latest`, {
     method: 'GET',
     headers: { 'Content-Type': 'application/json' },
-  }), 12000, 'JCFPM latest timeout');
+  }), 12000, 'JobFit Kompas latest timeout');
   if (!response.ok) return null;
   const payload = await response.json();
   return (payload?.snapshot || null) as JcfpmSnapshotV1 | null;
@@ -1160,10 +1160,10 @@ export const submitJcfpm = async (
         }),
       }),
       30000,
-      'JCFPM submit timeout'
+      'JobFit Kompas submit timeout'
     );
     if (!response.ok) {
-      throw new Error(`JCFPM submit failed (${response.status})`);
+      throw new Error(`JobFit Kompas submit failed (${response.status})`);
     }
     const payload = await response.json();
     return (payload?.snapshot || null) as JcfpmSnapshotV1 | null;

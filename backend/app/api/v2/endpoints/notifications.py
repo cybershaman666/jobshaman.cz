@@ -36,8 +36,8 @@ async def simulate_notification(
 ):
     if type == "match":
         payload = {
-            "title": "Nová shoda nalezena! 🚀",
-            "content": "Cybershaman našel novou pozici 'Senior AI Architect', která přesně odpovídá tvému profilu.",
+            "title": "Nová shoda nalezena",
+            "content": "Shami našel novou pozici 'Senior AI Architect', která odpovídá tvému profilu.",
             "type": "match",
             "link": "/candidate/marketplace"
         }

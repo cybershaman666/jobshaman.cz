@@ -53,17 +53,21 @@ export const SharedJcfpmCard: React.FC<{
     <div className={cn('rounded-[20px] border border-slate-200 bg-slate-50 p-4', className)}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Shared JCFPM signal</div>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+            {t('rebuild.dialogue.shared_jobfit_signal', { defaultValue: 'Sdílený signál JobFit Kompasu' })}
+          </div>
           <div className="mt-2 text-sm font-semibold text-slate-900">
-            {payload.archetype?.title || 'Candidate profile signal'}
+            {payload.archetype?.title || t('rebuild.dialogue.candidate_profile_signal', { defaultValue: 'Signál profilu kandidáta' })}
           </div>
         </div>
         <span className="rounded-full bg-[#12AFCB]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0f95ac]">
-          {payload.share_level === 'full_report' ? 'Full report' : 'Summary'}
+          {payload.share_level === 'full_report'
+            ? t('rebuild.dialogue.full_report', { defaultValue: 'Plná zpráva' })
+            : t('rebuild.dialogue.summary', { defaultValue: 'Souhrn' })}
         </span>
       </div>
       <p className="mt-3 text-sm leading-7 text-slate-600">
-        {payload.archetype?.description || 'JCFPM was shared with this application and can enrich recruiter interpretation.'}
+        {payload.archetype?.description || t('rebuild.dialogue.jobfit_shared_copy', { defaultValue: 'JobFit Kompas byl sdílen s odpovědí a může zpřesnit recruiterovo čtení kandidáta.' })}
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
         {payload.top_dimensions.slice(0, 3).map((dimension) => (

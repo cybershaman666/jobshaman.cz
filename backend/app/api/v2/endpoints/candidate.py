@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 from app.core.security import AccessControlService
 from app.domains.identity.service import IdentityDomainService
+from app.services.subscription_access import fetch_latest_subscription_by, is_active_subscription
 
 router = APIRouter()
 
@@ -153,6 +154,12 @@ class RitualCompletionRequest(BaseModel):
     steps: List[RitualStep]
     language: Optional[str] = "cs"
 
+
+def _current_user_has_premium(current_user: dict) -> bool:
+    user_id = str(current_user.get("id") or "")
+    sub = fetch_latest_subscription_by("user_id", user_id)
+    return bool(sub and is_active_subscription(sub) and str(sub.get("tier") or "").lower() in {"premium", "starter", "growth", "professional", "enterprise"})
+
 @router.post("/ritual/complete")
 async def complete_ritual(
     payload: RitualCompletionRequest,
@@ -259,6 +266,29 @@ async def update_my_cv_document(
         role=current_user["role"],
     )
     doc = await IdentityDomainService.update_cv_document(domain_user["id"], cv_id, payload)
+    if not doc:
+        raise HTTPException(status_code=404, detail="CV document not found")
+    return {"status": "success", "data": doc}
+
+@router.post("/cv/{cv_id}/parse")
+async def parse_my_cv_document(
+    cv_id: str,
+    payload: dict | None = None,
+    current_user: dict = Depends(AccessControlService.get_current_user),
+):
+    domain_user = await IdentityDomainService.get_or_create_user_mirror(
+        supabase_id=current_user["id"],
+        email=current_user["email"],
+        role=current_user["role"],
+    )
+    apply_to_profile = bool((payload or {}).get("applyToProfile") or (payload or {}).get("apply_to_profile"))
+    locale = str((payload or {}).get("locale") or "cs")
+    doc = await IdentityDomainService.parse_cv_document(
+        domain_user["id"],
+        cv_id,
+        apply_to_profile=apply_to_profile,
+        locale=locale,
+    )
     if not doc:
         raise HTTPException(status_code=404, detail="CV document not found")
     return {"status": "success", "data": doc}
@@ -373,6 +403,8 @@ async def get_jcfpm_items(
 
 @router.get("/jcfpm/latest")
 async def get_my_latest_jcfpm_snapshot(current_user: dict = Depends(AccessControlService.get_current_user)):
+    if not _current_user_has_premium(current_user):
+        raise HTTPException(status_code=403, detail="Premium subscription required for JobFit Kompas")
     domain_user = await IdentityDomainService.get_or_create_user_mirror(
         supabase_id=current_user["id"],
         email=current_user["email"],
@@ -385,6 +417,8 @@ async def create_my_jcfpm_snapshot(
     payload: dict,
     current_user: dict = Depends(AccessControlService.get_current_user),
 ):
+    if not _current_user_has_premium(current_user):
+        raise HTTPException(status_code=403, detail="Premium subscription required for JobFit Kompas")
     domain_user = await IdentityDomainService.get_or_create_user_mirror(
         supabase_id=current_user["id"],
         email=current_user["email"],

@@ -1,4 +1,4 @@
-import type { UserProfile } from '../types';
+import type { CVDocument, UserProfile } from '../types';
 import ApiService from './apiService';
 import { uploadV2Asset } from './v2AssetService';
 
@@ -17,13 +17,18 @@ export const validateCvFile = (file: File): CvValidationError | null => {
   return null;
 };
 
-const inferProfileFromFileName = (file: File): Partial<UserProfile> => {
-  const baseName = file.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim();
-  return {
-    cvText: `CV uploaded: ${file.name}`,
-    cvAiText: 'CV metadata was stored. Full parsing will run once the V2 document parser endpoint is available.',
-    name: baseName.length > 2 ? baseName : undefined,
-  };
+export const parseCvDocument = async (
+  cvId: string,
+  options: { applyToProfile?: boolean; locale?: string } = {},
+): Promise<CVDocument> => {
+  const response = await ApiService.post<{ status: string; data: CVDocument }>(
+    `/candidate/cv/${encodeURIComponent(cvId)}/parse`,
+    {
+      applyToProfile: Boolean(options.applyToProfile),
+      locale: options.locale || 'cs',
+    },
+  );
+  return response.data;
 };
 
 export const uploadAndParseCv = async (
@@ -31,16 +36,20 @@ export const uploadAndParseCv = async (
   file: File,
   _options: { isPremium: boolean; aiCvParsingEnabled?: boolean },
 ): Promise<{ cvUrl: string; parsedData: Partial<UserProfile> }> => {
-  const parsedData = inferProfileFromFileName(file);
   const uploadedAsset = await uploadV2Asset(file, {
     kind: 'candidate_document',
     usage: 'candidate_cv',
     visibility: 'private',
   });
   const cvUrl = uploadedAsset.url;
+  let parsedData: Partial<UserProfile> = {
+    cvUrl,
+    cvText: `CV uploaded: ${file.name}`,
+    cvAiText: 'CV bylo nahráno. AI parser se spouští na serveru.',
+  };
 
   if (profile.id) {
-    await ApiService.post('/candidate/cv', {
+    const created = await ApiService.post<{ status: string; data: CVDocument }>('/candidate/cv', {
       externalAssetId: uploadedAsset.id,
       fileName: file.name,
       originalName: file.name,
@@ -48,8 +57,22 @@ export const uploadAndParseCv = async (
       fileSize: file.size,
       contentType: file.type || 'application/octet-stream',
       isActive: true,
-      parsedData,
+      parsedData: {
+        ...parsedData,
+        __meta: { parseStatus: 'pending' },
+      },
     });
+    const docId = created?.data?.id;
+    if (docId) {
+      const parsedDoc = await parseCvDocument(docId, {
+        applyToProfile: false,
+        locale: profile.preferredLocale || 'cs',
+      });
+      parsedData = {
+        cvUrl,
+        ...(parsedDoc.parsedData || {}),
+      } as Partial<UserProfile>;
+    }
   }
 
   return { cvUrl, parsedData };

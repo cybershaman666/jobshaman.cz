@@ -5,6 +5,7 @@ from datetime import datetime
 
 from app.core.database import supabase
 from app.services.azure_ai_client import AzureAIClientError, call_ai_json
+from app.services.shami_persona import output_language_name, shami_persona_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +20,29 @@ def _detect_recruiter_language(company: Dict[str, Any] | None, message: str = ""
         except Exception:
             pass
     return "en"
+
+
+def _safe_json_object(value: Any) -> Dict[str, Any]:
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str) and value.strip():
+        try:
+            parsed = json.loads(value)
+            return parsed if isinstance(parsed, dict) else {}
+        except Exception:
+            return {}
+    return {}
+
+
+def _safe_json_list(value: Any, limit: int = 12) -> List[Any]:
+    if isinstance(value, str) and value.strip():
+        try:
+            value = json.loads(value)
+        except Exception:
+            value = []
+    if not isinstance(value, list):
+        return []
+    return value[:limit]
 
 def get_agent_memory(user_id: str) -> dict:
     """Načte paměť agenta (historii chatu a agent_state) pro daného uživatele, nebo vrací default, pokud není záznam."""
@@ -106,11 +130,9 @@ def build_shami_recruiter_agent_reply(
             "resonance_score": c.get("resonance_score") or c.get("match_score"),
         })
 
-    # Multilingual prompts for recruiter assistant
+    # Navigation labels stay localized, while personality is centralized in shami_persona.
     lang_prompts = {
         "cs": {
-            "title": "Jsi Shami - roztomilý a velmi chytrý kyber-sob. Pomáháš nábor v JobShaman.",
-            "character": "Jsi přátelský, praktický a přímý. Bez mentorování, bez zbytečných rad.",
             "nav_positions": "Pozice",
             "nav_candidates": "Kandidáti",
             "nav_settings": "Nastavení",
@@ -123,8 +145,6 @@ def build_shami_recruiter_agent_reply(
             ],
         },
         "sk": {
-            "title": "Si Shami - roztomilý a veľmi múdry kyber sob. Pomáhaš náboru v JobShaman.",
-            "character": "Si priateľský, praktický a priamy. Bez mentoringu, bez zbytočných rád.",
             "nav_positions": "Pozície",
             "nav_candidates": "Kandidáti",
             "nav_settings": "Nastavenia",
@@ -137,8 +157,6 @@ def build_shami_recruiter_agent_reply(
             ],
         },
         "pl": {
-            "title": "Jesteś Shami - rozkochany i bardzo mądry cyber renifer. Pomagasz w rekrutacji w JobShaman.",
-            "character": "Jesteś przyjazny, praktyczny i bezpośredni. Bez mentoringu, bez niepotrzebnych rad.",
             "nav_positions": "Oferty",
             "nav_candidates": "Kandydaci",
             "nav_settings": "Ustawienia",
@@ -151,8 +169,6 @@ def build_shami_recruiter_agent_reply(
             ],
         },
         "en": {
-            "title": "You're Shami - adorable and very smart cyber reindeer. You help with recruitment in JobShaman.",
-            "character": "You're friendly, practical, and direct. No mentoring, no unnecessary advice.",
             "nav_positions": "Positions",
             "nav_candidates": "Candidates",
             "nav_settings": "Settings",
@@ -171,8 +187,7 @@ def build_shami_recruiter_agent_reply(
 
     prompt = f"""
 System Instructions:
-{config["title"]}
-{config["character"]}
+{shami_persona_prompt(lang, audience="recruiter")}
 
 Rules:
 {rules_text}
@@ -257,19 +272,7 @@ def build_shami_role_detail_insight(
     if lang == "se":
         lang = "sv"
 
-    language_names = {
-        "cs": "Czech",
-        "sk": "Slovak",
-        "pl": "Polish",
-        "de": "German",
-        "at": "German",
-        "sv": "Swedish",
-        "da": "Danish",
-        "no": "Norwegian",
-        "fi": "Finnish",
-        "en": "English",
-    }
-    output_language = language_names.get(lang, "English")
+    output_language = output_language_name(lang)
 
     compact_role = {
         "title": role_title,
@@ -302,18 +305,39 @@ def build_shami_role_detail_insight(
             if isinstance(step, dict)
         ],
     }
+    preferences = _safe_json_object((profile or {}).get("preferences"))
+    v2_profile = _safe_json_object(preferences.get("v2_profile"))
+    onboarding = _safe_json_object(preferences.get("candidate_onboarding_v2"))
+    jcfpm = _safe_json_object(preferences.get("jcfpm_v1"))
     compact_profile = {
-        "headline": (profile or {}).get("job_title") or (profile or {}).get("headline"),
-        "story": (profile or {}).get("story"),
-        "skills": (profile or {}).get("skills"),
+        "headline": (profile or {}).get("job_title") or v2_profile.get("jobTitle") or (profile or {}).get("headline"),
+        "story": (profile or {}).get("story") or v2_profile.get("cvAiText") or onboarding.get("bio"),
+        "skills": _safe_json_list((profile or {}).get("skills"), 14) or _safe_json_list(v2_profile.get("skills"), 14),
         "strengths": (profile or {}).get("strengths"),
-        "values": (profile or {}).get("values"),
-        "motivations": (profile or {}).get("motivations"),
-        "work_preferences": (profile or {}).get("work_preferences"),
+        "values": (profile or {}).get("values") or onboarding.get("values"),
+        "motivations": (profile or {}).get("motivations") or onboarding.get("motivations"),
+        "work_preferences": (profile or {}).get("work_preferences") or preferences.get("workPreferences"),
+        "active_cv": {
+            "has_cv": bool(v2_profile.get("cvUrl") or v2_profile.get("cvText") or v2_profile.get("cvAiText")),
+            "summary": str(v2_profile.get("cvAiText") or "")[:900],
+            "work_history": _safe_json_list(v2_profile.get("workHistory"), 6),
+            "education": _safe_json_list(v2_profile.get("education"), 4),
+            "languages": _safe_json_list(v2_profile.get("languages"), 6),
+        },
+        "jobfit_kompas": {
+            "completed": bool(jcfpm),
+            "archetype": jcfpm.get("archetype"),
+            "dimension_scores": _safe_json_list(jcfpm.get("dimension_scores"), 10),
+        },
+        "onboarding": {
+            "completed": bool(onboarding.get("completed_at")),
+            "archetype": onboarding.get("archetype"),
+            "inferred_skills": _safe_json_list(onboarding.get("inferred_skills"), 10),
+        },
     }
 
     prompt = f"""
-You are Shami, JobShaman's candidate-facing hiring analyst.
+{shami_persona_prompt(lang, audience="candidate")}
 Your job is to interpret a native JobShaman role for a candidate.
 
 Write in {output_language}. Be specific to the role and candidate context. Do not repeat the role text verbatim.

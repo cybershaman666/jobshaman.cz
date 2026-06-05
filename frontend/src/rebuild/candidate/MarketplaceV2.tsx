@@ -159,6 +159,15 @@ const diversifyCandidatesByLocation = (candidates: RoleCandidate[]): RoleCandida
   return mixed;
 };
 
+const pickWildRoleIds = (feed: RoleCandidate[]): Set<string> => {
+  const ids = new Set<string>();
+  const maxWildRoles = 3;
+  for (let index = 0; index < Math.min(maxWildRoles, feed.length); index += 1) {
+    ids.add(String(feed[index].role.id));
+  }
+  return ids;
+};
+
 // SearchFiltersModal and associated helpers moved to MarketplaceSearchFilters.tsx
 
 const formatRoleSalary = (role: Role, fallback: string, language?: string) => {
@@ -180,7 +189,7 @@ const roleFamilyIcon = (clusterId: RoleClusterId) => {
 
 const JobFeedCard: React.FC<{
   candidate: RoleCandidate;
-  variant?: 'featured' | 'compact';
+  variant?: 'featured' | 'compact' | 'wild';
   saved?: boolean;
   onOpen: () => void;
   onToggleSaved?: () => void;
@@ -188,6 +197,7 @@ const JobFeedCard: React.FC<{
 }> = ({ candidate, variant = 'compact', saved = false, onOpen, onToggleSaved, t }) => {
   const role = candidate.role;
   const isFeatured = variant === 'featured';
+  const isWild = variant === 'wild';
   const distanceLabel = Number.isFinite(candidate.distanceKm)
     ? `${Math.max(1, Math.round(candidate.distanceKm))} km`
     : role.location;
@@ -199,6 +209,7 @@ const JobFeedCard: React.FC<{
       className={cn(
         'group flex h-full min-w-0 flex-col rounded-2xl bg-white/88 p-5 text-slate-950 shadow-[0_18px_52px_-40px_rgba(15,23,42,0.24)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_26px_70px_-46px_rgba(15,23,42,0.3)] dark:bg-slate-900/92 dark:text-slate-100',
         isFeatured && 'md:p-6',
+        isWild && 'border-l-4 border-amber-400 bg-[#fff8ed] shadow-[0_18px_52px_-40px_rgba(176,84,21,0.18)] hover:bg-[#fffdf8] hover:shadow-[0_24px_64px_-40px_rgba(176,84,21,0.24)]',
       )}
     >
       <div className="flex items-start justify-between gap-4">
@@ -229,6 +240,9 @@ const JobFeedCard: React.FC<{
           <Bookmark size={17} className={saved ? 'fill-[#0f95ac] text-[#0f95ac]' : ''} />
         </button>
       </div>
+      {isWild ? (
+        <span className="mt-4 inline-flex rounded-full bg-amber-100 px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-amber-700">Skvělá volba</span>
+      ) : null}
 
       <button type="button" onClick={onOpen} className="mt-5 text-left">
         <h3 className={cn('font-black leading-snug tracking-normal text-slate-950 transition group-hover:text-[#0f95ac] dark:text-slate-100', isFeatured ? 'text-[22px]' : 'text-[17px]')}>
@@ -696,6 +710,7 @@ export const MarketplaceV2: React.FC<{
   const hasMoreFeedCandidates = visibleRecommendationCount < baseFeedCandidates.length;
   const recommendedFeed = feedCandidates.slice(0, 2);
   const latestFeed = feedCandidates.slice(2);
+  const latestWildRoleIds = React.useMemo(() => pickWildRoleIds(latestFeed), [latestFeed]);
   const categoryCards = catalogSections.slice(0, 4).map((section) => ({
     id: section.id,
     title: section.title,
@@ -818,7 +833,7 @@ export const MarketplaceV2: React.FC<{
         <div className="space-y-9 scroll-smooth pb-12">
           <section className="relative overflow-hidden rounded-[28px] bg-[radial-gradient(circle_at_82%_35%,rgba(18,175,203,0.11),transparent_30%),linear-gradient(135deg,rgba(255,255,255,0.86),rgba(248,252,253,0.82)_52%,rgba(255,248,237,0.62))] shadow-[0_28px_90px_-72px_rgba(15,23,42,0.34)] dark:bg-[radial-gradient(circle_at_82%_35%,rgba(18,175,203,0.16),transparent_30%),linear-gradient(135deg,rgba(15,23,42,0.86),rgba(15,23,42,0.76)_52%,rgba(30,41,59,0.68))]">
             <div className="marketplace-hero-halo absolute right-[-2%] top-4 hidden h-72 w-72 rounded-full bg-[#12afcb]/10 blur-3xl lg:block" />
-            <div className="pointer-events-none absolute top-0 bottom-[96px] right-0 z-0 hidden w-[74%] overflow-hidden md:block lg:w-[78%] xl:w-[80%]">
+            <div className="pointer-events-none absolute top-0 bottom-[96px] right-0 z-0 hidden w-[58%] overflow-hidden md:block lg:w-[65%] xl:w-[68%]">
               <img src="/handshake.png" alt="" className="marketplace-hero-handshake absolute inset-y-[-34%] right-0 h-[168%] w-[132%] object-cover object-[88%_50%] opacity-[0.94]" />
               <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.72)_0%,rgba(255,255,255,0.18)_22%,rgba(255,255,255,0)_58%)] dark:bg-[linear-gradient(90deg,rgba(15,23,42,0.76)_0%,rgba(15,23,42,0.24)_28%,rgba(15,23,42,0.03)_76%)]" />
               <svg className="marketplace-hero-guardrails pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 704 432" preserveAspectRatio="none" aria-hidden="true">
@@ -876,7 +891,7 @@ export const MarketplaceV2: React.FC<{
                 delay="1.2s"
               />
             </div>
-            <div className="relative z-10 grid min-h-[22rem] md:grid-cols-[minmax(0,30rem)_minmax(0,1fr)] lg:min-h-[30rem] lg:grid-cols-[minmax(0,33rem)_minmax(0,1fr)]">
+            <div className="relative z-10 grid min-h-[18rem] md:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:min-h-[24rem] lg:grid-cols-[minmax(0,28rem)_minmax(0,1fr)]">
               <div className="relative z-10 p-6 sm:p-8">
                 <div className="flex items-center gap-3 text-[13px] font-bold text-[#0f95ac]">
                   <span className="h-2 w-2 rounded-full bg-[#12afcb]" />
@@ -884,7 +899,7 @@ export const MarketplaceV2: React.FC<{
                   <span className="text-slate-300">/</span>
                   <span className="text-slate-500">{t('rebuild.nav.marketplace', { defaultValue: 'Marketplace' })}</span>
                 </div>
-                <h1 className="mt-8 text-[clamp(2rem,4vw,3.15rem)] font-black leading-tight tracking-normal text-slate-950 dark:text-slate-100">
+                <h1 className="mt-8 text-[clamp(1.85rem,3vw,2.4rem)] font-black leading-tight tracking-normal text-slate-950 dark:text-slate-100">
                   {t('rebuild.marketplace.feed_greeting', { defaultValue: 'Ahoj {{name}}', name: greetingName })}
                 </h1>
                 <p className="mt-2 text-lg font-medium text-slate-600 dark:text-slate-400">
@@ -1001,11 +1016,12 @@ export const MarketplaceV2: React.FC<{
                 <ChevronDown size={15} />
               </button>
             </div>
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-2">
               {latestFeed.map((candidate) => (
                 <JobFeedCard
                   key={candidate.role.id}
                   candidate={candidate}
+                  variant={latestWildRoleIds.has(String(candidate.role.id)) ? 'wild' : 'compact'}
                   saved={savedRoleIds?.includes(String(candidate.role.id))}
                   onOpen={() => navigate(getRolePath(candidate.role))}
                   onToggleSaved={() => onToggleSavedRole?.(candidate.role.id)}

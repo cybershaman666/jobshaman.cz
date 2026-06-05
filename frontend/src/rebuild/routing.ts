@@ -8,6 +8,7 @@ export type AppRoute =
   | { kind: 'marketplace' }
   | { kind: 'admin' }
   | { kind: 'ritual' }
+  | { kind: 'candidate-onboarding' }
   | { kind: 'public'; page: PublicPage }
   | { kind: 'candidate-role'; roleId: string }
   | { kind: 'candidate-imported'; roleId: string }
@@ -31,6 +32,7 @@ export const routeFromPath = (pathname: string): AppRoute => {
   }
   if (parts[0] === 'admin') return { kind: 'admin' };
   if (parts[0] === 'ritual') return { kind: 'ritual' };
+  if (parts[0] === 'onboarding' || (parts[0] === 'candidate' && parts[1] === 'onboarding')) return { kind: 'candidate-onboarding' };
   if (parts[0] === 'firmy' || parts[0] === 'companies') return { kind: 'public', page: 'companies' };
   if (parts[0] === 'obchodni-podminky' || parts[0] === 'terms' || parts[0] === 'podminky-uziti') return { kind: 'public', page: 'terms' };
   if (parts[0] === 'ochrana-osobnich-udaju' || parts[0] === 'privacy' || parts[0] === 'privacy-policy') return { kind: 'public', page: 'privacy' };

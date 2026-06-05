@@ -13,7 +13,7 @@ import {
 
 import { cn } from './cn';
 import { fetchJobByIdV2, fetchJobsWithFiltersV2 } from '../services/jobServiceV2';
-import { acceptInvitation, createCompany, deleteCVDocument, getRecruiterCompany, getUserCVDocuments, updateCVDocumentParsedData, updateCompanyProfile, updateUserCVSelection, updateUserProfile, uploadApplicationMessageAttachment, uploadUserProfilePhoto } from '../services/v2UserService';
+import { acceptInvitation, createCompany, deleteCVDocument, getRecruiterCompany, getUserCVDocuments, getUserProfile, updateCVDocumentParsedData, updateCompanyProfile, updateUserCVSelection, updateUserProfile, uploadApplicationMessageAttachment, uploadUserProfilePhoto } from '../services/v2UserService';
 import {
   fetchCandidateApplicationDetail,
   fetchCandidateApplicationMessages,
@@ -40,7 +40,7 @@ import { useCompanyApplicationsData } from '../hooks/useCompanyApplicationsData'
 import { useCompanyCandidatesData } from '../hooks/useCompanyCandidatesData';
 import { useAllRegisteredCandidates } from '../hooks/useAllRegisteredCandidates';
 import { useJobInteractionState } from '../hooks/useJobInteractionState';
-import { mergeProfileWithParsedCv, uploadAndParseCv } from '../services/v2CvService';
+import { uploadAndParseCv } from '../services/v2CvService';
 import { uploadV2Asset } from '../services/v2AssetService';
 import { trackJobInteraction } from '../services/jobInteractionService';
 import { getStaticCoordinates } from '../services/geocodingService';
@@ -65,6 +65,7 @@ import type {
   Role,
 } from './models';
 const CandidateJcfpmPage = React.lazy(() => import('./candidate/CandidateShell').then(m => ({ default: m.CandidateJcfpmPage })));
+const CandidateOnboardingWizard = React.lazy(() => import('./candidate/CandidateOnboardingWizard').then(m => ({ default: m.CandidateOnboardingWizard })));
 const CandidateRoleBriefingPage = React.lazy(() => import('./candidate/CandidateShell').then(m => ({ default: m.CandidateRoleBriefingPage })));
 const ImportedPrepPage = React.lazy(() => import('./candidate/CandidateShell').then(m => ({ default: m.ImportedPrepPage })));
 const MarketplaceV2 = React.lazy(() => import('./candidate/MarketplaceV2').then(m => ({ default: m.MarketplaceV2 })));
@@ -92,6 +93,7 @@ import {
 } from './adapters';
 import { getCandidateGreetingName } from './candidate/greeting';
 import { checkPaymentStatus, redirectToCheckout } from '../services/stripeService';
+import { getSubscriptionStatus } from '../services/serverSideBillingService';
 import {
   buildInitialJourneySession,
   getDefaultBlueprintLibrary,
@@ -138,6 +140,38 @@ const getMarketplaceClusterId = (role: Role): RoleClusterId => {
   if (['care', 'education', 'health'].includes(role.roleFamily)) return 'services';
   return 'other';
 };
+
+const CandidatePremiumGate: React.FC<{
+  title: string;
+  copy: string;
+  busy?: boolean;
+  onUpgrade: () => void;
+  t: any;
+}> = ({ title, copy, busy, onUpgrade, t }) => (
+  <div className={shellPageClass}>
+    <section className="mx-auto flex min-h-[68vh] max-w-4xl flex-col justify-center px-4 py-10">
+      <div className={cn(panelClass, 'p-6 md:p-8')}>
+        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#0f95ac] text-white">
+          <SparklesIcon />
+        </div>
+        <div className="mt-5 text-[10px] font-bold uppercase tracking-[0.22em] text-[#0f95ac]">Premium</div>
+        <h1 className="mt-2 text-3xl font-semibold tracking-normal text-slate-950">{title}</h1>
+        <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">{copy}</p>
+        <div className="mt-6 grid gap-3 text-sm text-slate-700 md:grid-cols-3">
+          <div className="rounded-lg border border-slate-200 bg-white p-4">{t('rebuild.premium.benefit_jobfit', { defaultValue: 'JobFit Kompas v ceně' })}</div>
+          <div className="rounded-lg border border-slate-200 bg-white p-4">{t('rebuild.premium.benefit_slots', { defaultValue: '25 aktivních odpovědních slotů' })}</div>
+          <div className="rounded-lg border border-slate-200 bg-white p-4">{t('rebuild.premium.benefit_ai_roles', { defaultValue: 'AI hodnocení inzerátů' })}</div>
+        </div>
+        <button type="button" disabled={busy} onClick={onUpgrade} className={cn(primaryButtonClass, 'mt-7')}>
+          {busy ? <Loader2 size={16} className="animate-spin" /> : null}
+          {t('rebuild.premium.upgrade_cta', { defaultValue: 'Upgradovat na Premium' })}
+        </button>
+      </div>
+    </section>
+  </div>
+);
+
+const SparklesIcon = () => <BrainCircuit size={22} />;
 const CompanyEntryPage = React.lazy(() => import('./public/PublicPages').then(m => ({ default: m.CompanyEntryPage })));
 const LandingChoicePage = React.lazy(() => import('./public/PublicPages').then(m => ({ default: m.LandingChoicePage })));
 const LegalPublicPage = React.lazy(() => import('./public/PublicPages').then(m => ({ default: m.LegalPublicPage })));
@@ -229,6 +263,7 @@ const JobshamanRebuildApp: React.FC = () => {
   const [companyLookupFailed, setCompanyLookupFailed] = React.useState(false);
   const [companyLookupRetry, setCompanyLookupRetry] = React.useState(0);
   const [checkoutBusyTier, setCheckoutBusyTier] = React.useState<'starter' | 'growth' | 'professional' | null>(null);
+  const [candidatePremiumBusy, setCandidatePremiumBusy] = React.useState(false);
   const pendingCheckoutTierRef = React.useRef<'starter' | 'growth' | 'professional' | null>(null);
   React.useEffect(() => {
     if (!preferences.address && !userProfile.isLoggedIn) {
@@ -287,11 +322,11 @@ const JobshamanRebuildApp: React.FC = () => {
       sv: 'SE',
       no: 'NO',
       fi: 'FI',
-      en: 'GB', // Default to GB for English if needed for mapping, though usually global
     };
     const baseLang = i18n.language.split('-')[0].toLowerCase();
     const targetCountry = langToCountry[baseLang] as SupportedCountryCode | undefined;
-    // Sync country when language is manually changed - this overrides GeoIP for user intent
+    // Sync country when language is manually changed - this overrides GeoIP for user intent.
+    // English is intentionally left global and should not force GB as country filter.
     if (targetCountry && preferences.taxProfile.countryCode !== targetCountry) {
       setPreferences(prev => ({
         ...prev,
@@ -454,6 +489,33 @@ const JobshamanRebuildApp: React.FC = () => {
   }, []);
 
   React.useEffect(() => {
+    let cancelled = false;
+    if (!userProfile.id || !userProfile.isLoggedIn) return undefined;
+    void getSubscriptionStatus(userProfile.id)
+      .then((status) => {
+        if (cancelled) return;
+        const tier = String(status.tier || 'free') as any;
+        setUserProfile({
+          subscription: {
+            tier,
+            expiresAt: status.expiresAt,
+            usage: {
+              activeDialogueSlotsUsed: status.dialogueSlotsUsed || 0,
+              activeDialogueSlotsLimit: status.dialogueSlotsAvailable || (tier === 'premium' ? 25 : 5),
+            } as any,
+          },
+          slots: status.dialogueSlotsAvailable || (tier === 'premium' ? 25 : 5),
+        });
+      })
+      .catch((error) => {
+        console.warn('Failed to load candidate subscription status', error);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [setUserProfile, userProfile.id, userProfile.isLoggedIn]);
+
+  React.useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const tokenFromUrl = searchParams.get('token');
 
@@ -489,6 +551,24 @@ const JobshamanRebuildApp: React.FC = () => {
       void performAccept();
     }
   }, [pathname, userProfile.isLoggedIn, userProfile.id, navigate, handleSessionRestoration, acceptingInvite]);
+
+  React.useEffect(() => {
+    if (!userProfile.isLoggedIn || userProfile.role === 'recruiter') return;
+    if (route.kind === 'ritual') {
+      navigate('/candidate/onboarding');
+      return;
+    }
+    const onboardingComplete = Boolean(userProfile.preferences?.candidate_onboarding_v2?.completed_at);
+    if (onboardingComplete) return;
+    if (
+      route.kind === 'candidate-insights'
+      || route.kind === 'marketplace'
+      || route.kind === 'candidate-applications'
+      || route.kind === 'candidate-learning'
+    ) {
+      navigate('/candidate/onboarding');
+    }
+  }, [navigate, route.kind, userProfile.isLoggedIn, userProfile.preferences?.candidate_onboarding_v2?.completed_at, userProfile.role]);
 
   const syncedProfileIdRef = React.useRef<string | null>(null);
   React.useEffect(() => {
@@ -979,7 +1059,7 @@ const JobshamanRebuildApp: React.FC = () => {
           ? t('rebuild.candidate.journey_desc', { defaultValue: 'Skill-first handshake is based on real work, not a generic form.' })
           : route.kind === 'candidate-role' || route.kind === 'candidate-imported'
             ? t('rebuild.candidate.role_analysis_desc', { defaultValue: 'Detailed role analysis and your personalized match.' })
-            : t('rebuild.candidate.mission', { defaultValue: 'Everyone has potential. Our mission is to reveal it. — Cybershaman' });
+            : t('rebuild.candidate.mission', { defaultValue: 'Každý má potenciál. Shami pomůže najít práci, kde dává smysl ho ukázat.' });
   const renderCandidateWorkspace = (content: React.ReactNode) => (
     <DashboardLayoutV2
       userRole="candidate"
@@ -1077,6 +1157,19 @@ const JobshamanRebuildApp: React.FC = () => {
       setCheckoutBusyTier(null);
     }
   }, [companyProfile?.id, navigate, openAuth, userProfile.isLoggedIn]);
+
+  const handleCandidatePremiumCheckout = React.useCallback(async () => {
+    if (!userProfile.id || !userProfile.isLoggedIn) {
+      openAuth('candidate');
+      return;
+    }
+    setCandidatePremiumBusy(true);
+    try {
+      await redirectToCheckout('premium', userProfile.id);
+    } finally {
+      setCandidatePremiumBusy(false);
+    }
+  }, [openAuth, userProfile.id, userProfile.isLoggedIn]);
 
   const handleCompanySwitch = React.useCallback(() => {
     if (!userProfile.isLoggedIn) {
@@ -1176,9 +1269,18 @@ const JobshamanRebuildApp: React.FC = () => {
     if (userId) {
       await handleSessionRestoration(userId);
     }
+
+    let hasOnboardingComplete = false;
+    if (userId && intent === 'candidate') {
+      const profile = await getUserProfile(userId);
+      hasOnboardingComplete = Boolean(profile?.preferences?.candidate_onboarding_v2?.completed_at);
+    }
+
     // If there's a pending checkout tier, navigate to recruiter so we can trigger checkout after company setup
     if (pendingCheckoutTierRef.current) {
       navigate('/recruiter');
+    } else if (intent === 'candidate' && !hasOnboardingComplete) {
+      navigate('/candidate/onboarding');
     } else {
       navigate(intent === 'recruiter' ? '/recruiter' : '/candidate/insights');
     }
@@ -1284,28 +1386,11 @@ const JobshamanRebuildApp: React.FC = () => {
     try {
       const isPremium = (userProfile.subscription?.tier || 'free') !== 'free';
       const { cvUrl, parsedData } = await uploadAndParseCv(userProfile, file, { isPremium });
-      const mergedProfile = mergeProfileWithParsedCv(userProfile, cvUrl, parsedData);
       await updateUserProfile(userProfile.id, {
         cvUrl,
-        cvText: parsedData.cvText || mergedProfile.cvText,
-        cvAiText: parsedData.cvAiText || mergedProfile.cvAiText,
-        skills: parsedData.skills || mergedProfile.skills,
-        workHistory: parsedData.workHistory || mergedProfile.workHistory,
-        education: parsedData.education || mergedProfile.education,
-        jobTitle: parsedData.jobTitle || mergedProfile.jobTitle,
-        name: parsedData.name || mergedProfile.name,
-        phone: parsedData.phone || mergedProfile.phone,
       });
       setUserProfile({
         cvUrl,
-        cvText: parsedData.cvText || mergedProfile.cvText,
-        cvAiText: parsedData.cvAiText || mergedProfile.cvAiText,
-        skills: parsedData.skills || mergedProfile.skills,
-        workHistory: parsedData.workHistory || mergedProfile.workHistory,
-        education: parsedData.education || mergedProfile.education,
-        jobTitle: parsedData.jobTitle || mergedProfile.jobTitle,
-        name: parsedData.name || mergedProfile.name,
-        phone: parsedData.phone || mergedProfile.phone,
       });
       await refreshCvDocuments();
     } finally {
@@ -1598,6 +1683,7 @@ const JobshamanRebuildApp: React.FC = () => {
   }, [setCompanyLibrary, setCompanyProfile, userProfile.id]);
 
   const handleCreateRecruiterChallenge = React.useCallback(async (input: {
+    id?: string;
     title: string;
     roleFamily: Role['roleFamily'];
     location: string;
@@ -1625,35 +1711,69 @@ const JobshamanRebuildApp: React.FC = () => {
       ? rawCountryCode
       : 'CZ';
     const currency: Role['currency'] = countryCode === 'PL' ? 'PLN' : countryCode === 'CZ' ? 'CZK' : 'EUR';
-    const challenge = await createCompanyChallenge({
-      title: input.title,
-      role_family: input.roleFamily,
-      summary: input.summary,
-      description: input.summary,
-      skills: input.skills,
-      salary_from: input.salaryFrom,
-      salary_to: input.salaryTo,
-      salary_currency: currency,
-      hours_per_week: input.hoursPerWeek ?? null,
-      employment_type: input.employmentType ?? null,
-      benefits: input.benefits || [],
-      work_perks: input.workPerks || [],
-      work_model: input.workModel,
-      location: input.location,
-      first_reply_prompt: input.firstStep,
-      company_goal: input.summary,
-      assessment_tasks: input.assessmentTasks,
-      handshake_blueprint_v1: input.handshakeBlueprint,
-      editor_state: {
-        source: 'rebuild_challenge_form',
+    
+    let challenge;
+    if (input.id) {
+      challenge = await updateCompanyChallenge(input.id, {
+        title: input.title,
         role_family: input.roleFamily,
+        summary: input.summary,
+        description: input.summary,
+        skills: input.skills,
+        salary_from: input.salaryFrom,
+        salary_to: input.salaryTo,
+        salary_currency: currency,
         hours_per_week: input.hoursPerWeek ?? null,
         employment_type: input.employmentType ?? null,
         benefits: input.benefits || [],
         work_perks: input.workPerks || [],
-        created_at: now,
-      },
-    });
+        work_model: input.workModel,
+        location: input.location,
+        first_reply_prompt: input.firstStep,
+        company_goal: input.summary,
+        assessment_tasks: input.assessmentTasks,
+        handshake_blueprint_v1: input.handshakeBlueprint,
+        editor_state: {
+          source: 'rebuild_challenge_form',
+          role_family: input.roleFamily,
+          hours_per_week: input.hoursPerWeek ?? null,
+          employment_type: input.employmentType ?? null,
+          benefits: input.benefits || [],
+          work_perks: input.workPerks || [],
+          updated_at: now,
+        },
+      });
+    } else {
+      challenge = await createCompanyChallenge({
+        title: input.title,
+        role_family: input.roleFamily,
+        summary: input.summary,
+        description: input.summary,
+        skills: input.skills,
+        salary_from: input.salaryFrom,
+        salary_to: input.salaryTo,
+        salary_currency: currency,
+        hours_per_week: input.hoursPerWeek ?? null,
+        employment_type: input.employmentType ?? null,
+        benefits: input.benefits || [],
+        work_perks: input.workPerks || [],
+        work_model: input.workModel,
+        location: input.location,
+        first_reply_prompt: input.firstStep,
+        company_goal: input.summary,
+        assessment_tasks: input.assessmentTasks,
+        handshake_blueprint_v1: input.handshakeBlueprint,
+        editor_state: {
+          source: 'rebuild_challenge_form',
+          role_family: input.roleFamily,
+          hours_per_week: input.hoursPerWeek ?? null,
+          employment_type: input.employmentType ?? null,
+          benefits: input.benefits || [],
+          work_perks: input.workPerks || [],
+          created_at: now,
+        },
+      });
+    }
     const role = mapChallengeDraftToRole(challenge, t, company);
 
     setLocalCompanyRoles((current) => [role, ...current.filter((item) => item.id !== role.id)]);
@@ -1682,7 +1802,7 @@ const JobshamanRebuildApp: React.FC = () => {
     ]);
     setMarketplaceRoles((current) => [role, ...current.filter((item) => item.id !== role.id)]);
     return role;
-  }, [companyProfile, recruiterCompany, refreshRecruiterJobs, setLocalCompanyRoles, setRecruiterJobs]);
+  }, [companyProfile, recruiterCompany, refreshRecruiterJobs, setLocalCompanyRoles, setRecruiterJobs, t]);
 
   const handleAiAssistRecruiterChallenge = React.useCallback(async (roleId: string) => {
     const role = localCompanyRoles.find((item) => item.id === roleId);
@@ -1795,6 +1915,7 @@ const JobshamanRebuildApp: React.FC = () => {
     route.kind === 'admin'
     || route.kind === 'marketplace'
     || route.kind === 'ritual'
+    || route.kind === 'candidate-onboarding'
     || route.kind === 'candidate-role'
     || route.kind === 'candidate-imported'
     || route.kind === 'candidate-journey'
@@ -1934,10 +2055,12 @@ const JobshamanRebuildApp: React.FC = () => {
             role={activeRole}
             blueprint={activeBlueprint}
             preferences={preferences}
+            userProfile={userProfile}
             companyLibrary={companyLibrary}
             existingApplication={candidateApplicationsByRoleId[activeRole.id] || null}
             isSaved={savedJobIds.includes(String(activeRole.id))}
             onToggleSaved={() => handleToggleSavedRole(activeRole.id)}
+            onUpgradePremium={() => void handleCandidatePremiumCheckout()}
             navigate={navigate}
             t={t}
           />)
@@ -2000,6 +2123,21 @@ const JobshamanRebuildApp: React.FC = () => {
           />
         ) : null}
 
+        {route.kind === 'candidate-onboarding' ? (
+          <CandidateOnboardingWizard
+            userProfile={userProfile}
+            activeCvDocument={activeCvDocument}
+            cvDocuments={cvDocuments}
+            cvBusy={cvBusy}
+            onOpenAuth={() => openAuth('candidate')}
+            onUploadCv={handleUploadCv}
+            onSaveProfile={(updates) => handleSaveProfile(updates)}
+            setUserProfile={setUserProfile}
+            navigate={navigate}
+            t={t}
+          />
+        ) : null}
+
         {showCandidatePreLanding ? (
           <LandingChoicePage
             userProfile={userProfile}
@@ -2043,6 +2181,8 @@ const JobshamanRebuildApp: React.FC = () => {
             onWithdrawApplication={handleWithdrawApplication}
             onToggleSavedRole={handleToggleSavedRole}
             onUploadPhoto={handleUploadPhoto}
+            onUpgradePremium={handleCandidatePremiumCheckout}
+            premiumBusy={candidatePremiumBusy}
             onSignOut={handleSignOutToCompanyEntry}
             onCompanySwitch={handleCompanySwitch}
             currentLanguage={i18n.language}
@@ -2064,7 +2204,15 @@ const JobshamanRebuildApp: React.FC = () => {
         ) : null}
 
         {route.kind === 'candidate-jcfpm' && !showCandidatePreLanding ? (
-          renderCandidateWorkspace(<CandidateJcfpmPage t={t} locale={i18n.language} />)
+          (userProfile.subscription?.tier || 'free') === 'free'
+            ? <CandidatePremiumGate
+                title={t('rebuild.premium.jobfit_title', { defaultValue: 'JobFit Kompas je součást Premium.' })}
+                copy={t('rebuild.premium.jobfit_copy', { defaultValue: 'Test odemkne pracovní styl, silné stránky a přesnější doporučení. V Premium získáš také více odpovědních slotů a AI hodnocení nabídek.' })}
+                busy={candidatePremiumBusy}
+                onUpgrade={handleCandidatePremiumCheckout}
+                t={t}
+              />
+            : renderCandidateWorkspace(<CandidateJcfpmPage t={t} locale={i18n.language} />)
         ) : null}
 
         {route.kind === 'candidate-learning' && !showCandidatePreLanding ? (

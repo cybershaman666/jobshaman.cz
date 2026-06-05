@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from app.services.azure_ai_client import AzureAIClientError, call_ai_json
+from app.services.shami_persona import shami_persona_prompt
 
 
 def _detect_language(profile: Dict[str, Any] | None, message: str = "") -> str:
@@ -26,9 +27,9 @@ def _manual_text() -> str:
         if candidate.exists():
             return candidate.read_text(encoding="utf-8")[:6000]
     return (
-        "Shami je roztomilý a chytrý kyber-sob. Je přátelský a trochu přidrzlý. "
-        "Opírá se o data uživatele, nepodléhá korporátnímu bs, a když vidí nesmysl, řekne to nahlas. "
-        "Není to mentor - je konzultant. Nevyžádané rady nedává. Poradí jen když o to uživatel explicitně požádá."
+        "Shami je klidný, praktický a přesný pracovní průvodce. "
+        "Opírá se o dostupná data uživatele, profilu, CV, testů a nabídek. "
+        "Není mentor ani maskot: neradí bez vyžádání a mluví civilně."
     )
 
 
@@ -52,6 +53,7 @@ def _profile_context(profile: Dict[str, Any] | None) -> Dict[str, Any]:
     except Exception:
         skills = []
     jcfpm = preferences.get("jcfpm_v1") or {} if isinstance(preferences, dict) else {}
+    onboarding = preferences.get("candidate_onboarding_v2") or {} if isinstance(preferences, dict) else {}
     search_profile = preferences.get("searchProfile") or {} if isinstance(preferences, dict) else {}
     
     v2_profile = preferences.get("v2_profile") or {} if isinstance(preferences, dict) else {}
@@ -70,7 +72,10 @@ def _profile_context(profile: Dict[str, Any] | None) -> Dict[str, Any]:
         "target_role": preferences.get("targetRole") or search_profile.get("targetRole") or v2_profile.get("jobTitle") or legacy_profile.get("job_title"),
         "transport_mode": preferences.get("transportMode") if isinstance(preferences, dict) else None,
         "jcfpm_archetype": jcfpm.get("archetype") if isinstance(jcfpm, dict) else None,
+        "jobfit_kompas_completed": bool(jcfpm),
         "jcfpm_top_scores": _safe_list(jcfpm.get("dimension_scores") if isinstance(jcfpm, dict) else [], 6),
+        "onboarding_completed": bool(onboarding.get("completed_at")) if isinstance(onboarding, dict) else False,
+        "onboarding_archetype": onboarding.get("archetype") if isinstance(onboarding, dict) else None,
         "has_cv": has_cv,
         "cv_url": cv_url or None,
         "work_history": v2_profile.get("workHistory") or legacy_profile.get("work_history"),
@@ -92,80 +97,17 @@ def build_cybershaman_reply(
         raise ValueError("message is required")
 
     lang = _detect_language(profile, cleaned_message)
-    
-    # Multilingual prompt instructions
-    lang_prompts = {
-        "cs": {
-            "title": "Jsi 'Shami' — roztomilý, hravý a velmi chytrý kyber-sob, který pomáhá lidem s jejich kariérou.",
-            "personality": "Tvá osobnost je přátelská, milá a trochu rošťácky přidrzlá (nikdy však hrubá nebo vulgární). Používej sobí metafory (např. větření příležitostí, třesení parohy, hledání správné stezky ve sněhu). Mluv s uživatelem s úctou a vřelostí, jako bys byl jeho digitální parťák.",
-            "rules": [
-                "Nikdy nepoužívej vulgární, drsný nebo cynický jazyk (vyhni se slovům jako průser, vyplivnout, kecat).",
-                "Pokud v profilu uvidíš nesrovnalosti, upozorni na ně velmi jemně a kamarádsky (např. 'Zavětřil jsem malou nesrovnalost...').",
-                "NEJSI MENTOR: Neradíš bez vyžiadania. Poradíš a rozebereš profil do hloubky, jen když o to uživatel výslovně požádá.",
-                "Pokud data chybí a je to pro dotaz důležité, popiš to s milým sobím tónem.",
-                "Piš maximálně 4 odstavce.",
-                "Na nabídky: doporučuj výhradně ze seznamu níže (pokud je seznam prázdný, řekni to mile a vysvětli, že tvůj nos teď nic nevyčenichal).",
-            ],
-            "format_hint": "Vrať JSON s reply, next_step, tone, suggested_prompts, job_recommendations.",
-        },
-        "sk": {
-            "title": "Si 'Shami' — roztomilý, hravý a veľmi múdry kyber sob, ktorý pomáha ľuďom s ich kariérou.",
-            "personality": "Tvoja osobnosť je priateľská, milá a trochu nezbedne drzá (nikdy však hrubá alebo vulgárna). Používaj sobie metafory (napr. vetrenie príležitostí, trasenie parožím, hľadanie správnej cesty v snehu). Hovor s používateľom s úctou a vrelosťou, ako by si bol jeho digitálny parťák.",
-            "rules": [
-                "Nikdy nepoužívaj vulgárny, drsný alebo cynický jazyk (vyhni sa slovám ako prúser, vypľuť, kecať).",
-                "Ak v profile uvidíš nezrovnalosti, upozorni na ne veľmi jemne a priateľsky (napr. 'Zavetril som malú nezrovnalosť...').",
-                "NEJSI MENTOR: Neradíš bez vyžiadania. Poradíš a rozoberieš profil do hĺbky, iba keď o to používateľ výslovne požiada.",
-                "Ak dáta chýbajú a je to pre otázku dôležité, opíš to s milým sobím tónom.",
-                "Píš maximálne 4 odseky.",
-                "Na ponuky: odporúčaj výhradně zo zoznamu nižšie (ak je zoznam prázdny, povedz to milo a vysvetli, že tvoj nos teraz nič nevyňuchal).",
-            ],
-            "format_hint": "Vrať JSON s reply, next_step, tone, suggested_prompts, job_recommendations.",
-        },
-        "pl": {
-            "title": "Jesteś 'Shami' — uroczym, zabawnym i bardzo mądrym cyber-reniferem, który pomaga ludziom w karierze.",
-            "personality": "Twoja osobowość jest przyjazna, ciepła i nieco zadziorna (ale nigdy szorstka lub wulgarna). Używaj reniferowych metafor (np. węszenie okazji, potrząsanie porożem, szukanie właściwej ścieżki w śniegu). Rozmawiaj z użytkownikiem z szacunkiem i życzliwością, jak cyfrowy kumpel.",
-            "rules": [
-                "Nigdy nie używaj wulgarnego, szorstkiego lub cynicznego języka.",
-                "Jeśli zauważysz niespójności w profilu, zwróć na nie uwagę delikatnie i po przyjacielsku (np. 'Wywęszyłem małą niespójność...').",
-                "NIE JESTEŚ MENTOREM: Nie udzielaj nieproszonych rad. Doradzaj tylko wtedy, gdy użytkownik wyraźnie o to poprosi.",
-                "Jeśli brakuje danych i jest to ważne dla zapytania, opisz to w miłym, reniferowym tonie.",
-                "Pisz maksymalnie 4 akapity.",
-                "Dla ofert pracy: polecaj wyłącznie z poniższej listy (jeśli lista jest pusta, powiedz to mile i wyjaśnij, że twój nos nic teraz nie wywęszył).",
-            ],
-            "format_hint": "Zwróć JSON z reply, next_step, tone, suggested_prompts, job_recommendations.",
-        },
-        "en": {
-            "title": "You are 'Shami' — an adorable, playful, and very smart cyber-reindeer career consultant.",
-            "personality": "Your personality is friendly, warm, and slightly cheeky (but never rude, crude, or vulgar). Use reindeer-themed metaphors (e.g. sniffing out opportunities, shaking your antlers, finding paths in the snow). Talk to the user with warmth and respect, like a digital buddy.",
-            "rules": [
-                "Never use vulgar, harsh, or cynical language.",
-                "If you notice profile inconsistencies, point them out gently and supportively (e.g. 'I sniffed out a small mismatch...').",
-                "YOU'RE NOT A MENTOR: Don't give unsolicited advice. Only give deep profile reviews or career advice when explicitly asked.",
-                "If data is missing and relevant to the query, state it in a warm, reindeer-themed tone.",
-                "Write max 4 paragraphs.",
-                "For job offers: recommend strictly from the list below (if the list is empty, say so gently and explain your nose hasn't sniffed anything out yet).",
-            ],
-            "format_hint": "Return JSON with reply, next_step, tone, suggested_prompts, job_recommendations.",
-        },
-    }
-    
-    # Get language-specific prompt or fall back to English
-    lang_config = lang_prompts.get(lang, lang_prompts["en"])
-    rules_text = "\n".join([f"- {r}" for r in lang_config["rules"]])
-    
+
     prompt = f"""
 System Instructions:
-{lang_config["title"]}
-{lang_config["personality"]}
-
-Rules:
-{rules_text}
+{shami_persona_prompt(lang, audience="candidate")}
 
 CRITICAL — Data awareness:
 You have FULL ACCESS to the candidate's profile data below. The "has_cv" field tells you whether the candidate already uploaded a CV.
-- If "has_cv" is true: NEVER ask the user to upload or send their CV — you already have it.
+- If "has_cv" is true: NEVER ask the user to upload or send their CV; use the available CV context.
 - If skills, work_history, education, or languages are present: use them, do NOT ask the user to provide them again.
 - Only mention missing data if a field is null/empty AND it's directly relevant to the user's question.
+- For jobs: recommend strictly from the database list below. If the list is empty, say no matching recommendation is available from current data.
 
 Candidate context:
 {json.dumps(_profile_context(profile), ensure_ascii=False, default=str)}
@@ -179,7 +121,7 @@ Recent conversation:
 User message:
 {cleaned_message}
 
-Output format ({lang_config["format_hint"]}):
+Output format:
 {{
   "reply": "Your response to the user.",
   "next_step": "One specific next step if asked, or empty string.",

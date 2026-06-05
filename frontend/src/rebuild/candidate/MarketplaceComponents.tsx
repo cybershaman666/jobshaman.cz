@@ -33,7 +33,7 @@ export const QuickActionButtons: React.FC<{
   const { t } = useTranslation();
   const actions = [
     { id: 'immediate', label: t('rebuild.marketplace.action_immediate', { defaultValue: 'Chci práci hned' }), sub: t('rebuild.marketplace.action_immediate_sub', { defaultValue: 'Zobrazit nabídky' }), icon: <Target className="text-blue-500" /> },
-    { id: 'unsure', label: t('rebuild.marketplace.action_unsure', { defaultValue: 'Nevím, co chci dělat' }), sub: t('rebuild.marketplace.action_unsure_sub', { defaultValue: 'Pomůže mi Cybershaman' }), icon: <Sparkles className="text-teal-500" /> },
+    { id: 'unsure', label: t('rebuild.marketplace.action_unsure', { defaultValue: 'Nevím, co chci dělat' }), sub: t('rebuild.marketplace.action_unsure_sub', { defaultValue: 'Shami pomůže zpřesnit směr' }), icon: <Sparkles className="text-teal-500" /> },
     { id: 'pivot', label: t('rebuild.marketplace.action_pivot', { defaultValue: 'Změnit obor' }), sub: t('rebuild.marketplace.action_pivot_sub', { defaultValue: 'Ukaž možnosti' }), icon: <TrendingUp className="text-indigo-500" /> },
     { id: 'improve', label: t('rebuild.marketplace.action_improve', { defaultValue: 'Zlepšit se' }), sub: t('rebuild.marketplace.action_improve_sub', { defaultValue: 'Kurzy a rozvoj' }), icon: <Zap className="text-amber-500" /> },
   ];

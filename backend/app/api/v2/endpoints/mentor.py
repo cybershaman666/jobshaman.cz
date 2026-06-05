@@ -10,6 +10,7 @@ from app.domains.reality.service import RealityDomainService
 from app.services.cybershaman_service import build_cybershaman_reply
 from app.services.shami_agent_service import build_shami_recruiter_agent_reply, build_shami_role_detail_insight, get_agent_memory, save_agent_memory
 from app.services.azure_ai_client import AzureAIClientError
+from app.services.subscription_access import fetch_latest_subscription_by, is_active_subscription
 
 
 router = APIRouter()
@@ -78,6 +79,12 @@ JOB_SEARCH_INTENT_TERMS = {
 def _has_job_search_intent(message: str) -> bool:
     normalized = str(message or "").lower()
     return any(term in normalized for term in JOB_SEARCH_INTENT_TERMS)
+
+
+def _current_user_has_premium(current_user: dict) -> bool:
+    user_id = str(current_user.get("id") or "")
+    sub = fetch_latest_subscription_by("user_id", user_id)
+    return bool(sub and is_active_subscription(sub) and str(sub.get("tier") or "").lower() in {"premium", "starter", "growth", "professional", "enterprise"})
 
 
 def _parse_search_params(message: str) -> Optional[Dict[str, Any]]:
@@ -220,7 +227,7 @@ async def mentor_chat(
         logger.error(f"❌ AzureAIClientError in mentor_chat: {exc}")
         # SAFE FALLBACK odpověď pro frontend (nezhasne úplně chat, zobrazí info)
         data = {
-            "reply": "Omlouvám se, AI agent je dočasně nedostupný. Můžeš to zkusit za chvíli, nebo kontaktovat podporu.",
+            "reply": "AI průvodce je teď dočasně nedostupný. Zkus to prosím za chvíli; profil a nabídky zůstávají uložené.",
             "tone": "data_missing",
             "suggested_prompts": [],
             "job_recommendations": [],
@@ -231,7 +238,7 @@ async def mentor_chat(
     except Exception as exc:
         logger.exception(f"❌ Unhandled exception in mentor_chat: {exc}")
         data = {
-            "reply": "Nastala neočekávaná chyba při zpracování dotazu. Dej vědět supportu nebo zkus později.",
+            "reply": "Dotaz se nepodařilo zpracovat. Zkus ho prosím poslat znovu nebo pokračuj přes profil a nabídky.",
             "tone": "data_missing",
             "suggested_prompts": [],
             "job_recommendations": [],
@@ -247,6 +254,8 @@ async def role_insight(
     payload: RoleInsightRequest,
     current_user: dict = Depends(AccessControlService.get_current_user),
 ) -> Dict[str, object]:
+    if not _current_user_has_premium(current_user):
+        raise HTTPException(status_code=403, detail="Premium subscription required for AI role insight")
     domain_user = await IdentityDomainService.get_or_create_user_mirror(
         supabase_id=current_user["id"],
         email=current_user["email"],

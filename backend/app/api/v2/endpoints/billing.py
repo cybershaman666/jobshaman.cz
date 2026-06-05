@@ -103,12 +103,12 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
         raise HTTPException(status_code=403, detail="Unauthorized")
 
     tier_limits = {
-        "free": {"assessments": 0, "job_postings": 1, "role_opens": 1, "dialogue_slots": 3, "name": "Free"},
+        "free": {"assessments": 0, "job_postings": 1, "role_opens": 1, "dialogue_slots": 5, "name": "Free"},
         "premium": {"assessments": 0, "job_postings": 0, "role_opens": 0, "dialogue_slots": 25, "name": "Premium"},
         "starter": {"assessments": 15, "job_postings": 3, "role_opens": 3, "dialogue_slots": 12, "name": "Starter"},
         "growth": {"assessments": 60, "job_postings": 10, "role_opens": 10, "dialogue_slots": 40, "name": "Growth"},
         "professional": {"assessments": 150, "job_postings": 20, "role_opens": 25, "dialogue_slots": 100, "name": "Professional"},
-        "trial": {"assessments": 0, "job_postings": 1, "role_opens": 1, "dialogue_slots": 3, "name": "Free (Trial)"},
+        "trial": {"assessments": 0, "job_postings": 1, "role_opens": 1, "dialogue_slots": 5, "name": "Free (Trial)"},
         "enterprise": {"assessments": 999999, "job_postings": 999, "role_opens": 999, "dialogue_slots": 9999, "name": "Enterprise"},
     }
 

@@ -64,7 +64,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main() -> int:
+def run_unified_ingest() -> int:
     parser = build_parser()
     args = parser.parse_args()
 
@@ -85,4 +85,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(run_unified_ingest())

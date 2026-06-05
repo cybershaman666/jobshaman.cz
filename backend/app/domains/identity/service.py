@@ -19,6 +19,8 @@ from typing import Optional, Dict, Any
 import uuid
 import json
 import asyncio
+import tempfile
+from pathlib import Path
 from datetime import datetime
 from app.domains.recommendation.learning import LifecycleBackprop
 from app.services.azure_ai_client import call_ai_json
@@ -80,6 +82,10 @@ class IdentityDomainService:
     SIGNAL_CONFIRMATION_STATUSES = {"inferred", "suggested", "confirmed", "rejected", "revoked"}
     SHARE_CONSENT_STATUSES = {"active", "revoked", "expired"}
     SHARE_LAYERS = {"profile", "cv", "jcfpm", "identity_signals", "preferences", "portfolio", "handshake"}
+
+    CV_PARSE_MAX_BYTES = 12 * 1024 * 1024
+    CV_PARSE_TEXT_LIMIT = 24000
+    CV_PARSE_ALLOWED_SUFFIXES = {".pdf", ".doc", ".docx"}
 
     @staticmethod
     async def get_or_create_user_mirror(supabase_id: str, email: str, role: str = "candidate") -> Dict[str, Any]:
@@ -582,14 +588,28 @@ class IdentityDomainService:
             }
             for key in profile_field_keys:
                 if key in updates:
-                    profile_fields[key] = updates.get(key)
-            if profile_fields:
-                preferences["v2_profile"] = profile_fields
+                    field_value = updates.get(key)
+                    if key == "languages":
+                        if isinstance(field_value, str):
+                            try:
+                                field_value = json.loads(field_value)
+                            except json.JSONDecodeError:
+                                field_value = []
+                        if not isinstance(field_value, list):
+                            field_value = []
+                    profile_fields[key] = field_value
             if "preferences" in updates and isinstance(updates.get("preferences"), dict):
+                incoming_preferences = updates.get("preferences") or {}
+                if isinstance(incoming_preferences.get("v2_profile"), dict):
+                    profile_fields = {
+                        **profile_fields,
+                        **incoming_preferences.get("v2_profile"),
+                    }
                 preferences = {
                     **preferences,
-                    **(updates.get("preferences") or {}),
+                    **incoming_preferences,
                 }
+            preferences["v2_profile"] = profile_fields
             if "taxProfile" in updates:
                 preferences["taxProfile"] = updates.get("taxProfile")
                 if isinstance(updates.get("taxProfile"), dict) and updates["taxProfile"].get("countryCode"):
@@ -997,6 +1017,216 @@ class IdentityDomainService:
             return IdentityDomainService._cv_to_dict(doc)
 
     @staticmethod
+    async def parse_cv_document(
+        user_id: str,
+        cv_id: str,
+        *,
+        apply_to_profile: bool = False,
+        locale: str = "cs",
+    ) -> Optional[Dict[str, Any]]:
+        async with AsyncSession(engine) as session:
+            statement = select(CandidateCVDocument).where(
+                CandidateCVDocument.id == _as_uuid(cv_id),
+                CandidateCVDocument.user_id == _as_uuid(user_id),
+            )
+            result = await session.execute(statement)
+            doc = result.scalar_one_or_none()
+            if not doc:
+                return None
+
+            try:
+                extracted_text = await asyncio.to_thread(IdentityDomainService._extract_cv_text_from_url, doc.file_url, doc.original_name)
+                parsed = await asyncio.to_thread(
+                    IdentityDomainService._parse_cv_text_with_ai,
+                    extracted_text,
+                    locale,
+                    doc.original_name,
+                )
+                parsed["cvText"] = extracted_text[: IdentityDomainService.CV_PARSE_TEXT_LIMIT]
+                parsed.setdefault("cvAiText", parsed.get("summary") or "")
+                parsed["__meta"] = {
+                    "parseStatus": "ready",
+                    "parserVersion": "candidate-cv-parser-v1",
+                    "sourceFileName": doc.original_name,
+                    "parsedAt": datetime.utcnow().isoformat(),
+                }
+                doc.parsed_data = json.dumps(parsed, ensure_ascii=False)
+                doc.parsed_at = datetime.utcnow()
+                parse_error = None
+            except Exception as exc:
+                existing = _json_value(doc.parsed_data, {})
+                existing["__meta"] = {
+                    **(existing.get("__meta") if isinstance(existing.get("__meta"), dict) else {}),
+                    "parseStatus": "failed",
+                    "parseError": str(exc)[:500],
+                    "parserVersion": "candidate-cv-parser-v1",
+                    "parsedAt": datetime.utcnow().isoformat(),
+                }
+                doc.parsed_data = json.dumps(existing, ensure_ascii=False)
+                doc.parsed_at = datetime.utcnow()
+                parsed = existing
+                parse_error = str(exc)
+
+            await session.commit()
+            await session.refresh(doc)
+
+        if apply_to_profile and not parse_error:
+            profile_updates = IdentityDomainService._profile_updates_from_parsed_cv(parsed, file_url=doc.file_url)
+            if profile_updates:
+                await IdentityDomainService.update_candidate_profile(user_id, profile_updates)
+
+        return IdentityDomainService._cv_to_dict(doc)
+
+    @staticmethod
+    def _extract_cv_text_from_url(file_url: str, original_name: str = "cv") -> str:
+        if not file_url:
+            raise ValueError("CV file URL is missing")
+        suffix = Path(original_name or "cv").suffix.lower() or ".pdf"
+        if suffix not in IdentityDomainService.CV_PARSE_ALLOWED_SUFFIXES:
+            raise ValueError("Unsupported CV file type")
+        import httpx
+
+        with httpx.Client(timeout=30, follow_redirects=True) as client:
+            response = client.get(file_url)
+            response.raise_for_status()
+            content = response.content
+        if len(content) > IdentityDomainService.CV_PARSE_MAX_BYTES:
+            raise ValueError("CV file is too large to parse")
+
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=True) as handle:
+            handle.write(content)
+            handle.flush()
+            try:
+                from unstructured.partition.auto import partition
+
+                elements = partition(filename=handle.name)
+                text_value = "\n".join(str(element).strip() for element in elements if str(element).strip())
+            except Exception:
+                text_value = content.decode("utf-8", errors="ignore")
+
+        text_value = " ".join(text_value.split())
+        if len(text_value) < 40:
+            raise ValueError("CV text extraction produced too little text")
+        return text_value[: IdentityDomainService.CV_PARSE_TEXT_LIMIT]
+
+    @staticmethod
+    def _parse_cv_text_with_ai(text_value: str, locale: str, original_name: str) -> Dict[str, Any]:
+        prompt = f"""
+Extract a structured candidate profile from this CV text.
+Return only valid JSON. Use the user's likely language when writing summaries. Locale hint: {locale}.
+
+Schema:
+{{
+  "name": "string or empty",
+  "email": "string or empty",
+  "phone": "string or empty",
+  "jobTitle": "short current/target headline or empty",
+  "skills": ["deduplicated practical skills"],
+  "workHistory": [
+    {{"id": "work-1", "role": "string", "company": "string", "duration": "string", "description": "short factual summary"}}
+  ],
+  "education": [
+    {{"id": "edu-1", "school": "string", "degree": "string", "field": "string", "year": "string"}}
+  ],
+  "languages": [
+    {{"label": "language name", "level": 1-8, "note": "short evidence or empty"}}
+  ],
+  "cvAiText": "concise professional summary, max 700 chars"
+}}
+
+Rules:
+- Do not invent employers, schools, dates, certificates or skills.
+- Keep arrays short: max 18 skills, 8 work items, 6 education items, 8 languages.
+- If a field is missing, return an empty string or empty array.
+
+File name: {original_name}
+CV text:
+{text_value[: IdentityDomainService.CV_PARSE_TEXT_LIMIT]}
+"""
+        payload, _result = call_ai_json(prompt, temperature=0.1, timeout=50)
+        if not isinstance(payload, dict):
+            raise ValueError("AI CV parser returned invalid payload")
+        return IdentityDomainService._normalize_parsed_cv_payload(payload)
+
+    @staticmethod
+    def _normalize_parsed_cv_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
+        def text_field(key: str, limit: int = 500) -> str:
+            return str(payload.get(key) or "").strip()[:limit]
+
+        def list_of_strings(key: str, limit: int) -> list[str]:
+            raw = payload.get(key)
+            if not isinstance(raw, list):
+                return []
+            out: list[str] = []
+            seen: set[str] = set()
+            for item in raw:
+                value = str(item or "").strip()
+                dedupe = value.lower()
+                if value and dedupe not in seen:
+                    seen.add(dedupe)
+                    out.append(value[:120])
+                if len(out) >= limit:
+                    break
+            return out
+
+        def normalize_rows(key: str, fields: list[str], prefix: str, limit: int) -> list[Dict[str, str]]:
+            raw = payload.get(key)
+            if not isinstance(raw, list):
+                return []
+            rows: list[Dict[str, str]] = []
+            for index, item in enumerate(raw[:limit], start=1):
+                if not isinstance(item, dict):
+                    continue
+                row = {"id": str(item.get("id") or f"{prefix}-{index}")[:80]}
+                for field in fields:
+                    row[field] = str(item.get(field) or "").strip()[:500]
+                if any(row.get(field) for field in fields):
+                    rows.append(row)
+            return rows
+
+        languages = []
+        for index, item in enumerate(payload.get("languages") if isinstance(payload.get("languages"), list) else []):
+            if not isinstance(item, dict):
+                continue
+            label = str(item.get("label") or "").strip()
+            if not label:
+                continue
+            try:
+                level = int(item.get("level") or 3)
+            except Exception:
+                level = 3
+            languages.append({
+                "label": label[:80],
+                "level": max(1, min(8, level)),
+                "note": str(item.get("note") or "").strip()[:160],
+            })
+            if len(languages) >= 8:
+                break
+
+        return {
+            "name": text_field("name", 160),
+            "email": text_field("email", 160),
+            "phone": text_field("phone", 80),
+            "jobTitle": text_field("jobTitle", 180),
+            "skills": list_of_strings("skills", 18),
+            "workHistory": normalize_rows("workHistory", ["role", "company", "duration", "description"], "work", 8),
+            "education": normalize_rows("education", ["school", "degree", "field", "year"], "edu", 6),
+            "languages": languages,
+            "cvAiText": text_field("cvAiText", 900),
+        }
+
+    @staticmethod
+    def _profile_updates_from_parsed_cv(parsed: Dict[str, Any], *, file_url: str) -> Dict[str, Any]:
+        updates: Dict[str, Any] = {"cvUrl": file_url}
+        for key in ("name", "phone", "jobTitle", "skills", "workHistory", "education", "languages", "cvText", "cvAiText"):
+            value = parsed.get(key)
+            if isinstance(value, str) and value.strip():
+                updates[key] = value.strip()
+            elif isinstance(value, list) and value:
+                updates[key] = value
+        return updates
+
+    @staticmethod
     async def delete_cv_document(user_id: str, cv_id: str) -> bool:
         async with AsyncSession(engine) as session:
             statement = select(CandidateCVDocument).where(
@@ -1017,6 +1247,8 @@ class IdentityDomainService:
             parsed_data = json.loads(doc.parsed_data or "{}")
         except json.JSONDecodeError:
             parsed_data = {}
+        meta = parsed_data.get("__meta") if isinstance(parsed_data, dict) and isinstance(parsed_data.get("__meta"), dict) else {}
+        parse_status = meta.get("parseStatus") or ("ready" if doc.parsed_at else "pending")
         return {
             "id": str(doc.id),
             "userId": str(doc.user_id),
@@ -1030,6 +1262,8 @@ class IdentityDomainService:
             "label": doc.label,
             "locale": doc.locale,
             "parsedData": parsed_data,
+            "parseStatus": parse_status,
+            "parseError": meta.get("parseError"),
             "uploadedAt": doc.uploaded_at.isoformat(),
             "lastUsed": doc.last_used.isoformat() if doc.last_used else None,
             "parsedAt": doc.parsed_at.isoformat() if doc.parsed_at else None,
@@ -1147,8 +1381,8 @@ class IdentityDomainService:
     @staticmethod
     async def process_ritual_completion(user_id: str, steps: list[dict[str, str]], language: str = "cs") -> dict[str, Any]:
         """
-        Processes the CyberShaman ritual completion:
-        1. AI interpretation of the narrative story
+        Processes candidate onboarding completion:
+        1. AI interpretation of onboarding answers
         2. Archetype extraction for weight tuning
         3. Profile update (bio/story)
         4. Identity Signal creation
@@ -1157,12 +1391,12 @@ class IdentityDomainService:
         # --- 1. AI Interpretation ---
         answers_text = "\n\n".join([f"[{s['id']}] {s['text']}" for s in steps])
         prompt = f"""
-Analyze these ritual answers from a job seeker and extract their professional identity profile.
+Analyze these onboarding answers from a job seeker and extract a practical professional profile.
 Language: {language}
 
 Return STRICT JSON with the following schema:
 {{
-  "bio": "A poetic but professional narrative summary (approx 200-300 chars) in {language}",
+  "bio": "A concise professional summary (approx 200-300 chars) in {language}",
   "archetype": "One of: BUDOVATEL, PRUZKUMNIK, STRAZCE, VIZIONAR",
   "inferred_skills": ["List of extracted professional skills"],
   "values": ["List of core values identified"],
@@ -1175,7 +1409,7 @@ Archetype Guidelines:
 - STRAZCE (Guardian): Focus on responsibility, safety, care, and reliability. (e.g., Bus Driver, Nurse, Accountant)
 - VIZIONAR (Visionary): Focus on impact, future, and inspiring others. (e.g., Teacher, Leader, Designer)
 
-Ritual Answers:
+Onboarding answers:
 {answers_text}
         """
 

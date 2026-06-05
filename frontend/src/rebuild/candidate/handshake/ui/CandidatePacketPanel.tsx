@@ -52,22 +52,22 @@ export const CandidatePacketPanel: React.FC<CandidatePacketPanelProps> = ({
   return (
     <aside className={cn('space-y-4', className)}>
       {/* Candidate's CV Summary Card */}
-      <div className="overflow-hidden rounded-[12px] border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition">
-        <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
+      <div className="overflow-hidden rounded-[12px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm hover:shadow-md transition">
+        <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
           {t('rebuild.journey.candidate_packet', { defaultValue: 'Your Profile' })}
         </div>
         
         <div className="mt-3">
-          <h3 className="text-lg font-semibold text-slate-900 truncate">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
             {candidateJobTitle}
           </h3>
-          <p className="mt-1 text-xs text-slate-500 truncate">
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 truncate">
             {activeCvName}
           </p>
         </div>
 
         {packetSummary && (
-          <p className="mt-3 text-sm leading-6 text-slate-600 line-clamp-3">
+          <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-400 line-clamp-3">
             {packetSummary.slice(0, 220)}
           </p>
         )}
@@ -77,7 +77,7 @@ export const CandidatePacketPanel: React.FC<CandidatePacketPanelProps> = ({
             {packetSkills.map((skill) => (
               <span
                 key={skill}
-                className="inline-flex rounded-full bg-[#dbeafe] px-3 py-1 text-xs font-medium text-[#1f5fbf]"
+                className="inline-flex rounded-full bg-[#dbeafe] dark:bg-slate-800 px-3 py-1 text-xs font-medium text-[#1f5fbf] dark:text-[#7ce8ff]"
               >
                 {skill}
               </span>
@@ -86,17 +86,17 @@ export const CandidatePacketPanel: React.FC<CandidatePacketPanelProps> = ({
         )}
 
         {/* Candidate Score */}
-        <div className="mt-4 rounded-lg bg-gradient-to-r from-[#dbeafe] to-[#eff6ff] p-3">
-          <div className="text-[10px] font-bold uppercase text-slate-500 tracking-wide">
+        <div className="mt-4 rounded-lg bg-gradient-to-r from-[#dbeafe] to-[#eff6ff] dark:from-slate-850 dark:to-slate-900 p-3">
+          <div className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wide">
             {t('rebuild.journey.assessment_score', { defaultValue: 'Assessment Score' })}
           </div>
-          <div className="mt-1 text-2xl font-bold text-[#1f5fbf]">
+          <div className="mt-1 text-2xl font-bold text-[#1f5fbf] dark:text-[#7ce8ff]">
             {candidateScore}
-            <span className="ml-1 text-sm text-slate-500">/100</span>
+            <span className="ml-1 text-sm text-slate-500 dark:text-slate-400">/100</span>
           </div>
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white">
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white dark:bg-slate-800">
             <div
-              className="h-full bg-[#1f5fbf] transition-all duration-500"
+              className="h-full bg-[#1f5fbf] dark:bg-[#7ce8ff] transition-all duration-500"
               style={{ width: `${candidateScore}%` }}
             />
           </div>
@@ -104,33 +104,33 @@ export const CandidatePacketPanel: React.FC<CandidatePacketPanelProps> = ({
       </div>
 
       {/* Tax Reality */}
-      <div className="overflow-hidden rounded-[12px] border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
+      <div className="overflow-hidden rounded-[12px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+        <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
           {t('rebuild.journey.tax_reality', { defaultValue: 'Tax Reality' })}
         </div>
         
         <div className="mt-3 space-y-2">
           <div className="text-sm">
-            <span className="text-slate-600">{preferences.taxProfile.countryCode}</span>
+            <span className="text-slate-600 dark:text-slate-400">{preferences.taxProfile.countryCode}</span>
             {' · '}
-            <span className="font-semibold text-slate-700">{preferences.taxProfile.taxYear}</span>
+            <span className="font-semibold text-slate-700 dark:text-slate-300">{preferences.taxProfile.taxYear}</span>
           </div>
-          <div className="text-sm text-slate-600">
+          <div className="text-sm text-slate-600 dark:text-slate-400">
             {preferences.taxProfile.employmentType} · {preferences.taxProfile.childrenCount} {t('rebuild.journey.children_unit', { defaultValue: 'children' })}
           </div>
         </div>
 
-        <div className="mt-4 border-t border-slate-100 pt-3">
+        <div className="mt-4 border-t border-slate-100 dark:border-slate-800 pt-3">
           <div className="flex justify-between text-sm">
-            <span className="text-slate-600">{t('rebuild.journey.take_home', { defaultValue: 'Take Home' })}</span>
-            <span className="font-semibold text-slate-900">
+            <span className="text-slate-600 dark:text-slate-400">{t('rebuild.journey.take_home', { defaultValue: 'Take Home' })}</span>
+            <span className="font-semibold text-slate-900 dark:text-slate-100">
               {formatCurrency(takeHomeMonthly)} {role.currency}
             </span>
           </div>
           {realMonthlyValue > 0 && (
             <div className="mt-2 flex justify-between text-sm">
-              <span className="text-slate-600">{t('rebuild.journey.real_monthly', { defaultValue: 'Real Monthly' })}</span>
-              <span className="font-semibold text-slate-900">
+              <span className="text-slate-600 dark:text-slate-400">{t('rebuild.journey.real_monthly', { defaultValue: 'Real Monthly' })}</span>
+              <span className="font-semibold text-slate-900 dark:text-slate-100">
                 {formatCurrency(realMonthlyValue)} {role.currency}
               </span>
             </div>
@@ -139,24 +139,24 @@ export const CandidatePacketPanel: React.FC<CandidatePacketPanelProps> = ({
       </div>
 
       {/* Commute Reality */}
-      <div className="overflow-hidden rounded-[12px] border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
+      <div className="overflow-hidden rounded-[12px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+        <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
           {t('rebuild.journey.commute_reality', { defaultValue: 'Commute Reality' })}
         </div>
         
         <div className="mt-3 space-y-2">
           <div className="text-sm">
-            <span className="font-semibold text-slate-700">{preferences.transportMode}</span>
+            <span className="font-semibold text-slate-700 dark:text-slate-300">{preferences.transportMode}</span>
           </div>
-          <div className="text-sm text-slate-600">
+          <div className="text-sm text-slate-600 dark:text-slate-400">
             {preferences.commuteToleranceMinutes} {t('rebuild.journey.min_tolerance', { defaultValue: 'min tolerance' })} · {preferences.searchRadiusKm} {t('rebuild.journey.radius_unit', { defaultValue: 'km radius' })}
           </div>
         </div>
 
-        <div className="mt-4 border-t border-slate-100 pt-3">
+        <div className="mt-4 border-t border-slate-100 dark:border-slate-800 pt-3">
           <div className="flex justify-between text-sm">
-            <span className="text-slate-600">{t('rebuild.journey.one_way_commute', { defaultValue: 'One Way' })}</span>
-            <span className="font-semibold text-slate-900">
+            <span className="text-slate-600 dark:text-slate-400">{t('rebuild.journey.one_way_commute', { defaultValue: 'One Way' })}</span>
+            <span className="font-semibold text-slate-900 dark:text-slate-100">
               {preferences.commuteToleranceMinutes} min
             </span>
           </div>

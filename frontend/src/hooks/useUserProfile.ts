@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { UserProfile, CompanyProfile, ViewState } from '../types';
 import {
     signOut,
@@ -24,7 +24,7 @@ const DEFAULT_USER_PROFILE: UserProfile = {
     email: '',
     address: '',
     transportMode: 'public',
-    slots: 3,
+    slots: 5,
     activeHandshakes: [],
     preferences: {
         workLifeBalance: 50,
@@ -129,7 +129,7 @@ export const useUserProfile = () => {
                     ...prev,
                     ...activeProfile,
                     isLoggedIn: true,
-                    slots: activeProfile.slots ?? prev.slots ?? 3,
+                    slots: activeProfile.slots ?? prev.slots ?? 5,
                     activeHandshakes: activeProfile.activeHandshakes ?? []
                 }));
 
@@ -196,9 +196,9 @@ export const useUserProfile = () => {
         // await updateUserProfileService(userProfile.id!, { slots: newSlots, activeHandshakes: newHandshakes });
     };
 
-    const updateUserProfileState = (updates: Partial<UserProfile>) => {
+    const updateUserProfileState = useCallback((updates: Partial<UserProfile>) => {
         setUserProfile(prev => ({ ...prev, ...updates }));
-    };
+    }, []);
 
     const signOutUser = async () => {
         try {

@@ -97,7 +97,7 @@ export const MarketplaceFilterControls: React.FC<{
         {filters.crossBorder ? t('rebuild.marketplace.cross_border_on', { defaultValue: 'Cross-border on' }) : t('rebuild.marketplace.cross_border_off', { defaultValue: 'Domestic only' })}
       </button>
       <button type="button" onClick={() => navigate('/candidate/jcfpm')} className={cn(secondaryButtonClass, 'w-full justify-between px-4 py-3 text-left')}>
-        {t('rebuild.marketplace.launch_jcfpm', { defaultValue: 'Launch JCFPM' })}
+        {t('rebuild.marketplace.launch_jcfpm', { defaultValue: 'Spustit JobFit Kompas' })}
       </button>
     </div>
     {benefitOptions.length > 0 ? (

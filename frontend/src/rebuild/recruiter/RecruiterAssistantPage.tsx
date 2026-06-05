@@ -26,7 +26,7 @@ export const RecruiterAssistantPage: React.FC<RecruiterAssistantPageProps> = ({ 
       {
         role: 'assistant',
         content: t('rebuild.recruiter.assistant_desc', {
-          defaultValue: 'Ahoj! Jsem Shami, tvůj inteligentní kyber-sob a náborový agent. Pomohu ti zorientovat se v aplikaci, vyhledat aktivní pozice nebo najít ideální kandidáty v talent poolu. Jak se dnes máš a s čím ti mohu pomoci?',
+          defaultValue: 'Ahoj, jsem Shami. Pomohu ti zorientovat se v náboru, najít aktivní pozice nebo projít vhodné kandidáty v talent poolu. S čím chceš začít?',
         }),
       },
     ];
@@ -49,7 +49,7 @@ export const RecruiterAssistantPage: React.FC<RecruiterAssistantPageProps> = ({ 
       {
         role: 'assistant',
         content: t('rebuild.recruiter.assistant_desc', {
-          defaultValue: 'Ahoj! Jsem Shami, tvůj inteligentní kyber-sob a náborový agent. Pomohu ti zorientovat se v aplikaci, vyhledat aktivní pozice nebo najít ideální kandidáty v talent poolu. Jak se dnes máš a s čím ti mohu pomoci?',
+          defaultValue: 'Ahoj, jsem Shami. Pomohu ti zorientovat se v náboru, najít aktivní pozice nebo projít vhodné kandidáty v talent poolu. S čím chceš začít?',
         }),
       },
     ]);

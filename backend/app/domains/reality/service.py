@@ -312,8 +312,8 @@ class RealityDomainService:
             '  "jcfpm_policy": {"include_in_results": true, "required_if_missing": true, "reuse_existing": true}\n'
             "}\n\n"
             "Pravidla: AI nesmi publikovat automaticky; vystup je draft pro lidske potvrzeni. "
-            "Assessment musi zahrnout prakticky ukol, volitelny external_link kontrakt a vysledky musi vyuzit JCFPM. "
-            "Pokud kandidat JCFPM ma, pouzije se existujici. Pokud nema, bude soucasti handshake.\n\n"
+            "Assessment musi zahrnout prakticky ukol, volitelny external_link kontrakt a vysledky musi vyuzit JobFit Kompas. "
+            "Pokud kandidat JobFit Kompas ma, pouzije se existujici. Pokud nema, bude soucasti handshake.\n\n"
             f"Vstup:\n{json.dumps(context, ensure_ascii=False)}"
         )
 
@@ -1304,8 +1304,9 @@ class RealityDomainService:
             company = await session.get(Company, job.company_id)
             if company:
                 await RealityDomainService._ensure_company_reviewer_profile(session, company, user_id)
-            if job.status == "published" and payload.get("status") != "archived":
-                raise ValueError("Published challenges can only be archived or edited via a new draft.")
+            # Allow editing published challenges directly so the recruiter can correct assignments on the fly
+            # if job.status == "published" and payload.get("status") != "archived":
+            #     raise ValueError("Published challenges can only be archived or edited via a new draft.")
             if "title" in payload:
                 job.title = _clean_text(payload.get("title"), 180) or job.title
             if "summary" in payload or "role_summary" in payload:

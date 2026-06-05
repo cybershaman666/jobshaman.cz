@@ -20,7 +20,7 @@ import {
   X,
 } from 'lucide-react';
 
-import type { DialogueSummary, StoredAsset } from '../../types';
+import type { DialogueSummary, StoredAsset, UserProfile } from '../../types';
 import { computeArchetype, fetchJcfpmItems, hasJcfpmAnswer, scoreJcfpmAnswer, submitJcfpm } from '../../services/v2JcfpmService';
 import { clearJcfpmDraft, readJcfpmDraft, writeJcfpmDraft } from '../../services/jcfpmSessionState';
 import { fetchHandshakeAvailability } from '../../services/v2HandshakeService';
@@ -329,8 +329,10 @@ const ShamiGuidePanel: React.FC<{
   role: Role;
   blueprint: HandshakeBlueprint;
   company: Company;
+  isPremium: boolean;
+  onUpgrade: () => void;
   t: any;
-}> = ({ role, blueprint, company, t }) => {
+}> = ({ role, blueprint, company, isPremium, onUpgrade, t }) => {
   const { i18n } = useTranslation();
   const [insight, setInsight] = React.useState<RoleInsightReply | null>(null);
   const [loadingInsight, setLoadingInsight] = React.useState(false);
@@ -378,6 +380,11 @@ const ShamiGuidePanel: React.FC<{
 
   React.useEffect(() => {
     let cancelled = false;
+    if (!isPremium) {
+      setInsight(null);
+      setLoadingInsight(false);
+      return undefined;
+    }
     setLoadingInsight(true);
     void getRoleInsight(role, blueprint, i18n.language || 'en')
       .then((next) => {
@@ -392,7 +399,34 @@ const ShamiGuidePanel: React.FC<{
     return () => {
       cancelled = true;
     };
-  }, [role.id, blueprint.id, i18n.language]);
+  }, [role.id, blueprint.id, i18n.language, isPremium]);
+
+  if (!isPremium) {
+    return (
+      <ShellCard className="overflow-hidden">
+        <div className="bg-[linear-gradient(135deg,rgba(15,149,172,0.08),rgba(255,255,255,0.92))] p-5 md:p-6">
+          <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+            <div className="max-w-2xl">
+              <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#0f95ac] text-white">
+                <Sparkles size={20} />
+              </div>
+              <div className="mt-4 text-[10px] font-bold uppercase tracking-[0.22em] text-[#0f95ac]">Premium</div>
+              <h3 className="mt-2 text-xl font-semibold tracking-normal text-slate-900">
+                {t('rebuild.shami.locked_role_insight_title', { defaultValue: 'AI hodnocení inzerátu je v Premium.' })}
+              </h3>
+              <p className="mt-2 text-sm leading-7 text-slate-600">
+                {t('rebuild.shami.locked_role_insight_copy', { defaultValue: 'Shami porovná nabídku s profilem, CV a JobFit Kompasem: co role opravdu testuje, kde je riziko a jaký první krok dává smysl.' })}
+              </p>
+            </div>
+            <button type="button" onClick={onUpgrade} className={cn(primaryButtonClass, 'shrink-0')}>
+              {t('rebuild.premium.upgrade_cta', { defaultValue: 'Upgradovat na Premium' })}
+              <ArrowRight size={16} />
+            </button>
+          </div>
+        </div>
+      </ShellCard>
+    );
+  }
 
   return (
     <ShellCard className="overflow-hidden">
@@ -1211,13 +1245,15 @@ export const CandidateRoleBriefingPage: React.FC<{
   role: Role;
   blueprint: HandshakeBlueprint;
   preferences: CandidatePreferenceProfile;
+  userProfile: UserProfile;
   companyLibrary: Company[];
   existingApplication?: DialogueSummary | null;
   isSaved: boolean;
   onToggleSaved: () => void;
+  onUpgradePremium?: () => void;
   navigate: (path: string) => void;
   t: any;
-}> = ({ role, blueprint, preferences, companyLibrary, existingApplication, isSaved, onToggleSaved, navigate, t }) => {
+}> = ({ role, blueprint, preferences, userProfile, companyLibrary, existingApplication, isSaved, onToggleSaved, onUpgradePremium, navigate, t }) => {
   const company = resolveCompany(role, companyLibrary);
   const applicationStatus = existingApplication ? getApplicationStatusCopy(existingApplication.status, t) : null;
   const coverFallbacks = buildImageCandidates([
@@ -1285,7 +1321,14 @@ export const CandidateRoleBriefingPage: React.FC<{
           </div>
         </div>
       </ShellCard>
-      <ShamiGuidePanel role={role} blueprint={blueprint} company={company} t={t} />
+      <ShamiGuidePanel
+        role={role}
+        blueprint={blueprint}
+        company={company}
+        isPremium={(userProfile.subscription?.tier || 'free') !== 'free'}
+        onUpgrade={onUpgradePremium || (() => navigate('/candidate/insights#premium'))}
+        t={t}
+      />
       <RoleRealityBoard role={role} preferences={preferences} t={t} />
       <RecommendationFitPanel role={role} t={t} />
       <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
@@ -1617,7 +1660,7 @@ export const CandidateJcfpmPage: React.FC<{
       } catch (error) {
         if (!active) return;
         setQuestions([]);
-        setQuestionsError(error instanceof Error ? error.message : t('rebuild.jcfpm.load_failed', { defaultValue: 'Failed to load JCFPM questions.' }));
+        setQuestionsError(error instanceof Error ? error.message : t('rebuild.jcfpm.load_failed', { defaultValue: 'Nepodařilo se načíst otázky JobFit Kompasu.' }));
       } finally {
         if (active) setQuestionsLoading(false);
       }
@@ -1746,7 +1789,7 @@ export const CandidateJcfpmPage: React.FC<{
     d7_cognitive_reflection: {
       summary: 'Schopnost zastavit první intuici a ověřit ji logikou.',
       high: 'Umíš brzdit první závěr a ověřovat důkazy. To zvyšuje kvalitu rozhodnutí s vyšším dopadem.',
-      balanced: 'Intuici umíš doplnit kontrolou. Pomáhá jednoduchý rozhodovací rituál u větších kroků.',
+      balanced: 'Intuici umíš doplnit kontrolou. Pomáhá jednoduchý rozhodovací checklist u větších kroků.',
       low: 'Rychlá intuice může dominovat. U důležitých věcí přidej krátké zastav-se-ověř.',
       development: 'Před rozhodnutím si polož otázku: Jaký je důkaz a co by mě přesvědčilo o opaku?',
       environment: 'Role, kde je čas na review rozhodnutí a chyby se používají jako učení, ne jako trest.',
@@ -1995,9 +2038,9 @@ export const CandidateJcfpmPage: React.FC<{
     <CandidateShellSurface
       variant="profile"
       className={shellPageClass}
-      eyebrow={<SectionEyebrow>{t('rebuild.jcfpm.title', { defaultValue: 'JCFPM profil' })}</SectionEyebrow>}
-      title={t('rebuild.jcfpm.subtitle', { defaultValue: 'Work preference profile' })}
-      subtitle={t('rebuild.jcfpm.copy', { defaultValue: 'Vypln kratky profil a rychleji poznas, jake nabidky ti opravdu sednou.' })}
+      eyebrow={<SectionEyebrow>{t('rebuild.jcfpm.title', { defaultValue: 'JobFit Kompas' })}</SectionEyebrow>}
+      title={t('rebuild.jcfpm.subtitle', { defaultValue: 'Pracovní styl a potenciál' })}
+      subtitle={t('rebuild.jcfpm.copy', { defaultValue: 'Vyplň krátký profil a rychleji poznej, jaké nabídky ti opravdu sednou.' })}
     >
       {questionsLoading ? (
         <div className="flex items-center justify-center py-20 text-slate-500">
@@ -2012,7 +2055,7 @@ export const CandidateJcfpmPage: React.FC<{
           <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#255DAB]/10 text-[#255DAB]">
             <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 14 4-4" /><path d="M3.34 19a10 10 0 1 1 17.32 0" /></svg>
           </div>
-          <h2 className="text-3xl font-bold tracking-tight text-slate-900">{t('rebuild.jcfpm.welcome_title', { defaultValue: 'Psychometric and skill profile' })}</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-slate-900">{t('rebuild.jcfpm.welcome_title', { defaultValue: 'JobFit Kompas' })}</h2>
           <p className="mt-4 text-lg leading-8 text-slate-600">
             {t('rebuild.jcfpm.welcome_desc', { defaultValue: '16 blocks await you: psychometric work profile, cognitive and skill tasks, and a basic Ikigai layer. The result is saved to your profile and helps us recommend roles and handshakes that fit you better than a traditional CV.' })}
           </p>
@@ -2021,7 +2064,7 @@ export const CandidateJcfpmPage: React.FC<{
             onClick={() => setWizardStep('questions')}
             className={cn(primaryButtonClass, 'mt-10 w-full max-w-sm rounded-[16px] py-4 text-lg')}
           >
-            {t('rebuild.jcfpm.start_test', { defaultValue: 'Start JCFPM test' })}
+            {t('rebuild.jcfpm.start_test', { defaultValue: 'Spustit JobFit Kompas' })}
           </button>
         </ShellCard>
       ) : wizardStep === 'questions' ? (
@@ -2371,7 +2414,7 @@ export const CandidateJcfpmPage: React.FC<{
                       <h4 className="mt-2 text-lg font-bold text-slate-900">{t('rebuild.jcfpm.ikigai_title', { defaultValue: 'Smysl, síla, potřeba a tržní hodnota' })}</h4>
                     </div>
                     <div className="rounded-full bg-amber-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-amber-700">
-                      {t('rebuild.jcfpm.v3_layer', { defaultValue: 'JCFPM v3' })}
+                      {t('rebuild.jcfpm.v3_layer', { defaultValue: 'JobFit Kompas' })}
                     </div>
                   </div>
                   <div className="mt-6 grid gap-4 md:grid-cols-2">
@@ -2456,7 +2499,7 @@ export const CandidateJcfpmPage: React.FC<{
             <div className="mt-6 flex items-center justify-between border-t border-slate-100 pt-6">
               <div className="flex items-center gap-3">
                 <div className="flex items-center rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-500">
-                  {submitState === 'saving' ? t('rebuild.jcfpm.saving', { defaultValue: 'Saving JCFPM...' }) : submitState === 'saved' ? t('rebuild.jcfpm.saved', { defaultValue: 'JCFPM saved to profile' }) : submitState === 'failed' ? t('rebuild.jcfpm.save_failed', { defaultValue: 'Failed to save JCFPM' }) : null}
+                  {submitState === 'saving' ? t('rebuild.jcfpm.saving', { defaultValue: 'Ukládám JobFit Kompas...' }) : submitState === 'saved' ? t('rebuild.jcfpm.saved', { defaultValue: 'JobFit Kompas uložen do profilu' }) : submitState === 'failed' ? t('rebuild.jcfpm.save_failed', { defaultValue: 'JobFit Kompas se nepodařilo uložit' }) : null}
                 </div>
               </div>
               <button type="button" onClick={handleReset} className={secondaryButtonClass}>{t('rebuild.jcfpm.reset', { defaultValue: 'Try again' })}</button>

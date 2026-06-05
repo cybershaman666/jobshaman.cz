@@ -161,7 +161,7 @@ const ResonanceCard: React.FC<{
     {tip && (
       <div className="mt-8 rounded-[20px] bg-[#f5f9ff] dark:bg-blue-950/20 p-5 border border-[#dbeafe] dark:border-blue-900/40">
         <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[#2563eb] dark:text-blue-400">
-          <Sparkles size={13} /> {t('rebuild.recruiter.cybershaman_tip', { defaultValue: 'Tip Cybershamana' })}
+          <Sparkles size={13} /> {t('rebuild.recruiter.cybershaman_tip', { defaultValue: 'Shamiho tip' })}
         </div>
         <p className="mt-3 text-[13px] leading-6 text-slate-600 dark:text-slate-300 italic">“{tip}”</p>
       </div>
@@ -301,7 +301,7 @@ const RecruiterActionStrip: React.FC<{
           <Sparkles className="text-white" size={24} />
         </div>
         <div className="min-w-0">
-          <h3 className="text-xl font-semibold tracking-tight text-[#111827] dark:text-slate-100">{t('rebuild.recruiter.cybershaman_advises', { defaultValue: 'Cybershaman advises you' })}</h3>
+          <h3 className="text-xl font-semibold tracking-tight text-[#111827] dark:text-slate-100">{t('rebuild.recruiter.cybershaman_advises', { defaultValue: 'Shami doporučuje další krok' })}</h3>
             <p className="mt-1 text-sm text-slate-600 dark:text-slate-400 leading-6 max-w-2xl">
             {hasLiveSignals
               ? t('rebuild.recruiter.advice_live', { defaultValue: 'New recommendations are calculated from candidate responses, roles, and company signals in real time.' })

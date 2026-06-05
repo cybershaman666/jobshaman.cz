@@ -26,6 +26,8 @@ if "pymongo" not in sys.modules:
 import backend.app.routers.jobs as jobs_router
 import backend.app.routers.assessments as assessments_router
 import backend.app.routers.ai as ai_router
+import backend.app.api.v2.endpoints.candidate as candidate_router
+import backend.app.api.v2.endpoints.mentor as mentor_router
 from backend.app.models.requests import JobApplicationCreateRequest
 from backend.app.models.requests import AIExecuteRequest
 
@@ -239,6 +241,36 @@ def test_ai_execute_blocks_profile_parse_without_premium(monkeypatch):
         asyncio.run(
             ai_router.ai_execute(payload=payload, request=_make_request("/ai/execute"), user=user)
         )
+        assert False, "Expected HTTPException"
+    except HTTPException as exc:
+        assert exc.status_code == 403
+        assert "Premium subscription required" in str(exc.detail)
+
+
+def test_role_insight_requires_candidate_premium(monkeypatch):
+    monkeypatch.setattr(mentor_router, "_current_user_has_premium", lambda user: False)
+
+    payload = mentor_router.RoleInsightRequest(
+        role={"id": "role_1", "title": "Operations Lead"},
+        blueprint={"id": "bp_1", "steps": []},
+        locale="cs",
+    )
+    user = {"id": "user_1", "email": "u@example.com", "role": "candidate"}
+
+    try:
+        asyncio.run(mentor_router.role_insight(payload=payload, current_user=user))
+        assert False, "Expected HTTPException"
+    except HTTPException as exc:
+        assert exc.status_code == 403
+        assert "Premium subscription required" in str(exc.detail)
+
+
+def test_jcfpm_latest_requires_candidate_premium(monkeypatch):
+    monkeypatch.setattr(candidate_router, "_current_user_has_premium", lambda user: False)
+    user = {"id": "user_1", "email": "u@example.com", "role": "candidate"}
+
+    try:
+        asyncio.run(candidate_router.get_my_latest_jcfpm_snapshot(current_user=user))
         assert False, "Expected HTTPException"
     except HTTPException as exc:
         assert exc.status_code == 403

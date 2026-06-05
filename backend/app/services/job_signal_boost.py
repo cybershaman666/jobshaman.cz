@@ -1170,7 +1170,7 @@ def _build_signal_boost_fit_context(
                 "Dobrá adaptabilita může pomoct v prostředí, kde role teprve hledá funkční systém nebo nový způsob práce." if d6 >= 60 else "",
                 strengths[0] if strengths else "",
                 environment[0] if environment else "",
-                f"Tvoje JCFPM ukazuje blízkost k rolím typu {', '.join(top_roles[:2])}, což může být dobrý přenos pro část téhle práce." if top_roles else "",
+                f"Tvůj JobFit Kompas ukazuje blízkost k rolím typu {', '.join(top_roles[:2])}, což může být dobrý přenos pro část téhle práce." if top_roles else "",
             ],
             limit=3,
         )
@@ -1226,7 +1226,7 @@ def _build_signal_boost_fit_context(
             "Adaptability can help when the role is still building a system rather than inheriting a clean one." if d6 >= 60 else "",
             strengths[0] if strengths else "",
             environment[0] if environment else "",
-            f"Your JCFPM profile is also close to roles like {', '.join(top_roles[:2])}, which can signal adjacent transferability." if top_roles else "",
+            f"Your JobFit Compass profile is also close to roles like {', '.join(top_roles[:2])}, which can signal adjacent transferability." if top_roles else "",
         ],
         limit=3,
     )

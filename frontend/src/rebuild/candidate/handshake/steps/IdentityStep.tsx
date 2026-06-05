@@ -54,7 +54,7 @@ export const IdentityStep: React.FC<IdentityStepProps> = ({
               <circle cx="200" cy="100" r="50" fill="#1f5fbf" opacity="0.4" />
             </svg>
           </div>
-          <div className="rounded-[12px] bg-slate-50 p-5 text-base italic leading-7 text-slate-700 border border-slate-200">
+          <div className="rounded-[12px] bg-slate-50 dark:bg-slate-800/50 p-5 text-base italic leading-7 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
             "{t('rebuild.journey.identity_intro_company', { defaultValue: 'Help us understand who you are and what drives you.' })}"
           </div>
         </div>
@@ -62,7 +62,7 @@ export const IdentityStep: React.FC<IdentityStepProps> = ({
         {/* Right: Form */}
         <div className="space-y-6">
           <div>
-            <label className="text-sm font-semibold text-slate-700">
+            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
               {t('rebuild.journey.legal_name', { defaultValue: 'Legal Name' })}
             </label>
             <input
@@ -75,7 +75,7 @@ export const IdentityStep: React.FC<IdentityStepProps> = ({
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-slate-700">
+            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
               {t('rebuild.journey.alias', { defaultValue: 'Preferred Name' })}
             </label>
             <input
@@ -88,7 +88,7 @@ export const IdentityStep: React.FC<IdentityStepProps> = ({
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-slate-700">
+            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
               {t('rebuild.journey.your_story', { defaultValue: 'Your Story' })}
             </label>
             <textarea
@@ -100,7 +100,7 @@ export const IdentityStep: React.FC<IdentityStepProps> = ({
               rows={6}
               className={cn(textareaClass, 'mt-2')}
             />
-            <div className="mt-2 text-xs text-slate-500">
+            <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
               {story.length} / 2000
             </div>
           </div>
