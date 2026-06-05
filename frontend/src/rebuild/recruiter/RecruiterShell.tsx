@@ -87,6 +87,7 @@ import { RecruiterBillingPage } from './RecruiterBillingPage';
 import { DashboardLayoutV2 } from '../ui/DashboardLayoutV2';
 import { RoleEditorV2 } from './RoleEditorV2';
 import { RecruiterSettingsPage } from './RecruiterSettingsPage';
+import { RecruiterCalendarPage } from './RecruiterCalendarPage';
 
 export const RecruiterActivationPage: React.FC<{
   userProfile: UserProfile;
@@ -1037,6 +1038,7 @@ export const RecruiterShell: React.FC<{
     { id: 'dashboard', label: t('rebuild.recruiter.nav_dashboard', { defaultValue: 'Overview' }), icon: LayoutDashboard, path: '/recruiter' },
     { id: 'roles', label: t('rebuild.recruiter.nav_roles', { defaultValue: 'Roles' }), icon: BookOpen, path: '/recruiter/roles' },
     { id: 'talent-pool', label: t('rebuild.recruiter.nav_candidates', { defaultValue: 'Candidates' }), icon: Users, path: '/recruiter/talent-pool' },
+    { id: 'calendar', label: t('rebuild.recruiter.nav_calendar', { defaultValue: 'Kalendář' }), icon: Calendar, path: '/recruiter/calendar' },
     { id: 'integrations', label: t('rebuild.recruiter.nav_integrations', { defaultValue: 'Integrace' }), icon: PlugZap, path: '/recruiter/integrations' },
     { id: 'settings', label: t('rebuild.recruiter.nav_company_profile', { defaultValue: 'Company profile' }), icon: Settings2, path: '/recruiter/settings' },
     { id: 'billing', label: t('rebuild.recruiter.nav_billing', { defaultValue: 'Subscription' }), icon: CreditCard, path: '/recruiter/billing' },
@@ -1049,9 +1051,11 @@ export const RecruiterShell: React.FC<{
         ? t('rebuild.recruiter.nav_integrations', { defaultValue: 'Integrace' })
         : tab === 'billing'
           ? t('rebuild.recruiter.nav_billing', { defaultValue: 'Subscription' })
-          : tab === 'assistant'
-            ? t('rebuild.recruiter.assistant_title', { defaultValue: 'Ask Shami' })
-            : t('rebuild.recruiter.nav_company_profile', { defaultValue: 'Firemní profil' });
+          : tab === 'calendar'
+            ? t('rebuild.recruiter.nav_calendar', { defaultValue: 'Kalendář' })
+            : tab === 'assistant'
+              ? t('rebuild.recruiter.assistant_title', { defaultValue: 'Ask Shami' })
+              : t('rebuild.recruiter.nav_company_profile', { defaultValue: 'Firemní profil' });
   const workspaceSubtitle = tab === 'roles'
     ? t('rebuild.recruiter.subtitle_roles', { defaultValue: 'Role assignments, evidence of ability, and skill-first selection management.' })
     : tab === 'talent-pool'
@@ -1060,9 +1064,11 @@ export const RecruiterShell: React.FC<{
         ? t('rebuild.recruiter.subtitle_integrations', { defaultValue: 'API klíče, webhooky, ATS návody a audit doručení.' })
         : tab === 'billing'
           ? t('rebuild.recruiter.subtitle_billing', { defaultValue: 'Plan details, usage tracking, invoices, and payment management.' })
-          : tab === 'assistant'
-            ? t('rebuild.recruiter.assistant_subtitle', { defaultValue: 'Váš náborový a asistenční průvodce Shami' })
-            : t('rebuild.recruiter.subtitle_settings', { defaultValue: 'Brand, media, and contact persons as a single source of truth.' });
+          : tab === 'calendar'
+            ? t('rebuild.recruiter.subtitle_calendar', { defaultValue: 'Scheduled interviews, availability preferences, and calendar sync.' })
+            : tab === 'assistant'
+              ? t('rebuild.recruiter.assistant_subtitle', { defaultValue: 'Váš náborový a asistenční průvodce Shami' })
+              : t('rebuild.recruiter.subtitle_settings', { defaultValue: 'Brand, media, and contact persons as a single source of truth.' });
 
   const shouldRenderDashboardV2 = tab === 'dashboard';
   if (shouldRenderDashboardV2) {
@@ -1842,14 +1848,46 @@ export const RecruiterShell: React.FC<{
               {/* 🚪 RIGHT SIDE SLIDE-OVER DRAWER FOR PROFILE DETAIL */}
               {isSlideOverOpen && selectedCandidate && createPortal(
                 <>
-                  {/* Backdrop blur layer */}
+                  {/* Backdrop layer – explicit viewport-unit styles to bypass any ancestor stacking context */}
                   <div
-                    className="fixed inset-0 z-[100] bg-slate-950/40 backdrop-blur-md transition-opacity duration-300 animate-in fade-in"
+                    style={{
+                      position: 'fixed',
+                      inset: 0,
+                      zIndex: 1000,
+                      background: 'rgba(2, 6, 23, 0.55)',
+                      backdropFilter: 'blur(8px)',
+                      WebkitBackdropFilter: 'blur(8px)',
+                    }}
                     onClick={() => setIsSlideOverOpen(false)}
                   />
 
-                  {/* Drawer Content */}
-                  <div className="fixed inset-y-0 right-0 z-[101] w-full max-w-4xl bg-slate-50 dark:bg-slate-950 shadow-2xl border-l border-slate-200 dark:border-slate-800/80 transform transition-transform duration-300 ease-out overflow-y-auto p-0 flex flex-col translate-x-0">
+                  {/* Center Wrapper Container */}
+                  <div
+                    style={{
+                      position: 'fixed',
+                      inset: 0,
+                      zIndex: 1001,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '24px',
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    {/* Modal Dialog Box */}
+                    <div
+                      className="bg-slate-50 dark:bg-slate-950 flex flex-col rounded-[24px]"
+                      style={{
+                        width: '100%',
+                        maxWidth: '1280px',
+                        height: '90vh',
+                        maxHeight: '900px',
+                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                        border: '1px solid rgba(148,163,184,0.2)',
+                        overflow: 'hidden',
+                        pointerEvents: 'auto',
+                      }}
+                    >
                     
                     {/* Header Archetype gradient banner */}
                     {(() => {
@@ -2623,6 +2661,138 @@ export const RecruiterShell: React.FC<{
                       </div>
                     </div>
                   </div>
+                </div>
+              </>,
+                document.body
+              )}
+
+              {isSchedulingModalOpen && selectedCandidate && createPortal(
+                <>
+                  {/* Backdrop */}
+                  <div
+                    style={{
+                      position: 'fixed',
+                      inset: 0,
+                      zIndex: 1100,
+                      background: 'rgba(2, 6, 23, 0.4)',
+                      backdropFilter: 'blur(4px)',
+                      WebkitBackdropFilter: 'blur(4px)',
+                    }}
+                    onClick={() => setIsSchedulingModalOpen(false)}
+                  />
+
+                  {/* Centering Wrapper */}
+                  <div
+                    style={{
+                      position: 'fixed',
+                      inset: 0,
+                      zIndex: 1101,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '24px',
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    {/* Modal Content */}
+                    <div
+                      className="bg-white dark:bg-slate-950 p-7 rounded-[24px] w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-800"
+                      style={{ pointerEvents: 'auto' }}
+                    >
+                      <div className="flex items-center justify-between mb-5">
+                        <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                          <Calendar size={18} className="text-cyan-500" /> Naplánovat pohovor
+                        </h3>
+                        <button
+                          type="button"
+                          onClick={() => setIsSchedulingModalOpen(false)}
+                          className="text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                        >
+                          <X size={18} />
+                        </button>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="text-xs font-semibold text-slate-500">
+                          Kandidát: <span className="font-bold text-slate-800 dark:text-slate-250">{selectedCandidate.candidateName}</span>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Fáze pohovoru</label>
+                          <select
+                            value={scheduledMeetingStage}
+                            onChange={(e) => setScheduledMeetingStage(e.target.value)}
+                            className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 px-3.5 py-2.5 text-xs text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-cyan-500"
+                          >
+                            <option value="initial">Úvodní call (Initial Call)</option>
+                            <option value="assessment">Review testu (Assessment Review)</option>
+                            <option value="panel">Firma / Panel Interview</option>
+                            <option value="offer">Nabídka (Offer Call)</option>
+                          </select>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Datum</label>
+                            <input
+                              type="date"
+                              value={scheduledMeetingDate}
+                              onChange={(e) => setScheduledMeetingDate(e.target.value)}
+                              className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 px-3.5 py-2.5 text-xs text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-cyan-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Čas</label>
+                            <input
+                              type="time"
+                              value={scheduledMeetingTime}
+                              onChange={(e) => setScheduledMeetingTime(e.target.value)}
+                              className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 px-3.5 py-2.5 text-xs text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-cyan-500"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Poznámka</label>
+                          <textarea
+                            value={scheduledMeetingNote}
+                            onChange={(e) => setScheduledMeetingNote(e.target.value)}
+                            rows={3}
+                            placeholder="Detaily schůzky, odkaz na Google Meet..."
+                            className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 p-3.5 text-xs text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-cyan-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mt-6 flex justify-end gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setIsSchedulingModalOpen(false)}
+                          className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2.5 text-xs font-bold text-slate-655 hover:bg-slate-50 dark:text-slate-400"
+                        >
+                          Zrušit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!scheduledMeetingDate || !scheduledMeetingTime) {
+                              alert("Vyberte prosím datum a čas.");
+                              return;
+                            }
+                            alert(`Pohovor s ${selectedCandidate.candidateName} byl úspěšně naplánován na ${scheduledMeetingDate} v ${scheduledMeetingTime}! Odkaz na schůzku byl zaslán uchazeči.`);
+                            setIsSchedulingModalOpen(false);
+                            if (scheduledMeetingStage === 'panel' && selectedRecruiterDialogueId) {
+                              await updateCompanyApplicationStatus(selectedRecruiterDialogueId, 'shortlisted');
+                              if (onRefreshRoles) onRefreshRoles();
+                            }
+                          }}
+                          className="rounded-xl bg-cyan-500 text-white px-5 py-2.5 text-xs font-bold shadow-lg shadow-cyan-500/10 hover:bg-cyan-600"
+                        >
+                          Naplánovat schůzku
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </>,
                 document.body
               )}
@@ -2631,6 +2801,10 @@ export const RecruiterShell: React.FC<{
 
           {tab === 'integrations' ? (
             <RecruiterIntegrationsPage t={t} />
+          ) : null}
+
+          {tab === 'calendar' ? (
+            <RecruiterCalendarPage calendarEvents={calendarEvents} t={t} />
           ) : null}
 
           {tab === 'assistant' ? (

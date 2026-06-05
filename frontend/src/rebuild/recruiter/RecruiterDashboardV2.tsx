@@ -9,6 +9,7 @@ import {
   Sparkles,
   TrendingUp,
   Users,
+  Calendar,
 } from 'lucide-react';
 
 import type { UserProfile } from '../../types';
@@ -346,6 +347,7 @@ export const RecruiterDashboardV2: React.FC<{
       { id: 'dashboard', label: t('rebuild.recruiter.nav_dashboard', { defaultValue: 'Overview' }), icon: LayoutDashboard, path: '/recruiter' },
       { id: 'roles', label: t('rebuild.recruiter.nav_roles', { defaultValue: 'Roles' }), icon: Briefcase, path: '/recruiter/roles' },
       { id: 'talent-pool', label: t('rebuild.recruiter.nav_candidates', { defaultValue: 'Candidates' }), icon: Users, path: '/recruiter/talent-pool' },
+      { id: 'calendar', label: t('rebuild.recruiter.nav_calendar', { defaultValue: 'Kalendář' }), icon: Calendar, path: '/recruiter/calendar' },
       { id: 'integrations', label: t('rebuild.recruiter.nav_integrations', { defaultValue: 'Integrace' }), icon: PlugZap, path: '/recruiter/integrations' },
       { id: 'settings', label: t('rebuild.recruiter.nav_company_profile', { defaultValue: 'Company profile' }), icon: Settings2, path: '/recruiter/settings' },
       { id: 'billing', label: t('rebuild.recruiter.nav_billing', { defaultValue: 'Subscription' }), icon: CreditCard, path: '/recruiter/billing' },

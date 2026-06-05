@@ -1,7 +1,7 @@
 import React from 'react';
 import { getPathPartsWithoutLocale } from '../utils/appRouting';
 
-export type RecruiterTab = 'dashboard' | 'roles' | 'talent-pool' | 'integrations' | 'settings' | 'billing' | 'assistant';
+export type RecruiterTab = 'dashboard' | 'roles' | 'talent-pool' | 'integrations' | 'settings' | 'billing' | 'assistant' | 'calendar';
 export type PublicPage = 'home' | 'companies' | 'terms' | 'privacy' | 'contact';
 
 export type AppRoute =
@@ -55,6 +55,7 @@ export const routeFromPath = (pathname: string): AppRoute => {
     if (rawTab === 'integrations') return { kind: 'recruiter', tab: 'integrations' };
     if (rawTab === 'settings') return { kind: 'recruiter', tab: 'settings' };
     if (rawTab === 'billing') return { kind: 'recruiter', tab: 'billing' };
+    if (rawTab === 'calendar' || rawTab === 'planovani' || rawTab === 'kalendar') return { kind: 'recruiter', tab: 'calendar' };
     if (rawTab === 'assistant' || rawTab === 'cybershaman' || rawTab === 'shami') return { kind: 'recruiter', tab: 'assistant' };
     return { kind: 'recruiter', tab: 'dashboard' };
   }
