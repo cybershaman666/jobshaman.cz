@@ -7368,7 +7368,20 @@
       "mock_nav_roles": "Roles",
       "mock_nav_candidates": "Candidates",
       "mock_nav_decisions": "Decisions",
-      "workflow_label": "Workflow"
+      "workflow_label": "Workflow",
+      "cta_copy": "En pilot kan starte med én stilling og et lite team.",
+      "cta_title": "Forbered den første rullen uten et stort prosjekt.",
+      "faq1_a": "Ikke først og fremst. JobShaman håndterer jobboppdrag, førstesignal og beslutningstaking i teamet. ATS kan forbli et registreringssystem.",
+      "faq1_q": "Er det en ATS-erstatning?",
+      "faq2_a": "Nei. En CV kan hjelpe senere, men den første interaksjonen er avhengig av et spesifikt svar på rollen.",
+      "faq2_q": "Må kandidaten laste opp en CV?",
+      "faq3_a": "Du starter et selskap, fullfører profilen din og du kan forberede din første rolle eller pilotoppdrag.",
+      "faq3_q": "Hva skjer etter registrering?",
+      "improve_copy": "JobShaman er ikke en ATS-erstatning for alt. Det er arbeidslaget for å starte utvelgelsen: rollen, kandidatens første svar, teamvurderingen og neste trinn.",
+      "improve_eyebrow": "Hva vil gjøre det bedre",
+      "improve_title": "Mindre gjetting, mer handlingsdyktige signaler.",
+      "pricing_note": "Prisene er veiledende for V2-piloten. Den endelige tariffen kan justeres i henhold til volumet av roller, support og integrasjoner.",
+      "recommended": "Anbefalt"
     },
     "legal": {
       "privacy_title": "Personvernerklæring",

@@ -7347,7 +7347,20 @@
       "mock_nav_roles": "Roles",
       "mock_nav_candidates": "Candidates",
       "mock_nav_decisions": "Decisions",
-      "workflow_label": "Workflow"
+      "workflow_label": "Workflow",
+      "cta_copy": "Pilot může začít jednou pozicí a malým týmem.",
+      "cta_title": "Připravte první roli bez velkého projektu.",
+      "faq1_a": "Ne primárně. JobShaman řeší pracovní zadání, první signál a týmové rozhodování. ATS může zůstat systém evidence.",
+      "faq1_q": "Je to náhrada ATS?",
+      "faq2_a": "Ne. CV může pomoct později, ale první interakce stojí na konkrétní odpovědi k roli.",
+      "faq2_q": "Musí kandidát nahrát CV?",
+      "faq3_a": "Založíte firmu, doplníte profil a můžete připravit první roli nebo pilotní zadání.",
+      "faq3_q": "Co se stane po registraci?",
+      "improve_copy": "JobShaman není ATS náhrada pro všechno. Je to pracovní vrstva pro začátek výběru: role, první odpověď kandidáta, týmové posouzení a další krok.",
+      "improve_eyebrow": "Co to zlepší",
+      "improve_title": "Méně dohadů, víc použitelných signálů.",
+      "pricing_note": "Ceny jsou orientační pro V2 pilot. Finální tarif se může upravit podle objemu rolí, podpory a integrací.",
+      "recommended": "Doporučeno"
     },
     "legal": {
       "privacy_title": "Ochrana osobních údajů",

@@ -7381,7 +7381,20 @@
       "mock_nav_roles": "Roles",
       "mock_nav_candidates": "Candidates",
       "mock_nav_decisions": "Decisions",
-      "workflow_label": "Workflow"
+      "workflow_label": "Workflow",
+      "cta_copy": "Pilotti voi aloittaa yhdellä paikalla ja pienellä joukkueella.",
+      "cta_title": "Valmista ensimmäinen rulla ilman suurta projektia.",
+      "faq1_a": "Ei ensisijaisesti. JobShaman hoitaa työtehtävän, ensimmäisen signaalin ja tiimin päätöksenteon. ATS voi pysyä tietuejärjestelmänä.",
+      "faq1_q": "Onko se ATS-korvaus?",
+      "faq2_a": "Ei. CV voi auttaa myöhemmin, mutta ensimmäinen vuorovaikutus perustuu tiettyyn rooliin liittyvään vastaukseen.",
+      "faq2_q": "Pitääkö hakijan ladata CV?",
+      "faq3_a": "Perustat yrityksen, täytät profiilisi ja voit valmistella ensimmäisen roolisi tai pilottitehtäväsi.",
+      "faq3_q": "Mitä tapahtuu rekisteröinnin jälkeen?",
+      "improve_copy": "JobShaman ei ole ATS-korvaus kaikkeen. Se on työkerros, joka aloittaa valinnan: rooli, hakijan ensimmäinen vastaus, tiimin arviointi ja seuraava vaihe.",
+      "improve_eyebrow": "Mikä tekee siitä paremman",
+      "improve_title": "Vähemmän arvailua, enemmän toimivia signaaleja.",
+      "pricing_note": "Hinnat ovat ohjeellisia V2-pilotille. Lopullista tariffia voidaan muokata roolien, tuen ja integraatioiden määrän mukaan.",
+      "recommended": "Suositeltava"
     },
     "legal": {
       "privacy_title": "Tietosuojaseloste",

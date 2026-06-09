@@ -7348,7 +7348,20 @@
       "mock_nav_roles": "Roles",
       "mock_nav_candidates": "Candidates",
       "mock_nav_decisions": "Decisions",
-      "workflow_label": "Workflow"
+      "workflow_label": "Workflow",
+      "cta_copy": "A pilot can start with one position and a small team.",
+      "cta_title": "Prepare the first roll without a big project.",
+      "faq1_a": "Not primarily. JobShaman handles job assignment, first signal and team decision making. ATS can remain a system of record.",
+      "faq1_q": "Is it an ATS replacement?",
+      "faq2_a": "No. A CV can help later, but the first interaction relies on a specific answer to the role.",
+      "faq2_q": "Does the candidate have to upload a CV?",
+      "faq3_a": "You start a company, complete your profile and you can prepare your first role or pilot assignment.",
+      "faq3_q": "What happens after registration?",
+      "improve_copy": "JobShaman is not an ATS replacement for everything. It is the working layer to start the selection: the role, the candidate's first response, the team assessment and the next step.",
+      "improve_eyebrow": "What will make it better",
+      "improve_title": "Less guesswork, more actionable signals.",
+      "pricing_note": "The prices are indicative for the V2 pilot. The final tariff can be adjusted according to the volume of roles, support and integrations.",
+      "recommended": "Recommended"
     },
     "legal": {
       "privacy_title": "Privacy Policy",
