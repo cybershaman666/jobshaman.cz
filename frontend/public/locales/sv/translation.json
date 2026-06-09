@@ -52,7 +52,15 @@
     "clear": "Rensa",
     "demo_alert": "Provläge aktivt — upptäck alla premiumförmåner",
     "saving": "Sparar...",
-    "edit": "Redigera"
+    "edit": "Redigera",
+    "chatMentor": {
+      "inputPlaceholder": "Fråga Shami eller skriv nästa steg...",
+      "brandHint": "Powered by JobShaman AI",
+      "welcomeTitle": "Shami AI - Din karriärguide",
+      "slogan": "Shami ser kopplingarna i profilen, hittar nästa steg – utan HR-såsen.",
+      "avatarAlt": "Shami avatar",
+      "shamiName": "Shami"
+    }
   },
   "home": {
     "discovery": {
@@ -5737,7 +5745,11 @@
       "video": "Video",
       "photo": "Photo",
       "no_banner_media": "No slideshow media yet. The main cover will be used by itself.",
-      "primary_video_url": "Primary video URL"
+      "primary_video_url": "Primary video URL",
+      "cybershaman_advises": "Shami rekommenderar nästa steg",
+      "cybershaman_tip": "Shamis tips",
+      "nav_calendar": "Kalender",
+      "subtitle_calendar": "Schemalagda intervjuer, tillgänglighetsinställningar och kalendersynkronisering."
     },
     "editor": {
       "step_essence": "Rollens kärna",
@@ -5842,7 +5854,11 @@
       "hide_preview": "Hide preview",
       "show_preview": "Show preview",
       "preview": "Preview",
-      "preview_empty": "Formatted preview will appear here."
+      "preview_empty": "Formatted preview will appear here.",
+      "employment_part_time_short": "Partiell",
+      "employment_gig_short": "Disponibel",
+      "employment_full_time_short": "Omfattande",
+      "employment_contract_short": "Kontrakt"
     },
     "role": {
       "full_journey": "Full Jobshaman journey",
@@ -5866,7 +5882,11 @@
       "border_disabled": "{{country}} disabled",
       "summary_curated": "JHI {{score}}/100, estimated net value {{value}} {{currency}} monthly and direct branded journey entry.",
       "summary_imported": "JHI {{score}}/100, realistic outbound preparation considering {{fit}} fit and real costs.",
-      "domestic": "domestic"
+      "domestic": "domestic",
+      "border": "gräns",
+      "open_listing": "Öppna den ursprungliga annonsen",
+      "market_domestic": "Inhemsk",
+      "market_cross_border": "Gränsöverskridande"
     },
     "marketplace": {
       "pulse_title": "What's new",
@@ -6118,7 +6138,54 @@
       "hero_level_expert": "Expert",
       "you": "ty",
       "load_more_count": "Zobrazit dalších {{count}} nabídek",
-      "load_next_from_db": "Načíst dalších {{count}} z databáze"
+      "load_next_from_db": "Načíst dalších {{count}} z databáze",
+      "ai_applied": "AI-filter: {{chips}}",
+      "ai_applied_text": "Söker efter: {{query}}",
+      "ai_search_button": "Sök med AI",
+      "ai_search_label": "Sök med AI",
+      "ai_search_placeholder": "Sök efter roll, kompetens, företag... eller naturligtvis: \"remote React jobb i Prag över 60k\"",
+      "all_active": "Alla aktiva möjligheter",
+      "badge_best_fit": "Vi rekommenderar",
+      "best_opportunities": "Dina bästa möjligheter",
+      "commute_from_home": "{{count}} min hemifrån",
+      "commute_minutes": "{{count}} min",
+      "companies_interested": "Företag som vill lära känna dig",
+      "companies_interested_sub": "Företag som ser potential i din profil",
+      "company_match_line": "Din profil matchar {{percent}}% av det vi letar efter.",
+      "company_match_sub": "Vi kommer gärna att träffa dig i ett handslag.",
+      "difficulty": "Svårighet",
+      "difficulty_any": "Några",
+      "difficulty_high": "Hög",
+      "difficulty_label": "{{level}} svårighet",
+      "difficulty_low": "Låg",
+      "difficulty_medium": "Medium",
+      "discover_by_category": "Upptäck efter kategori",
+      "field": "Fält",
+      "hot_opportunity": "Hett tillfälle",
+      "learn_more": "Ta reda på mer",
+      "location": "Orter",
+      "location_all": "Alla platser",
+      "net_suffix": "rena",
+      "no_results": "Inga erbjudanden matchar din sökning. Försök att redigera filtren eller frågan.",
+      "open_handshake": "Öppna Handshake",
+      "percent_match": "{{percent}} % matchning",
+      "position_count": "{{count}} positioner",
+      "reset": "Avboka",
+      "salary": "Lön",
+      "salary_any": "Vilken lön som helst",
+      "scroll_more": "Gå vidare",
+      "search_in_marketplace": "Sök på marknadsplatsen...",
+      "show_more_offers": "Se fler erbjudanden",
+      "similar_sub": "Roller och företag i liknande inriktning",
+      "similar_to_interest": "Liknar det du är intresserad av",
+      "slots_few": "{{count}} lediga slots",
+      "slots_many": "{{count}} lediga slots",
+      "slots_one": "{{count}} ledig slot",
+      "sort": "Sortering",
+      "sort_distance": "Den närmaste",
+      "sort_relevance": "Den mest relevanta",
+      "sort_salary": "Högsta lönen",
+      "why_match": "Varför är det en match?"
     },
     "status": {
       "in_review": "Granskas",
@@ -6362,7 +6429,19 @@
       "skills_help_match": "Help us understand which skills you want to use in this role.",
       "selected": "Selected Skills",
       "supported_providers": "Supported Providers",
-      "tip": "Tip"
+      "tip": "Tip",
+      "add": "tillägga",
+      "problem_frame_helper": "Svara specifikt och ange antaganden och risker.",
+      "problem_frame_title": "Förstå prompten",
+      "risk_helper": "Ett bra svar nämner också det du inte vet ännu.",
+      "risk_prompt": "Vad kan gå fel och vad behöver du verifiera?",
+      "risk_title": "Risker & okända",
+      "schedule_helper": "Sloten är en begäran, företaget kommer att bekräfta efter granskning.",
+      "schedule_title": "Schemadiskussion",
+      "work_sample_comment_placeholder": "Kort sammanhang för recensenten",
+      "work_sample_helper": "Beskriv steg, bevis och beslutskriterier.",
+      "work_sample_title": "Praktiska steg",
+      "work_sample_url_placeholder": "https://..."
     },
     "insights": {
       "title": "Insikter",
@@ -6902,7 +6981,12 @@
       "patience": "Patience",
       "motivation_default": "Vaše motivace směřuje k seberealizaci a objevování nových obzorů.",
       "resonance": "Rezonance",
-      "unlock_identity": "Odemkni svou identitu"
+      "unlock_identity": "Odemkni svou identitu",
+      "start_onboarding": "Komplett onboarding",
+      "mentor_new": "Ny chatt",
+      "mentor_send": "Skicka",
+      "mentor_ready": "Shami är redo att utveckla din karriär.",
+      "mentor_typing": "Shami förbereder ett svar..."
     },
     "applications": {
       "active_handshakes": "Active handshakes",
@@ -7087,7 +7171,12 @@
     },
     "dialogue": {
       "environment_fit": "Environment fit",
-      "next_steps": "Next steps"
+      "next_steps": "Next steps",
+      "candidate_profile_signal": "Kandidatprofilsignal",
+      "full_report": "Fullständig rapport",
+      "jobfit_shared_copy": "JobFit Compass delades med svaret och kan förfina rekryterarens läsning av kandidaten.",
+      "shared_jobfit_signal": "Delad JobFit Compass-signal",
+      "summary": "Sammanfattning"
     },
     "landing": {
       "eyebrow": "Skill-first hiring for candidates and companies",
@@ -7546,7 +7635,14 @@
       "photo_upload_failed": "Bilden kunde inte laddas upp.",
       "cv_upload_failed": "Dokumentet kunde inte laddas upp.",
       "certifications_label": "Certifieringar",
-      "certificates_label": "Intyg"
+      "certificates_label": "Intyg",
+      "education": "Utbildning",
+      "experience": "Erfarenhet",
+      "job_title": "Roll",
+      "languages": "Språk",
+      "skills": "Färdigheter",
+      "linkedin_label": "LinkedIn",
+      "portfolio_label": "Portfolio"
     },
     "ui": {
       "cookie_banner": {
@@ -7708,7 +7804,42 @@
       "guide_fallback": "Read the challenge carefully. Your first response should demonstrate that you understand the core problem — not just that you are interested.",
       "guide_loading": "Shami läser rollen, verklighetslagret och din profil...",
       "watch_out": "Se upp med",
-      "first_move": "Första steg"
+      "first_move": "Första steg",
+      "locked_role_insight_copy": "Shami jämför erbjudandet med profilen, CV:t och JobFit Compass: vad rollen verkligen testar, var finns risken och vilket första steg som är vettigt.",
+      "locked_role_insight_title": "AI-annonsutvärdering är i Premium.",
+      "guide_title_company": "Vad {{company}} vill förstå om dig"
+    },
+    "onboarding": {
+      "ai_summary": "AI sammanfattning från CV",
+      "answer_more": "Vänligen fyll i minst två svar, oavsett vad profilen baseras på.",
+      "back_to_cv": "Ladda upp ytterligare ett CV",
+      "cv_copy": "AI kommer att utvinna erfarenhet, färdigheter, utbildning och kontaktuppgifter från det. Du kontrollerar allt innan du sparar.",
+      "cv_skip": "Hoppa över och fortsätt",
+      "cv_title": "Ladda eventuellt upp ett CV.",
+      "cv_upload": "Ladda upp CV",
+      "eyebrow": "Kandidatintroduktion",
+      "failed": "Onboarding kunde inte slutföras.",
+      "finish": "Fyll i profilen",
+      "no_cv_summary": "Profil utan CV",
+      "no_cv_summary_copy": "Du kan lägga till ditt CV senare i din profil. För närvarande använder vi introduktionssvaren.",
+      "profile_save_failed": "Det gick inte att spara profilen.",
+      "review_identity": "Namn och kontakt",
+      "review_title": "Kolla profilen.",
+      "signin_copy": "Sedan guidar vi dig genom onboarding, ett valfritt CV och profilkontroll.",
+      "signin_cta": "Fortsätt med registreringen",
+      "signin_title": "Först skapar vi ett konto.",
+      "story_cta": "Utvärdera onboarding",
+      "story_title": "Först arbetsriktningen.",
+      "title": "Vi kommer att bygga en profil utan manuell fyllning."
+    },
+    "premium": {
+      "benefit_ai_roles": "AI-annonsutvärdering",
+      "benefit_jobfit": "JobFit Compass ingår",
+      "benefit_slots": "25 aktiva svarsluckor",
+      "candidate_title": "Lås upp JobFit Compass och fler svar.",
+      "jobfit_copy": "Testet låser upp arbetsstil, styrkor och mer exakta rekommendationer. I Premium får du även fler svarsluckor och AI-utvärdering av erbjudanden.",
+      "jobfit_title": "JobFit Kompas är en del av Premium.",
+      "upgrade_cta": "Uppgradera till Premium"
     }
   }
 }

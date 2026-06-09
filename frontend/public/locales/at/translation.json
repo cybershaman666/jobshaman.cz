@@ -5749,7 +5749,11 @@
       "video": "Video",
       "photo": "Photo",
       "no_banner_media": "No slideshow media yet. The main cover will be used by itself.",
-      "primary_video_url": "Primary video URL"
+      "primary_video_url": "Primary video URL",
+      "cybershaman_advises": "Shami empfiehlt den nächsten Schritt",
+      "cybershaman_tip": "Shamis Tipp",
+      "nav_calendar": "Kalender",
+      "subtitle_calendar": "Geplante Interviews, Verfügbarkeitspräferenzen und Kalendersynchronisierung."
     },
     "editor": {
       "step_essence": "Kern der Rolle",
@@ -5885,7 +5889,8 @@
       "domestic": "domestic",
       "market_cross_border": "Přeshraniční",
       "market_domestic": "Tuzemský",
-      "open_listing": "Otevřít původní inzerát"
+      "open_listing": "Otevřít původní inzerát",
+      "border": "Grenze"
     },
     "marketplace": {
       "pulse_title": "Marketplace-Puls",
@@ -6137,7 +6142,54 @@
       "hero_level_expert": "Experte",
       "you": "ty",
       "load_more_count": "Zobrazit dalších {{count}} nabídek",
-      "load_next_from_db": "Načíst dalších {{count}} z databáze"
+      "load_next_from_db": "Načíst dalších {{count}} z databáze",
+      "ai_applied": "KI-Filter: {{chips}}",
+      "ai_applied_text": "Suche nach: {{query}}",
+      "ai_search_button": "Suchen Sie mit KI",
+      "ai_search_label": "Suchen Sie mit KI",
+      "ai_search_placeholder": "Suche nach Rolle, Fähigkeit, Unternehmen ... oder natürlich: „Remote React-Jobs in Prag über 60.000“",
+      "all_active": "Alle aktiven Möglichkeiten",
+      "badge_best_fit": "Wir empfehlen",
+      "best_opportunities": "Ihre besten Chancen",
+      "commute_from_home": "{{count}} Minuten von zu Hause entfernt",
+      "commute_minutes": "{{count}} min",
+      "companies_interested": "Unternehmen, die Sie kennenlernen möchten",
+      "companies_interested_sub": "Unternehmen, die in Ihrem Profil Potenzial sehen",
+      "company_match_line": "Ihr Profil entspricht {{percent}} % unserer Suche.",
+      "company_match_sub": "Wir freuen uns, Sie per Handschlag kennenzulernen.",
+      "difficulty": "Schwierigkeit",
+      "difficulty_any": "Beliebig",
+      "difficulty_high": "Hoch",
+      "difficulty_label": "{{level}} Schwierigkeitsgrad",
+      "difficulty_low": "Niedrig",
+      "difficulty_medium": "Medium",
+      "discover_by_category": "Entdecken Sie nach Kategorie",
+      "field": "Feld",
+      "hot_opportunity": "Heiße Gelegenheit",
+      "learn_more": "Erfahren Sie mehr",
+      "location": "Orte",
+      "location_all": "Alle Standorte",
+      "net_suffix": "sauber",
+      "no_results": "Kein Angebot entspricht Ihrer Suche. Versuchen Sie, die Filter oder Abfragen zu bearbeiten.",
+      "open_handshake": "Handshake öffnen",
+      "percent_match": "{{percent}} % Übereinstimmung",
+      "position_count": "{{count}} Positionen",
+      "reset": "Stornieren",
+      "salary": "Löhne",
+      "salary_any": "Jedes Gehalt",
+      "scroll_more": "Weitergehen",
+      "search_in_marketplace": "Durchsuchen Sie den Marktplatz…",
+      "show_more_offers": "Weitere Angebote ansehen",
+      "similar_sub": "Rollen und Unternehmen mit ähnlichem Schwerpunkt",
+      "similar_to_interest": "Ähnlich wie das, was Sie interessiert",
+      "slots_few": "{{count}} freie Slots",
+      "slots_many": "{{count}} freie Slots",
+      "slots_one": "{{count}} freier Slot",
+      "sort": "Sortierung",
+      "sort_distance": "Am nächsten",
+      "sort_relevance": "Das Relevanteste",
+      "sort_salary": "Höchstes Gehalt",
+      "why_match": "Warum passt es?"
     },
     "status": {
       "in_review": "In Prüfung",
@@ -6372,7 +6424,19 @@
       "skills_help_match": "Help us understand which skills you want to use in this role.",
       "selected": "Selected Skills",
       "supported_providers": "Supported Providers",
-      "tip": "Tip"
+      "tip": "Tip",
+      "add": "hinzufügen",
+      "problem_frame_helper": "Antworten Sie konkret und nennen Sie Annahmen und Risiken.",
+      "problem_frame_title": "Die Eingabeaufforderung verstehen",
+      "risk_helper": "Eine gute Antwort nennt auch, was Sie noch nicht wissen.",
+      "risk_prompt": "Was könnte schief gehen und was müssten Sie überprüfen?",
+      "risk_title": "Risiken und Unbekanntes",
+      "schedule_helper": "Bei dem Slot handelt es sich um eine Anfrage, das Unternehmen wird diese nach Prüfung bestätigen.",
+      "schedule_title": "Diskussion planen",
+      "work_sample_comment_placeholder": "Kurzer Kontext für den Rezensenten",
+      "work_sample_helper": "Beschreiben Sie Schritte, Beweise und Entscheidungskriterien.",
+      "work_sample_title": "Praktische Schritte",
+      "work_sample_url_placeholder": "https://..."
     },
     "insights": {
       "title": "Kandidaten-Intelligenz",
@@ -6924,7 +6988,8 @@
       "mentor_new": "New chat",
       "mentor_ready": "Shami is ready to help your career grow.",
       "mentor_send": "Send",
-      "mentor_typing": "Shami is composing a reply..."
+      "mentor_typing": "Shami is composing a reply...",
+      "start_onboarding": "Komplettes Onboarding"
     },
     "detail": {
       "company": "Company",
@@ -7095,7 +7160,12 @@
     },
     "dialogue": {
       "environment_fit": "Umgebungspassung",
-      "next_steps": "Nächste Schritte"
+      "next_steps": "Nächste Schritte",
+      "candidate_profile_signal": "Kandidatenprofilsignal",
+      "full_report": "Vollständiger Bericht",
+      "jobfit_shared_copy": "Der JobFit-Kompass wurde mit der Antwort geteilt und kann die Einschätzung des Kandidaten durch den Personalvermittler verfeinern.",
+      "shared_jobfit_signal": "Geteiltes JobFit Compass-Signal",
+      "summary": "Zusammenfassung"
     },
     "landing": {
       "eyebrow": "Skill-first Hiring für Bewerber & Unternehmen",
@@ -7568,7 +7638,14 @@
       "photo_upload_failed": "Foto-Upload fehlgeschlagen.",
       "cv_upload_failed": "Dokument-Upload fehlgeschlagen.",
       "certifications_label": "Zertifizierungen",
-      "certificates_label": "Zertifikat"
+      "certificates_label": "Zertifikat",
+      "education": "Ausbildung",
+      "experience": "Erfahrung",
+      "job_title": "Rolle",
+      "languages": "Sprachen",
+      "skills": "Fähigkeiten",
+      "linkedin_label": "LinkedIn",
+      "portfolio_label": "Portfolio"
     },
     "ui": {
       "cookie_banner": {
@@ -7717,7 +7794,41 @@
       "guide_loading": "Shami liest Rolle, Realitätslayer und dein Profil...",
       "watch_out": "Worauf achten",
       "first_move": "Erster Schritt",
-      "guide_title_company": "What {{company}} wants to understand about you"
+      "guide_title_company": "What {{company}} wants to understand about you",
+      "locked_role_insight_copy": "Shami vergleicht das Angebot mit dem Profil, dem Lebenslauf und dem JobFit-Kompass: Was stellt die Stelle wirklich auf die Probe, wo liegt das Risiko und welcher erste Schritt ist sinnvoll.",
+      "locked_role_insight_title": "Die KI-Anzeigenauswertung erfolgt in Premium."
+    },
+    "onboarding": {
+      "ai_summary": "KI-Zusammenfassung aus dem Lebenslauf",
+      "answer_more": "Bitte geben Sie mindestens zwei Antworten ein, unabhängig davon, auf welchem ​​Profil Ihr Profil basiert.",
+      "back_to_cv": "Laden Sie einen weiteren Lebenslauf hoch",
+      "cv_copy": "KI wird daraus Erfahrungen, Fähigkeiten, Ausbildung und Kontaktdaten extrahieren. Sie überprüfen alles, bevor Sie speichern.",
+      "cv_skip": "Überspringen und fortfahren",
+      "cv_title": "Laden Sie optional einen Lebenslauf hoch.",
+      "cv_upload": "Lebenslauf hochladen",
+      "eyebrow": "Kandidaten-Onboarding",
+      "failed": "Das Onboarding konnte nicht abgeschlossen werden.",
+      "finish": "Vervollständigen Sie das Profil",
+      "no_cv_summary": "Profil ohne Lebenslauf",
+      "no_cv_summary_copy": "Sie können Ihren Lebenslauf später in Ihrem Profil hinzufügen. Vorerst verwenden wir die Onboarding-Antworten.",
+      "profile_save_failed": "Profil konnte nicht gespeichert werden.",
+      "review_identity": "Name und Kontakt",
+      "review_title": "Überprüfen Sie das Profil.",
+      "signin_copy": "Anschließend begleiten wir Sie durch das Onboarding, einen optionalen Lebenslauf- und Profilcheck.",
+      "signin_cta": "Fahren Sie mit der Registrierung fort",
+      "signin_title": "Zuerst erstellen wir ein Konto.",
+      "story_cta": "Bewerten Sie das Onboarding",
+      "story_title": "Erstens die Arbeitsrichtung.",
+      "title": "Wir erstellen ein Profil ohne manuelles Ausfüllen."
+    },
+    "premium": {
+      "benefit_ai_roles": "KI-Anzeigenbewertung",
+      "benefit_jobfit": "JobFit-Kompass inklusive",
+      "benefit_slots": "25 aktive Antwortslots",
+      "candidate_title": "Schalten Sie den JobFit-Kompass und weitere Antworten frei.",
+      "jobfit_copy": "Der Test erschließt Arbeitsstil, Stärken und genauere Empfehlungen. In Premium erhalten Sie außerdem mehr Antwortplätze und eine KI-Auswertung von Angeboten.",
+      "jobfit_title": "JobFit Kompas ist Teil von Premium.",
+      "upgrade_cta": "Upgrade auf Premium"
     }
   },
   "faq": {

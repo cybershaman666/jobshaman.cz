@@ -52,7 +52,15 @@
     "clear": "Tøm",
     "demo_alert": "Prøvemodus aktiv — oppdag alle premiumfordeler",
     "saving": "Lagrer...",
-    "edit": "Rediger"
+    "edit": "Rediger",
+    "chatMentor": {
+      "inputPlaceholder": "Spør Shami eller skriv neste trinn...",
+      "brandHint": "Powered by JobShaman AI",
+      "welcomeTitle": "Shami AI - Din karriereguide",
+      "slogan": "Shami ser sammenhengene i profilen, finner neste steg – uten HR-sausen.",
+      "avatarAlt": "Shami avatar",
+      "shamiName": "Shami"
+    }
   },
   "home": {
     "discovery": {
@@ -5737,7 +5745,11 @@
       "video": "Video",
       "photo": "Photo",
       "no_banner_media": "No slideshow media yet. The main cover will be used by itself.",
-      "primary_video_url": "Primary video URL"
+      "primary_video_url": "Primary video URL",
+      "cybershaman_advises": "Shami anbefaler neste trinn",
+      "cybershaman_tip": "Shamis tips",
+      "nav_calendar": "Kalender",
+      "subtitle_calendar": "Planlagte intervjuer, tilgjengelighetspreferanser og kalendersynkronisering."
     },
     "editor": {
       "step_essence": "Rollens kjerne",
@@ -5842,7 +5854,11 @@
       "hide_preview": "Hide preview",
       "show_preview": "Show preview",
       "preview": "Preview",
-      "preview_empty": "Formatted preview will appear here."
+      "preview_empty": "Formatted preview will appear here.",
+      "employment_part_time_short": "Delvis",
+      "employment_gig_short": "Engangs",
+      "employment_full_time_short": "Omfattende",
+      "employment_contract_short": "Kontrakt"
     },
     "role": {
       "full_journey": "Full Jobshaman journey",
@@ -5866,7 +5882,11 @@
       "border_disabled": "{{country}} disabled",
       "summary_curated": "JHI {{score}}/100, estimated net value {{value}} {{currency}} monthly and direct branded journey entry.",
       "summary_imported": "JHI {{score}}/100, realistic outbound preparation considering {{fit}} fit and real costs.",
-      "domestic": "domestic"
+      "domestic": "domestic",
+      "border": "grense",
+      "open_listing": "Åpne den opprinnelige annonsen",
+      "market_domestic": "Innenlands",
+      "market_cross_border": "Grenseoverskridende"
     },
     "marketplace": {
       "pulse_title": "What's new",
@@ -6118,7 +6138,54 @@
       "hero_level_expert": "Ekspert",
       "you": "ty",
       "load_more_count": "Zobrazit dalších {{count}} nabídek",
-      "load_next_from_db": "Načíst dalších {{count}} z databáze"
+      "load_next_from_db": "Načíst dalších {{count}} z databáze",
+      "ai_applied": "AI-filtre: {{chips}}",
+      "ai_applied_text": "Søker etter: {{query}}",
+      "ai_search_button": "Søk med AI",
+      "ai_search_label": "Søk med AI",
+      "ai_search_placeholder": "Søk etter rolle, ferdighet, selskap... eller naturlig: \"remote React-jobber i Praha over 60k\"",
+      "all_active": "Alle aktive muligheter",
+      "badge_best_fit": "Vi anbefaler",
+      "best_opportunities": "Dine beste muligheter",
+      "commute_from_home": "{{count}} min hjemmefra",
+      "commute_minutes": "{{count}} min",
+      "companies_interested": "Bedrifter som ønsker å bli kjent med deg",
+      "companies_interested_sub": "Bedrifter som ser potensiale i profilen din",
+      "company_match_line": "Profilen din samsvarer med {{percent}}% av det vi ser etter.",
+      "company_match_sub": "Vi vil gjerne møte deg i et håndtrykk.",
+      "difficulty": "Vanskelighet",
+      "difficulty_any": "Noen",
+      "difficulty_high": "Høy",
+      "difficulty_label": "{{level}} vanskelighetsgrad",
+      "difficulty_low": "Lav",
+      "difficulty_medium": "Medium",
+      "discover_by_category": "Oppdag etter kategori",
+      "field": "Felt",
+      "hot_opportunity": "Varm mulighet",
+      "learn_more": "Finn ut mer",
+      "location": "Lokaliteter",
+      "location_all": "Alle steder",
+      "net_suffix": "rengjøre",
+      "no_results": "Ingen tilbud samsvarer med søket ditt. Prøv å redigere filtrene eller spørringen.",
+      "open_handshake": "Åpne Handshake",
+      "percent_match": "{{percent}} % samsvar",
+      "position_count": "{{count}} stillinger",
+      "reset": "Kansellere",
+      "salary": "Lønn",
+      "salary_any": "Eventuell lønn",
+      "scroll_more": "Gå videre",
+      "search_in_marketplace": "Søk på markedsplassen...",
+      "show_more_offers": "Se flere tilbud",
+      "similar_sub": "Roller og bedrifter i lignende fokus",
+      "similar_to_interest": "I likhet med det du er interessert i",
+      "slots_few": "{{count}} ledige slots",
+      "slots_many": "{{count}} ledige slots",
+      "slots_one": "{{count}} ledig slot",
+      "sort": "Sortering",
+      "sort_distance": "Den nærmeste",
+      "sort_relevance": "Den mest relevante",
+      "sort_salary": "Høyeste lønn",
+      "why_match": "Hvorfor er det en match?"
     },
     "status": {
       "in_review": "Til vurdering",
@@ -6362,7 +6429,19 @@
       "skills_help_match": "Help us understand which skills you want to use in this role.",
       "selected": "Selected Skills",
       "supported_providers": "Supported Providers",
-      "tip": "Tip"
+      "tip": "Tip",
+      "add": "legge til",
+      "problem_frame_helper": "Svar spesifikt, og oppgi forutsetninger og risikoer.",
+      "problem_frame_title": "Forstå ledeteksten",
+      "risk_helper": "Et godt svar gir også navn til det du ikke vet ennå.",
+      "risk_prompt": "Hva kan gå galt og hva må du bekrefte?",
+      "risk_title": "Risikoer og ukjente",
+      "schedule_helper": "Sporet er en forespørsel, selskapet vil bekrefte etter gjennomgang.",
+      "schedule_title": "Planlegg diskusjon",
+      "work_sample_comment_placeholder": "Kort kontekst for anmelderen",
+      "work_sample_helper": "Beskriv trinn, bevis og beslutningskriterier.",
+      "work_sample_title": "Praktiske trinn",
+      "work_sample_url_placeholder": "https://..."
     },
     "insights": {
       "title": "Innsikt",
@@ -6902,7 +6981,12 @@
       "patience": "Patience",
       "motivation_default": "Vaše motivace směřuje k seberealizaci a objevování nových obzorů.",
       "resonance": "Rezonance",
-      "unlock_identity": "Odemkni svou identitu"
+      "unlock_identity": "Odemkni svou identitu",
+      "start_onboarding": "Fullfør onboarding",
+      "mentor_new": "Ny chat",
+      "mentor_send": "Sende",
+      "mentor_ready": "Shami er klar til å utvikle karrieren din.",
+      "mentor_typing": "Shami forbereder et svar ..."
     },
     "applications": {
       "active_handshakes": "Active handshakes",
@@ -7087,7 +7171,12 @@
     },
     "dialogue": {
       "environment_fit": "Environment fit",
-      "next_steps": "Next steps"
+      "next_steps": "Next steps",
+      "candidate_profile_signal": "Kandidatprofilsignal",
+      "full_report": "Full rapport",
+      "jobfit_shared_copy": "JobFit-kompasset ble delt med svaret og kan avgrense rekruttererens lesing av kandidaten.",
+      "shared_jobfit_signal": "Delt JobFit Compass-signal",
+      "summary": "Sammendrag"
     },
     "landing": {
       "eyebrow": "Skill-first hiring for candidates and companies",
@@ -7546,7 +7635,14 @@
       "photo_upload_failed": "Bildeoppasting mislyktes.",
       "cv_upload_failed": "Dokumentoppasting mislyktes.",
       "certifications_label": "Sertifikater",
-      "certificates_label": "Sertifikat"
+      "certificates_label": "Sertifikat",
+      "education": "Utdanning",
+      "experience": "Erfaring",
+      "job_title": "Rolle",
+      "languages": "Språk",
+      "skills": "Ferdigheter",
+      "linkedin_label": "LinkedIn",
+      "portfolio_label": "Portfolio"
     },
     "ui": {
       "cookie_banner": {
@@ -7708,7 +7804,42 @@
       "guide_fallback": "Read the challenge carefully. Your first response should demonstrate that you understand the core problem — not just that you are interested.",
       "guide_loading": "Shami leser rollen, realitetslaget og profilen din...",
       "watch_out": "Vær oppmerksom på",
-      "first_move": "Første steg"
+      "first_move": "Første steg",
+      "locked_role_insight_copy": "Shami sammenligner tilbudet med profilen, CV og JobFit Compass: hva rollen egentlig tester, hvor er risikoen og hvilket første steg som gir mening.",
+      "locked_role_insight_title": "AI-annonseevaluering er i Premium.",
+      "guide_title_company": "Hva {{company}} ønsker å forstå om deg"
+    },
+    "onboarding": {
+      "ai_summary": "AI-sammendrag fra CV",
+      "answer_more": "Fyll ut minst to svar, uansett hva profilen er basert på.",
+      "back_to_cv": "Last opp en annen CV",
+      "cv_copy": "AI vil trekke ut erfaring, ferdigheter, utdanning og kontaktdetaljer fra den. Du sjekker alt før du lagrer.",
+      "cv_skip": "Hopp over og fortsett",
+      "cv_title": "Last eventuelt opp en CV.",
+      "cv_upload": "Last opp CV",
+      "eyebrow": "Kandidatintroduksjon",
+      "failed": "Onboarding kunne ikke fullføres.",
+      "finish": "Fullfør profilen",
+      "no_cv_summary": "Profil uten CV",
+      "no_cv_summary_copy": "Du kan legge til din CV senere i profilen din. Foreløpig bruker vi innføringssvarene.",
+      "profile_save_failed": "Kunne ikke lagre profilen.",
+      "review_identity": "Navn og kontakt",
+      "review_title": "Sjekk profilen.",
+      "signin_copy": "Da veileder vi deg gjennom onboarding, valgfri CV og profilsjekk.",
+      "signin_cta": "Fortsett med registrering",
+      "signin_title": "Først oppretter vi en konto.",
+      "story_cta": "Evaluer onboarding",
+      "story_title": "Først arbeidsretningen.",
+      "title": "Vi skal bygge en profil uten manuell utfylling."
+    },
+    "premium": {
+      "benefit_ai_roles": "AI annonseevaluering",
+      "benefit_jobfit": "JobFit Compass inkludert",
+      "benefit_slots": "25 aktive svarspor",
+      "candidate_title": "Lås opp JobFit Compass og flere svar.",
+      "jobfit_copy": "Testen låser opp arbeidsstil, styrker og mer nøyaktige anbefalinger. I Premium får du også flere svarautomater og AI-evaluering av tilbud.",
+      "jobfit_title": "JobFit Kompas er en del av Premium.",
+      "upgrade_cta": "Oppgrader til Premium"
     }
   }
 }

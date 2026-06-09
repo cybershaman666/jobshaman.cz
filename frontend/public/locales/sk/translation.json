@@ -5854,7 +5854,11 @@
       "video": "Video",
       "photo": "Photo",
       "no_banner_media": "No slideshow media yet. The main cover will be used by itself.",
-      "primary_video_url": "Primary video URL"
+      "primary_video_url": "Primary video URL",
+      "cybershaman_advises": "Shami odporúča ďalší krok",
+      "cybershaman_tip": "Shamiho tip",
+      "nav_calendar": "Kalendár",
+      "subtitle_calendar": "Scheduled interviews, availability preferences, and calendar sync."
     },
     "editor": {
       "step_essence": "Podstata roly",
@@ -5990,7 +5994,8 @@
       "domestic": "domestic",
       "market_cross_border": "Přeshraniční",
       "market_domestic": "Tuzemský",
-      "open_listing": "Otevřít původní inzerát"
+      "open_listing": "Otevřít původní inzerát",
+      "border": "border"
     },
     "marketplace": {
       "pulse_title": "Pulse marketplace",
@@ -6242,7 +6247,54 @@
       "hero_level_expert": "Expert",
       "you": "ty",
       "load_more_count": "Zobrazit dalších {{count}} nabídek",
-      "load_next_from_db": "Načíst dalších {{count}} z databáze"
+      "load_next_from_db": "Načíst dalších {{count}} z databáze",
+      "ai_applied": "AI filtre: {{chips}}",
+      "ai_applied_text": "Hľadám podľa: {{query}}",
+      "ai_search_button": "Hľadať s AI",
+      "ai_search_label": "Vyhľadávanie pomocou AI",
+      "ai_search_placeholder": "Hľadať podľa role, skillu, firmy… alebo prirodzene: „remote React práce v Prahe nad 60k“",
+      "all_active": "Všetky aktívne príležitosti",
+      "badge_best_fit": "Odporúčame",
+      "best_opportunities": "Tvoje najlepšie príležitosti",
+      "commute_from_home": "{{count}} min od domova",
+      "commute_minutes": "{{count}} min",
+      "companies_interested": "Firmy, ktoré ťa chcú spoznať",
+      "companies_interested_sub": "Firmy, ktoré vidia potenciál v tvojom profile",
+      "company_match_line": "Tvoj profil zodpovedá {{percent}} % toho, čo hľadáme.",
+      "company_match_sub": "Radi ťa spoznáme v handshake.",
+      "difficulty": "Náročnosť",
+      "difficulty_any": "Ľubovoľná",
+      "difficulty_high": "Vysoká",
+      "difficulty_label": "{{level}} náročnosť",
+      "difficulty_low": "Nízka",
+      "difficulty_medium": "Stredná",
+      "discover_by_category": "Objavuj podľa kategórií",
+      "field": "Pole",
+      "hot_opportunity": "Horúca príležitosť",
+      "learn_more": "Zistiť viac",
+      "location": "Lokalita",
+      "location_all": "Všetky lokality",
+      "net_suffix": "čistého",
+      "no_results": "Žiadne ponuky nezodpovedajú tvojmu hľadaniu. Skús upraviť filtre alebo dotaz.",
+      "open_handshake": "Otvoriť handshake",
+      "percent_match": "{{percent}} % match",
+      "position_count": "{{count}} pozícií",
+      "reset": "Zrušiť",
+      "salary": "Mzda",
+      "salary_any": "Ľubovoľná mzda",
+      "scroll_more": "Posunúť ďalej",
+      "search_in_marketplace": "Hľadať v marketplace…",
+      "show_more_offers": "Zobraziť viac ponúk",
+      "similar_sub": "Úloha a firmy v podobnom zameraní",
+      "similar_to_interest": "Podobné ako to, čo ťa zaujíma",
+      "slots_few": "{{count}} voľné sloty",
+      "slots_many": "{{count}} voľných slotov",
+      "slots_one": "{{count}} voľný slot",
+      "sort": "Radenie",
+      "sort_distance": "Najbližšie",
+      "sort_relevance": "Najrelevantnejšie",
+      "sort_salary": "Najvyššia mzda",
+      "why_match": "Prečo je to match?"
     },
     "status": {
       "in_review": "V recenzii",
@@ -6477,7 +6529,19 @@
       "skills_help_match": "Help us understand which skills you want to use in this role.",
       "selected": "Selected Skills",
       "supported_providers": "Supported Providers",
-      "tip": "Tip"
+      "tip": "Tip",
+      "add": "Add",
+      "problem_frame_helper": "Answer specifically, stating assumptions and risks.",
+      "problem_frame_title": "Understanding the Prompt",
+      "risk_helper": "A good answer also names what you Nechcem know yet.",
+      "risk_prompt": "What could go wrong a what would you need to verify?",
+      "risk_title": "Risks & Unknowns",
+      "schedule_helper": "Slot je request, spoločnosť bude konfirmovaný po review.",
+      "schedule_title": "Schedule Discussion",
+      "work_sample_comment_placeholder": "Short context for the reviewer",
+      "work_sample_helper": "Describe steps, evidencie, a decision criteria.",
+      "work_sample_title": "Practical Steps",
+      "work_sample_url_placeholder": "https://..."
     },
     "insights": {
       "title": "Kandidátska inteligencia",
@@ -7025,7 +7089,8 @@
       "patience": "Patience",
       "motivation_default": "Vaše motivace směřuje k seberealizaci a objevování nových obzorů.",
       "resonance": "Rezonance",
-      "unlock_identity": "Odemkni svou identitu"
+      "unlock_identity": "Odemkni svou identitu",
+      "start_onboarding": "Dokončiť onboarding"
     },
     "detail": {
       "company": "Company",
@@ -7196,7 +7261,12 @@
     },
     "dialogue": {
       "environment_fit": "Prostredie",
-      "next_steps": "Ďalšie kroky"
+      "next_steps": "Ďalšie kroky",
+      "candidate_profile_signal": "Signál profilu kandidáta",
+      "full_report": "Plná správa",
+      "jobfit_shared_copy": "JobFit Kompas bol zdieľaný s odpoveďou a môže spresniť recruiterovo čítanie kandidáta.",
+      "shared_jobfit_signal": "Zdieľaný signál JobFit Kompasu",
+      "summary": "Súhrn"
     },
     "dimensions": {
       "cognitive_flex": "Cognitive flexibility",
@@ -7530,7 +7600,14 @@
       "photo_upload_failed": "Nahranie fotky sa nepodarilo.",
       "cv_upload_failed": "Nahranie dokumentu sa nepodarilo.",
       "certifications_label": "Certifikácie",
-      "certificates_label": "Osvedčenie"
+      "certificates_label": "Osvedčenie",
+      "education": "Vzdelanie",
+      "experience": "Skúsenosti",
+      "job_title": "Úloha",
+      "languages": "Jazyky",
+      "skills": "Zručnosti",
+      "linkedin_label": "LinkedIn",
+      "portfolio_label": "Portfolio"
     },
     "ui": {
       "cookie_banner": {
@@ -7679,7 +7756,41 @@
       "guide_loading": "Shami číta rolu, realitu a tvoj profil...",
       "watch_out": "Na čo si dať pozor",
       "first_move": "Prvý krok",
-      "guide_title_company": "What {{company}} wants to understand about you"
+      "guide_title_company": "What {{company}} wants to understand about you",
+      "locked_role_insight_copy": "Shami porovná ponuku s profilom, CV a JobFit Kompasom: čo rola naozaj testuje, kde je riziko a aký prvý krok dáva zmysel.",
+      "locked_role_insight_title": "AI hodnotenie inzerátu je v Premium."
+    },
+    "onboarding": {
+      "ai_summary": "AI zhrnutie z CV",
+      "answer_more": "Vyplň prosím aspoň dve odpovede, nech má profil z čoho vychádzať.",
+      "back_to_cv": "Nahrať iné CV",
+      "cv_copy": "AI z neho vytiahne skúsenosti, zručnosti, vzdelanie a kontaktné údaje. Pred uložením všetko skontroluješ.",
+      "cv_skip": "Preskočiť a pokračovať",
+      "cv_title": "Voliteľne nahraj CV.",
+      "cv_upload": "Nahrať CV",
+      "eyebrow": "Kandidátsky onboarding",
+      "failed": "Onboarding sa nepodarilo dokončiť.",
+      "finish": "Dokončiť profil",
+      "no_cv_summary": "Profil bez CV",
+      "no_cv_summary_copy": "CV môžeš doplniť neskôr v profile. Zatiaľ použijeme odpovede z onboardingu.",
+      "profile_save_failed": "Profil sa nepodarilo uložiť.",
+      "review_identity": "Meno a kontakt",
+      "review_title": "Skontroluj profil.",
+      "signin_copy": "Potom ťa prevedieme onboardingom, voliteľným CV a kontrolou profilu.",
+      "signin_cta": "Pokračovať registráciou",
+      "signin_title": "Najskôr vytvoríme účet.",
+      "story_cta": "Vyhodnotiť onboarding",
+      "story_title": "Najskôr pracovný smer.",
+      "title": "Postavíme profil bez ručného vyplňovania."
+    },
+    "premium": {
+      "benefit_ai_roles": "AI hodnotenie inzerátov",
+      "benefit_jobfit": "JobFit Kompas v cene",
+      "benefit_slots": "25 aktívnych zodpovedných slotov",
+      "candidate_title": "Odomkni JobFit Kompas a viac odpovedí.",
+      "jobfit_copy": "Test odomkne pracovný štýl, silné stránky a presnejšie odporúčania. V Premium získaš tiež viacero zodpovedných slotov a AI hodnotenia ponúk.",
+      "jobfit_title": "JobFit Kompas je súčasť Premium.",
+      "upgrade_cta": "Upgradovať na Premium"
     }
   },
   "faq": {

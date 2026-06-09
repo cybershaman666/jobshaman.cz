@@ -65,6 +65,14 @@
       "saved_cv_ready": "Tallennettu CV on valmis",
       "upload_instead": "Lataa toinen tiedosto",
       "use_saved_cv": "Käytä profiiliin tallennettua CV:tä"
+    },
+    "chatMentor": {
+      "inputPlaceholder": "Kysy Shamilta tai kirjoita seuraava vaihe…",
+      "brandHint": "Powered by JobShaman AI",
+      "welcomeTitle": "Shami AI - Uraoppaasi",
+      "slogan": "Shami näkee yhteydet profiilissa, löytää seuraavan askeleen – ilman HR-kastiketta.",
+      "avatarAlt": "Shami avatar",
+      "shamiName": "Shami"
     }
   },
   "home": {
@@ -5750,7 +5758,11 @@
       "video": "Video",
       "photo": "Photo",
       "no_banner_media": "No slideshow media yet. The main cover will be used by itself.",
-      "primary_video_url": "Primary video URL"
+      "primary_video_url": "Primary video URL",
+      "cybershaman_advises": "Shami suosittelee seuraavaa vaihetta",
+      "cybershaman_tip": "Shamin vinkki",
+      "nav_calendar": "Kalenteri",
+      "subtitle_calendar": "Aikataulutetut haastattelut, saatavuusasetukset ja kalenterin synkronointi."
     },
     "editor": {
       "step_essence": "Roolin ydin",
@@ -5855,7 +5867,11 @@
       "hide_preview": "Hide preview",
       "show_preview": "Show preview",
       "preview": "Preview",
-      "preview_empty": "Formatted preview will appear here."
+      "preview_empty": "Formatted preview will appear here.",
+      "employment_part_time_short": "Osittainen",
+      "employment_gig_short": "Kertakäyttöinen",
+      "employment_full_time_short": "Kattava",
+      "employment_contract_short": "Sopimus"
     },
     "role": {
       "full_journey": "Full Jobshaman journey",
@@ -5879,7 +5895,11 @@
       "border_disabled": "{{country}} disabled",
       "summary_curated": "JHI {{score}}/100, estimated net value {{value}} {{currency}} monthly and direct branded journey entry.",
       "summary_imported": "JHI {{score}}/100, realistic outbound preparation considering {{fit}} fit and real costs.",
-      "domestic": "domestic"
+      "domestic": "domestic",
+      "border": "rajaa",
+      "open_listing": "Avaa alkuperäinen mainos",
+      "market_domestic": "Kotimainen",
+      "market_cross_border": "Rajat ylittävä"
     },
     "marketplace": {
       "pulse_title": "What's new",
@@ -6131,7 +6151,54 @@
       "hero_level_expert": "Asiantuntija",
       "you": "ty",
       "load_more_count": "Zobrazit dalších {{count}} nabídek",
-      "load_next_from_db": "Načíst dalších {{count}} z databáze"
+      "load_next_from_db": "Načíst dalších {{count}} z databáze",
+      "ai_applied": "AI-suodattimet: {{chips}}",
+      "ai_applied_text": "Haku: {{query}}",
+      "ai_search_button": "Etsi tekoälyllä",
+      "ai_search_label": "Etsi tekoälyllä",
+      "ai_search_placeholder": "Hae roolin, taidon, yrityksen mukaan... tai luonnollisesti: \"Reactin etätyöpaikat Prahassa yli 60 000\"",
+      "all_active": "Kaikki aktiiviset mahdollisuudet",
+      "badge_best_fit": "Suosittelemme",
+      "best_opportunities": "Parhaat mahdollisuutesi",
+      "commute_from_home": "{{count}} min päässä kotoa",
+      "commute_minutes": "{{count}} min",
+      "companies_interested": "Yritykset, jotka haluavat tutustua sinuun",
+      "companies_interested_sub": "Yritykset, jotka näkevät profiilissasi potentiaalia",
+      "company_match_line": "Profiilisi vastaa {{percent}}% siitä, mitä etsimme.",
+      "company_match_sub": "Olemme iloisia voidessamme tavata sinut kädenpuristuksessa.",
+      "difficulty": "Vaikeus",
+      "difficulty_any": "Mikä tahansa",
+      "difficulty_high": "Korkea",
+      "difficulty_label": "{{level}} vaikeusaste",
+      "difficulty_low": "Matala",
+      "difficulty_medium": "Keskikokoinen",
+      "discover_by_category": "Tutustu luokittain",
+      "field": "Ala",
+      "hot_opportunity": "Kuuma tilaisuus",
+      "learn_more": "Lue lisää",
+      "location": "paikkakunnat",
+      "location_all": "Kaikki paikat",
+      "net_suffix": "puhdas",
+      "no_results": "Ei hakuasi vastaavia tarjouksia. Yritä muokata suodattimia tai kyselyä.",
+      "open_handshake": "Avaa Handshake",
+      "percent_match": "{{percent}} % vastaavuus",
+      "position_count": "{{count}} paikkaa",
+      "reset": "Peruuttaa",
+      "salary": "Palkat",
+      "salary_any": "Mikä tahansa palkka",
+      "scroll_more": "Siirry eteenpäin",
+      "search_in_marketplace": "Hae torilta…",
+      "show_more_offers": "Katso lisää tarjouksia",
+      "similar_sub": "Roolit ja yritykset samassa fokuksessa",
+      "similar_to_interest": "Samanlainen kuin olet kiinnostunut",
+      "slots_few": "{{count}} vapaata paikkaa",
+      "slots_many": "{{count}} vapaata paikkaa",
+      "slots_one": "{{count}} vapaa paikka",
+      "sort": "Lajittelu",
+      "sort_distance": "Lähin",
+      "sort_relevance": "Asianmukaisin",
+      "sort_salary": "Korkein palkka",
+      "why_match": "Miksi tämä sopii?"
     },
     "status": {
       "in_review": "Arvioinnissa",
@@ -6375,7 +6442,19 @@
       "skills_help_match": "Help us understand which skills you want to use in this role.",
       "selected": "Selected Skills",
       "supported_providers": "Supported Providers",
-      "tip": "Tip"
+      "tip": "Tip",
+      "add": "lisätä",
+      "problem_frame_helper": "Vastaa erityisesti ja mainitse oletukset ja riskit.",
+      "problem_frame_title": "Kehotteen ymmärtäminen",
+      "risk_helper": "Hyvä vastaus nimeää myös sen, mitä et vielä tiedä.",
+      "risk_prompt": "Mikä voi mennä pieleen ja mitä sinun on tarkistettava?",
+      "risk_title": "Riskit & Tuntemattomat",
+      "schedule_helper": "Kolikkopeli on pyyntö, yritys vahvistaa tarkistuksen jälkeen.",
+      "schedule_title": "Aikatauluta keskustelu",
+      "work_sample_comment_placeholder": "Lyhyt konteksti arvioijalle",
+      "work_sample_helper": "Kuvaa vaiheet, todisteet ja päätöksen kriteerit.",
+      "work_sample_title": "Käytännön vaiheet",
+      "work_sample_url_placeholder": "https://..."
     },
     "insights": {
       "title": "Oivallukset",
@@ -6915,7 +6994,12 @@
       "patience": "Patience",
       "motivation_default": "Vaše motivace směřuje k seberealizaci a objevování nových obzorů.",
       "resonance": "Rezonance",
-      "unlock_identity": "Odemkni svou identitu"
+      "unlock_identity": "Odemkni svou identitu",
+      "start_onboarding": "Täydellinen perehdytys",
+      "mentor_new": "Uusi chat",
+      "mentor_send": "Lähetä",
+      "mentor_ready": "Shami on valmis kehittämään uraasi.",
+      "mentor_typing": "Shami valmistelee vastausta…"
     },
     "applications": {
       "active_handshakes": "Active handshakes",
@@ -7100,7 +7184,12 @@
     },
     "dialogue": {
       "environment_fit": "Environment fit",
-      "next_steps": "Next steps"
+      "next_steps": "Next steps",
+      "candidate_profile_signal": "Ehdokasprofiilin signaali",
+      "full_report": "Täysi raportti",
+      "jobfit_shared_copy": "JobFit-kompassi jaettiin vastauksen kanssa, ja se voi tarkentaa rekrytoijan lukemaa hakijasta.",
+      "shared_jobfit_signal": "JobFit Kompas jaettu signaali",
+      "summary": "Yhteenveto"
     },
     "landing": {
       "eyebrow": "Skill-first hiring for candidates and companies",
@@ -7559,7 +7648,14 @@
       "photo_upload_failed": "Kuvan lataus epäonnistui.",
       "cv_upload_failed": "Asiakirjan lataus epäonnistui.",
       "certifications_label": "Sertifikaatit",
-      "certificates_label": "Todistus"
+      "certificates_label": "Todistus",
+      "education": "Koulutus",
+      "experience": "Kokemus",
+      "job_title": "Rooli",
+      "languages": "Kielet",
+      "skills": "Taidot",
+      "linkedin_label": "LinkedIn",
+      "portfolio_label": "Portfolio"
     },
     "ui": {
       "cookie_banner": {
@@ -7721,7 +7817,42 @@
       "guide_fallback": "Read the challenge carefully. Your first response should demonstrate that you understand the core problem — not just that you are interested.",
       "guide_loading": "Shami lukee roolia, todellisuuskerrosta ja profiiliasi...",
       "watch_out": "Huomioi",
-      "first_move": "Ensimmäinen askel"
+      "first_move": "Ensimmäinen askel",
+      "locked_role_insight_copy": "Shami vertaa tarjousta profiiliin, CV:hen ja JobFit Compassiin: mitä rooli todella testaa, missä on riski ja mikä ensimmäinen askel on järkevä.",
+      "locked_role_insight_title": "Tekoälymainosten arviointi on Premiumissa.",
+      "guide_title_company": "Mitä {{company}} haluaa ymmärtää sinusta"
+    },
+    "onboarding": {
+      "ai_summary": "AI yhteenveto CV:stä",
+      "answer_more": "Täytä vähintään kaksi vastausta riippumatta siitä, mihin profiili perustuu.",
+      "back_to_cv": "Lataa toinen CV",
+      "cv_copy": "Tekoäly poimii siitä kokemuksen, taidot, koulutuksen ja yhteystiedot. Tarkistat kaiken ennen tallentamista.",
+      "cv_skip": "Ohita ja jatka",
+      "cv_title": "Vaihtoehtoisesti lataa CV.",
+      "cv_upload": "Lataa CV",
+      "eyebrow": "Ehdokas koulutukseen",
+      "failed": "Käyttöönotto epäonnistui.",
+      "finish": "Täytä profiili",
+      "no_cv_summary": "Profiili ilman CV:tä",
+      "no_cv_summary_copy": "Voit lisätä CV:si myöhemmin profiiliisi. Käytämme toistaiseksi aloitusvastauksia.",
+      "profile_save_failed": "Profiilin tallennus epäonnistui.",
+      "review_identity": "Nimi ja yhteystiedot",
+      "review_title": "Tarkista profiili.",
+      "signin_copy": "Sitten opastamme sinut perehdyttämisen, valinnaisen CV:n ja profiilin tarkistuksen läpi.",
+      "signin_cta": "Jatka rekisteröintiä",
+      "signin_title": "Ensin luomme tilin.",
+      "story_cta": "Arvioi perehdytys",
+      "story_title": "Ensinnäkin työn suunta.",
+      "title": "Rakennamme profiilin ilman manuaalista täyttöä."
+    },
+    "premium": {
+      "benefit_ai_roles": "AI-mainoksen arviointi",
+      "benefit_jobfit": "Mukana JobFit-kompassi",
+      "benefit_slots": "25 aktiivista vastauspaikkaa",
+      "candidate_title": "Avaa JobFit Compass ja lisää vastauksia.",
+      "jobfit_copy": "Testi avaa työtyyliä, vahvuuksia ja tarkempia suosituksia. Premiumissa saat myös enemmän vastauspaikkoja ja tarjousten tekoälyarviointia.",
+      "jobfit_title": "JobFit Kompas on osa Premiumia.",
+      "upgrade_cta": "Päivitä Premiumiin"
     }
   }
 }

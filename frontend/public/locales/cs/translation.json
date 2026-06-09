@@ -5335,7 +5335,8 @@
       "auth_required_desc": "Profile, archetype, JHI, and recommendations are personal. In logged-out mode, we do not share or display them from local cache.",
       "motivation_default": "Vaše motivace směřuje k seberealizaci a objevování nových obzorů.",
       "resonance": "Rezonance",
-      "unlock_identity": "Odemkni svou identitu"
+      "unlock_identity": "Odemkni svou identitu",
+      "start_onboarding": "Dokončit onboarding"
     },
     "nav": {
       "marketplace": "Katalog",
@@ -5841,7 +5842,11 @@
       "video": "Video",
       "photo": "Photo",
       "no_banner_media": "No slideshow media yet. The main cover will be used by itself.",
-      "primary_video_url": "Primary video URL"
+      "primary_video_url": "Primary video URL",
+      "cybershaman_advises": "Shami doporučuje další krok",
+      "cybershaman_tip": "Shamiho tip",
+      "nav_calendar": "Kalendář",
+      "subtitle_calendar": "Scheduled interviews, availability preferences, and calendar sync."
     },
     "editor": {
       "step_essence": "Podstata role",
@@ -5976,7 +5981,8 @@
       "border_disabled": "{{country}} disabled",
       "summary_curated": "JHI {{score}}/100, estimated net value {{value}} {{currency}} monthly and direct branded journey entry.",
       "summary_imported": "JHI {{score}}/100, realistic outbound preparation considering {{fit}} fit and real costs.",
-      "domestic": "domestic"
+      "domestic": "domestic",
+      "border": "border"
     },
     "marketplace": {
       "pulse_title": "Co je nového",
@@ -6228,7 +6234,54 @@
       "hero_level_expert": "Expert",
       "you": "ty",
       "load_more_count": "Zobrazit dalších {{count}} nabídek",
-      "load_next_from_db": "Načíst dalších {{count}} z databáze"
+      "load_next_from_db": "Načíst dalších {{count}} z databáze",
+      "ai_applied": "AI filtry: {{chips}}",
+      "ai_applied_text": "Hledám podle: {{query}}",
+      "ai_search_button": "Hledat s AI",
+      "ai_search_label": "Vyhledávání pomocí AI",
+      "ai_search_placeholder": "Hledat podle role, skillu, firmy… nebo přirozeně: „remote React práce v Praze nad 60k“",
+      "all_active": "Všechny aktivní příležitosti",
+      "badge_best_fit": "Doporučujeme",
+      "best_opportunities": "Tvé nejlepší příležitosti",
+      "commute_from_home": "{{count}} min od domova",
+      "commute_minutes": "{{count}} min",
+      "companies_interested": "Firmy, které tě chtějí poznat",
+      "companies_interested_sub": "Firmy, které vidí potenciál ve tvém profilu",
+      "company_match_line": "Tvůj profil odpovídá {{percent}} % toho, co hledáme.",
+      "company_match_sub": "Rádi tě poznáme v handshake.",
+      "difficulty": "Náročnost",
+      "difficulty_any": "Libovolná",
+      "difficulty_high": "Vysoká",
+      "difficulty_label": "{{level}} náročnost",
+      "difficulty_low": "Nízká",
+      "difficulty_medium": "Střední",
+      "discover_by_category": "Objevuj podle kategorií",
+      "field": "Obor",
+      "hot_opportunity": "Horká příležitost",
+      "learn_more": "Zjistit víc",
+      "location": "Lokalita",
+      "location_all": "Všechny lokality",
+      "net_suffix": "čistého",
+      "no_results": "Žádné nabídky neodpovídají tvému hledání. Zkus upravit filtry nebo dotaz.",
+      "open_handshake": "Otevřít handshake",
+      "percent_match": "{{percent}}% match",
+      "position_count": "{{count}} pozic",
+      "reset": "Zrušit",
+      "salary": "Mzda",
+      "salary_any": "Libovolná mzda",
+      "scroll_more": "Posunout dál",
+      "search_in_marketplace": "Hledat v marketplace…",
+      "show_more_offers": "Zobrazit více nabídek",
+      "similar_sub": "Role a firmy v podobném zaměření",
+      "similar_to_interest": "Podobné jako to, co tě zajímá",
+      "slots_few": "{{count}} volné sloty",
+      "slots_many": "{{count}} volných slotů",
+      "slots_one": "{{count}} volný slot",
+      "sort": "Řazení",
+      "sort_distance": "Nejbližší",
+      "sort_relevance": "Nejrelevantnější",
+      "sort_salary": "Nejvyšší mzda",
+      "why_match": "Proč je to match?"
     },
     "status": {
       "in_review": "V recenzí",
@@ -6289,7 +6342,9 @@
       "hint_first_step": "Jak vypadá první signál",
       "hint_journey": "Jak probíhá výběrové řízení",
       "hint_context": "Kontext firmy",
-      "guide_fallback": "Přečti si výzvu pozorně. Tvá první odpověď by měla ukázat, že chápeš jádro problému – nestačí jen zájem."
+      "guide_fallback": "Přečti si výzvu pozorně. Tvá první odpověď by měla ukázat, že chápeš jádro problému – nestačí jen zájem.",
+      "locked_role_insight_copy": "Shami porovná nabídku s profilem, CV a JobFit Kompasem: co role opravdu testuje, kde je riziko a jaký první krok dává smysl.",
+      "locked_role_insight_title": "AI hodnocení inzerátu je v Premium."
     },
     "prep": {
       "title": "Detail inzerátu",
@@ -6475,7 +6530,19 @@
       "skills_help_match": "Pomoz nám pochopit, které dovednosti chceš v této roli nejvíce využívat.",
       "selected": "Vybrané dovednosti",
       "supported_providers": "Podporované služby",
-      "tip": "Tip"
+      "tip": "Tip",
+      "add": "Add",
+      "problem_frame_helper": "Answer specifically, stating assumptions and risks.",
+      "problem_frame_title": "Understanding the Prompt",
+      "risk_helper": "A good answer also names what you don't know yet.",
+      "risk_prompt": "What could go wrong and what would you need to verify?",
+      "risk_title": "Risks & Unknowns",
+      "schedule_helper": "The slot is a request, the company will confirm after review.",
+      "schedule_title": "Schedule Discussion",
+      "work_sample_comment_placeholder": "Short context for the reviewer",
+      "work_sample_helper": "Describe steps, evidence, and decision criteria.",
+      "work_sample_title": "Practical Steps",
+      "work_sample_url_placeholder": "https://..."
     },
     "insights": {
       "title": "Candidate intelligence",
@@ -7083,7 +7150,12 @@
     },
     "dialogue": {
       "environment_fit": "Prostředí",
-      "next_steps": "Další kroky"
+      "next_steps": "Další kroky",
+      "candidate_profile_signal": "Signál profilu kandidáta",
+      "full_report": "Plná zpráva",
+      "jobfit_shared_copy": "JobFit Kompas byl sdílen s odpovědí a může zpřesnit recruiterovo čtení kandidáta.",
+      "shared_jobfit_signal": "Sdílený signál JobFit Kompasu",
+      "summary": "Souhrn"
     },
     "landing": {
       "eyebrow": "Skill-first hiring pro uchazeče i firmy",
@@ -7544,7 +7616,12 @@
       "certifications_label": "Certifikace",
       "certificates_label": "Osvědčení",
       "linkedin_label": "LinkedIn",
-      "portfolio_label": "Portfolio"
+      "portfolio_label": "Portfolio",
+      "education": "Vzdělání",
+      "experience": "Zkušenosti",
+      "job_title": "Role",
+      "languages": "Jazyky",
+      "skills": "Dovednosti"
     },
     "ui": {
       "cookie_banner": {
@@ -7682,6 +7759,38 @@
     },
     "loading": {
       "workspace": "Initializing workspace..."
+    },
+    "onboarding": {
+      "ai_summary": "AI shrnutí z CV",
+      "answer_more": "Vyplň prosím alespoň dvě odpovědi, ať má profil z čeho vycházet.",
+      "back_to_cv": "Nahrát jiné CV",
+      "cv_copy": "AI z něj vytáhne zkušenosti, dovednosti, vzdělání a kontaktní údaje. Před uložením vše zkontroluješ.",
+      "cv_skip": "Přeskočit a pokračovat",
+      "cv_title": "Volitelně nahraj CV.",
+      "cv_upload": "Nahrát CV",
+      "eyebrow": "Kandidátský onboarding",
+      "failed": "Onboarding se nepodařilo dokončit.",
+      "finish": "Dokončit profil",
+      "no_cv_summary": "Profil bez CV",
+      "no_cv_summary_copy": "CV můžeš doplnit později v profilu. Zatím použijeme odpovědi z onboardingu.",
+      "profile_save_failed": "Profil se nepodařilo uložit.",
+      "review_identity": "Jméno a kontakt",
+      "review_title": "Zkontroluj profil.",
+      "signin_copy": "Pak tě provedeme onboardingem, volitelným CV a kontrolou profilu.",
+      "signin_cta": "Pokračovat registrací",
+      "signin_title": "Nejdřív vytvoříme účet.",
+      "story_cta": "Vyhodnotit onboarding",
+      "story_title": "Nejdřív pracovní směr.",
+      "title": "Postavíme profil bez ručního vyplňování."
+    },
+    "premium": {
+      "benefit_ai_roles": "AI hodnocení inzerátů",
+      "benefit_jobfit": "JobFit Kompas v ceně",
+      "benefit_slots": "25 aktivních odpovědních slotů",
+      "candidate_title": "Odemkni JobFit Kompas a více odpovědí.",
+      "jobfit_copy": "Test odemkne pracovní styl, silné stránky a přesnější doporučení. V Premium získáš také více odpovědních slotů a AI hodnocení nabídek.",
+      "jobfit_title": "JobFit Kompas je součást Premium.",
+      "upgrade_cta": "Upgradovat na Premium"
     }
   }
 }

@@ -6978,7 +6978,11 @@
       "video": "Video",
       "photo": "Photo",
       "no_banner_media": "No slideshow media yet. The main cover will be used by itself.",
-      "primary_video_url": "Primary video URL"
+      "primary_video_url": "Primary video URL",
+      "cybershaman_advises": "Shami zaleca następny krok",
+      "cybershaman_tip": "Wskazówka Shamiego",
+      "nav_calendar": "Kalendarz",
+      "subtitle_calendar": "Zaplanowane rozmowy kwalifikacyjne, preferencje dostępności i synchronizacja kalendarza."
     },
     "role": {
       "full_journey": "Full Jobshaman journey",
@@ -7005,7 +7009,8 @@
       "domestic": "domestic",
       "market_cross_border": "Přeshraniční",
       "market_domestic": "Tuzemský",
-      "open_listing": "Otevřít původní inzerát"
+      "open_listing": "Otevřít původní inzerát",
+      "border": "granica"
     },
     "marketplace": {
       "pulse_title": "What's new",
@@ -7257,7 +7262,54 @@
       "hero_level_expert": "Ekspert",
       "you": "ty",
       "load_more_count": "Zobrazit dalších {{count}} nabídek",
-      "load_next_from_db": "Načíst dalších {{count}} z databáze"
+      "load_next_from_db": "Načíst dalších {{count}} z databáze",
+      "ai_applied": "Filtry AI: {{chips}}",
+      "ai_applied_text": "Wyszukiwanie według: {{query}}",
+      "ai_search_button": "Szukaj za pomocą sztucznej inteligencji",
+      "ai_search_label": "Szukaj za pomocą sztucznej inteligencji",
+      "ai_search_placeholder": "Szukaj według roli, umiejętności, firmy... lub naturalnie: „zdalna praca w React w Pradze ponad 60 tys.”",
+      "all_active": "Wszystkie aktywne możliwości",
+      "badge_best_fit": "Polecamy",
+      "best_opportunities": "Twoje najlepsze możliwości",
+      "commute_from_home": "{{count}} min od domu",
+      "commute_minutes": "{{count}} min",
+      "companies_interested": "Firmy, które chcą Cię poznać",
+      "companies_interested_sub": "Firmy, które widzą potencjał w Twoim profilu",
+      "company_match_line": "Twój profil pasuje do {{percent}}% tego, czego szukamy.",
+      "company_match_sub": "Z przyjemnością spotkamy się z Tobą w uścisku dłoni.",
+      "difficulty": "Trudność",
+      "difficulty_any": "Każdy",
+      "difficulty_high": "Wysoki",
+      "difficulty_label": "{{level}} trudność",
+      "difficulty_low": "Niski",
+      "difficulty_medium": "Średni",
+      "discover_by_category": "Odkrywaj według kategorii",
+      "field": "Pole",
+      "hot_opportunity": "Gorąca okazja",
+      "learn_more": "Dowiedz się więcej",
+      "location": "Miejscowości",
+      "location_all": "Wszystkie lokalizacje",
+      "net_suffix": "czysty",
+      "no_results": "Żadna oferta nie pasuje do Twojego wyszukiwania. Spróbuj edytować filtry lub zapytanie.",
+      "open_handshake": "Otwórz Handshake",
+      "percent_match": "{{percent}}% dopasowania",
+      "position_count": "{{count}} pozycje",
+      "reset": "Anulować",
+      "salary": "Wynagrodzenie",
+      "salary_any": "Dowolna pensja",
+      "scroll_more": "Pójść dalej",
+      "search_in_marketplace": "Przeszukaj rynek…",
+      "show_more_offers": "Zobacz więcej ofert",
+      "similar_sub": "Role i firmy o podobnym charakterze",
+      "similar_to_interest": "Podobne do tego, co Cię interesuje",
+      "slots_few": "{{count}} wolne sloty",
+      "slots_many": "{{count}} wolnych slotów",
+      "slots_one": "{{count}} wolny slot",
+      "sort": "Sortowanie",
+      "sort_distance": "Najbliżej",
+      "sort_relevance": "Najbardziej istotne",
+      "sort_salary": "Najwyższa pensja",
+      "why_match": "Dlaczego to dopasowanie?"
     },
     "status": {
       "in_review": "In review",
@@ -7492,7 +7544,19 @@
       "skills_help_match": "Help us understand which skills you want to use in this role.",
       "selected": "Selected Skills",
       "supported_providers": "Supported Providers",
-      "tip": "Tip"
+      "tip": "Tip",
+      "add": "dodać",
+      "problem_frame_helper": "Odpowiedz konkretnie, podając założenia i ryzyko.",
+      "problem_frame_title": "Zrozumienie podpowiedzi",
+      "risk_helper": "Dobra odpowiedź określa także to, czego jeszcze nie wiesz.",
+      "risk_prompt": "Co może pójść nie tak i co należy sprawdzić?",
+      "risk_title": "Zagrożenia i niewiadome",
+      "schedule_helper": "Miejsce to jest żądaniem, a firma potwierdzi je po sprawdzeniu.",
+      "schedule_title": "Zaplanuj dyskusję",
+      "work_sample_comment_placeholder": "Krótki kontekst dla recenzenta",
+      "work_sample_helper": "Opisać kroki, dowody i kryteria podejmowania decyzji.",
+      "work_sample_title": "Praktyczne kroki",
+      "work_sample_url_placeholder": "https://..."
     },
     "insights": {
       "title": "My profile and overview",
@@ -8026,7 +8090,8 @@
       "patience": "Patience",
       "motivation_default": "Vaše motivace směřuje k seberealizaci a objevování nových obzorů.",
       "resonance": "Rezonance",
-      "unlock_identity": "Odemkni svou identitu"
+      "unlock_identity": "Odemkni svou identitu",
+      "start_onboarding": "Zakończ wdrażanie"
     },
     "dimensions": {
       "cognitive_flex": "Cognitive flexibility",
@@ -8225,7 +8290,12 @@
     },
     "dialogue": {
       "environment_fit": "Environment fit",
-      "next_steps": "Next steps"
+      "next_steps": "Next steps",
+      "candidate_profile_signal": "Sygnał profilu kandydata",
+      "full_report": "Pełny raport",
+      "jobfit_shared_copy": "Kompas JobFit został udostępniony w odpowiedzi i może udoskonalić sposób, w jaki rekruter postrzega kandydata.",
+      "shared_jobfit_signal": "Udostępniony sygnał kompasu JobFit",
+      "summary": "Streszczenie"
     },
     "profile": {
       "my_profile_label": "My Profile",
@@ -8535,7 +8605,14 @@
       "photo_upload_failed": "Przesyłanie zdjęcia nie powiodło się.",
       "cv_upload_failed": "Przesyłanie dokumentu nie powiodło się.",
       "certifications_label": "Certyfikaty",
-      "certificates_label": "Zaświadczenie"
+      "certificates_label": "Zaświadczenie",
+      "education": "Wykształcenie",
+      "experience": "Doświadczenie",
+      "job_title": "Rola",
+      "languages": "Języki",
+      "skills": "Umiejętności",
+      "linkedin_label": "LinkedIn",
+      "portfolio_label": "Portfolio"
     },
     "ui": {
       "cookie_banner": {
@@ -8793,7 +8870,41 @@
       "guide_loading": "Shami czyta rolę, warstwę realiów i Twój profil...",
       "watch_out": "Na co uważać",
       "first_move": "Pierwszy krok",
-      "guide_title_company": "What {{company}} wants to understand about you"
+      "guide_title_company": "What {{company}} wants to understand about you",
+      "locked_role_insight_copy": "Shami porównuje ofertę z profilem, CV i Kompasem JobFit: co tak naprawdę sprawdza ta rola, gdzie jest ryzyko i jaki pierwszy krok ma sens.",
+      "locked_role_insight_title": "Ocena reklam AI jest dostępna w wersji Premium."
+    },
+    "onboarding": {
+      "ai_summary": "Podsumowanie AI z CV",
+      "answer_more": "Proszę podać co najmniej dwie odpowiedzi, niezależnie od tego, na czym opiera się profil.",
+      "back_to_cv": "Prześlij kolejne CV",
+      "cv_copy": "AI wydobędzie z niej doświadczenie, umiejętności, wykształcenie i dane kontaktowe. Sprawdzasz wszystko przed zapisaniem.",
+      "cv_skip": "Pomiń i kontynuuj",
+      "cv_title": "Opcjonalnie prześlij CV.",
+      "cv_upload": "Prześlij CV",
+      "eyebrow": "Wdrożenie kandydata",
+      "failed": "Wdrożenie nie zostało ukończone.",
+      "finish": "Uzupełnij profil",
+      "no_cv_summary": "Profil bez CV",
+      "no_cv_summary_copy": "Swoje CV możesz dodać później w swoim profilu. Na razie będziemy korzystać z odpowiedzi wprowadzających.",
+      "profile_save_failed": "Nie udało się zapisać profilu.",
+      "review_identity": "Imię i kontakt",
+      "review_title": "Sprawdź profil.",
+      "signin_copy": "Następnie przeprowadzimy Cię przez proces onboardingu, opcjonalne CV i sprawdzenie profilu.",
+      "signin_cta": "Kontynuuj rejestrację",
+      "signin_title": "Najpierw tworzymy konto.",
+      "story_cta": "Oceń wdrożenie",
+      "story_title": "Po pierwsze, kierunek pracy.",
+      "title": "Profil zbudujemy bez ręcznego wypełniania."
+    },
+    "premium": {
+      "benefit_ai_roles": "Ocena reklam AI",
+      "benefit_jobfit": "W zestawie kompas JobFit",
+      "benefit_slots": "25 aktywnych miejsc odpowiedzi",
+      "candidate_title": "Odblokuj kompas JobFit i więcej odpowiedzi.",
+      "jobfit_copy": "Test odblokowuje styl pracy, mocne strony i trafniejsze rekomendacje. W wersji Premium zyskujesz także więcej miejsc na odpowiedzi i ocenę ofert przez sztuczną inteligencję.",
+      "jobfit_title": "JobFit Kompas jest częścią Premium.",
+      "upgrade_cta": "Uaktualnij do wersji Premium"
     }
   },
   "faq": {

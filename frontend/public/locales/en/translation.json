@@ -5335,7 +5335,8 @@
       "patience": "Patience",
       "motivation_default": "Vaše motivace směřuje k seberealizaci a objevování nových obzorů.",
       "resonance": "Rezonance",
-      "unlock_identity": "Odemkni svou identitu"
+      "unlock_identity": "Odemkni svou identitu",
+      "start_onboarding": "Complete onboarding"
     },
     "nav": {
       "marketplace": "Marketplace",
@@ -5841,7 +5842,11 @@
       "video": "Video",
       "photo": "Photo",
       "no_banner_media": "No slideshow media yet. The main cover will be used by itself.",
-      "primary_video_url": "Primary video URL"
+      "primary_video_url": "Primary video URL",
+      "cybershaman_advises": "Shami recommends the next step",
+      "cybershaman_tip": "Shami's tip",
+      "nav_calendar": "Calendar",
+      "subtitle_calendar": "Scheduled interviews, availability preferences, and calendar sync."
     },
     "editor": {
       "step_essence": "Role Essence",
@@ -5974,7 +5979,11 @@
       "border_disabled": "{{country}} disabled",
       "summary_curated": "JHI {{score}}/100, estimated net value {{value}} {{currency}} monthly and direct branded journey entry.",
       "summary_imported": "JHI {{score}}/100, realistic outbound preparation considering {{fit}} fit and real costs.",
-      "domestic": "domestic"
+      "domestic": "domestic",
+      "border": "border",
+      "open_listing": "Open the original ad",
+      "market_domestic": "Domestic",
+      "market_cross_border": "Cross-border"
     },
     "marketplace": {
       "pulse_title": "What's new",
@@ -6226,7 +6235,54 @@
       "hero_level_expert": "Expert",
       "you": "ty",
       "load_more_count": "Zobrazit dalších {{count}} nabídek",
-      "load_next_from_db": "Načíst dalších {{count}} z databáze"
+      "load_next_from_db": "Načíst dalších {{count}} z databáze",
+      "ai_applied": "AI Filters: {{chips}}",
+      "ai_applied_text": "Searching by: {{query}}",
+      "ai_search_button": "Search with AI",
+      "ai_search_label": "Search with AI",
+      "ai_search_placeholder": "Search by role, skill, company... or naturally: \"remote React jobs in Prague over 60k\"",
+      "all_active": "All active opportunities",
+      "badge_best_fit": "We recommend",
+      "best_opportunities": "Your best opportunities",
+      "commute_from_home": "{{count}} min from home",
+      "commute_minutes": "{{count}} min",
+      "companies_interested": "Companies that want to get to know you",
+      "companies_interested_sub": "Companies that see potential in your profile",
+      "company_match_line": "Your profile matches {{percent}}% of what we're looking for.",
+      "company_match_sub": "We will be happy to meet you in a handshake.",
+      "difficulty": "Difficulty",
+      "difficulty_any": "Any",
+      "difficulty_high": "High",
+      "difficulty_label": "{{level}} difficulty",
+      "difficulty_low": "Low",
+      "difficulty_medium": "Medium",
+      "discover_by_category": "Discover by category",
+      "field": "Field",
+      "hot_opportunity": "Hot opportunity",
+      "learn_more": "Find out more",
+      "location": "Localities",
+      "location_all": "All locations",
+      "net_suffix": "clean",
+      "no_results": "No offers match your search. Try to edit the filters or query.",
+      "open_handshake": "Open Handshake",
+      "percent_match": "{{percent}} % match",
+      "position_count": "{{count}} positions",
+      "reset": "Cancel",
+      "salary": "Wages",
+      "salary_any": "Any salary",
+      "scroll_more": "Move on",
+      "search_in_marketplace": "Search the marketplace…",
+      "show_more_offers": "View more offers",
+      "similar_sub": "Roles and companies in a similar focus",
+      "similar_to_interest": "Similar to what you are interested in",
+      "slots_few": "{{count}} available slots",
+      "slots_many": "{{count}} available slots",
+      "slots_one": "{{count}} available slot",
+      "sort": "Sorting",
+      "sort_distance": "The closest",
+      "sort_relevance": "The most relevant",
+      "sort_salary": "Highest salary",
+      "why_match": "Why is it a match?"
     },
     "status": {
       "in_review": "In review",
@@ -6287,7 +6343,9 @@
       "guide_fallback": "Read the challenge carefully. Your first response should demonstrate that you understand the core problem — not just that you are interested.",
       "guide_loading": "Shami is reading the role, reality layer, and your profile...",
       "watch_out": "Watch out",
-      "first_move": "First move"
+      "first_move": "First move",
+      "locked_role_insight_copy": "Shami compares the offer with the profile, CV and JobFit Compass: what the role really tests, where is the risk and what first step makes sense.",
+      "locked_role_insight_title": "AI ad evaluation is in Premium."
     },
     "prep": {
       "title": "Job ad detail",
@@ -6473,7 +6531,19 @@
       "skills_help_match": "Help us understand which skills you want to use in this role.",
       "selected": "Selected Skills",
       "supported_providers": "Supported Providers",
-      "tip": "Tip"
+      "tip": "Tip",
+      "add": "add",
+      "problem_frame_helper": "Answer specifically, stating assumptions and risks.",
+      "problem_frame_title": "Understanding the Prompt",
+      "risk_helper": "A good answer also names what you don't know yet.",
+      "risk_prompt": "What could go wrong and what would you need to verify?",
+      "risk_title": "Risks & Unknowns",
+      "schedule_helper": "The slot is a request, the company will confirm after review.",
+      "schedule_title": "Schedule Discussion",
+      "work_sample_comment_placeholder": "Short context for the reviewer",
+      "work_sample_helper": "Describe steps, evidence, and decision criteria.",
+      "work_sample_title": "Practical Steps",
+      "work_sample_url_placeholder": "https://..."
     },
     "insights": {
       "title": "My profile and overview",
@@ -7081,7 +7151,12 @@
     },
     "dialogue": {
       "environment_fit": "Environment fit",
-      "next_steps": "Next steps"
+      "next_steps": "Next steps",
+      "candidate_profile_signal": "Candidate profile signal",
+      "full_report": "Full report",
+      "jobfit_shared_copy": "The JobFit Compass was shared with the response and can refine the recruiter's reading of the candidate.",
+      "shared_jobfit_signal": "Shared JobFit Compass signal",
+      "summary": "Summary"
     },
     "landing": {
       "eyebrow": "Skill-first hiring for candidates and companies",
@@ -7542,7 +7617,12 @@
       "certifications_label": "Certifications",
       "certificates_label": "Certificate",
       "linkedin_label": "LinkedIn",
-      "portfolio_label": "Portfolio"
+      "portfolio_label": "Portfolio",
+      "education": "Education",
+      "experience": "Experience",
+      "job_title": "Role",
+      "languages": "Languages",
+      "skills": "Skills"
     },
     "ui": {
       "cookie_banner": {
@@ -7680,6 +7760,38 @@
     },
     "loading": {
       "workspace": "Initializing workspace..."
+    },
+    "onboarding": {
+      "ai_summary": "AI summary from CV",
+      "answer_more": "Please fill in at least two answers, whatever the profile is based on.",
+      "back_to_cv": "Upload another CV",
+      "cv_copy": "AI will extract experience, skills, education and contact details from it. You check everything before saving.",
+      "cv_skip": "Skip and continue",
+      "cv_title": "Optionally upload a CV.",
+      "cv_upload": "Upload CV",
+      "eyebrow": "Candidate onboarding",
+      "failed": "Onboarding failed to complete.",
+      "finish": "Complete the profile",
+      "no_cv_summary": "Profile without CV",
+      "no_cv_summary_copy": "You can add your CV later in your profile. For now, we'll use the onboarding responses.",
+      "profile_save_failed": "Failed to save profile.",
+      "review_identity": "Name and contact",
+      "review_title": "Check the profile.",
+      "signin_copy": "Then we will guide you through onboarding, an optional CV and profile check.",
+      "signin_cta": "Continue with registration",
+      "signin_title": "First we create an account.",
+      "story_cta": "Evaluate onboarding",
+      "story_title": "First, the work direction.",
+      "title": "We will build a profile without manual filling."
+    },
+    "premium": {
+      "benefit_ai_roles": "AI ad evaluation",
+      "benefit_jobfit": "JobFit Compass included",
+      "benefit_slots": "25 active response slots",
+      "candidate_title": "Unlock JobFit Compass and more answers.",
+      "jobfit_copy": "The test unlocks work style, strengths and more accurate recommendations. In Premium you also get more answer slots and AI evaluation of offers.",
+      "jobfit_title": "JobFit Kompas is part of Premium.",
+      "upgrade_cta": "Upgrade to Premium"
     }
   }
 }
