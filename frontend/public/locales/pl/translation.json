@@ -7309,7 +7309,9 @@
       "sort_distance": "Najbliżej",
       "sort_relevance": "Najbardziej istotne",
       "sort_salary": "Najwyższa pensja",
-      "why_match": "Dlaczego to dopasowanie?"
+      "why_match": "Dlaczego to dopasowanie?",
+      "shifts_3": "3 zmiany",
+      "try_it": "Wypróbuj"
     },
     "status": {
       "in_review": "In review",
@@ -8895,7 +8897,14 @@
       "signin_title": "Najpierw tworzymy konto.",
       "story_cta": "Oceń wdrożenie",
       "story_title": "Po pierwsze, kierunek pracy.",
-      "title": "Profil zbudujemy bez ręcznego wypełniania."
+      "title": "Profil zbudujemy bez ręcznego wypełniania.",
+      "fill_later": "Dodaj później",
+      "q_energy_label": "Co dodaje Ci energii w pracy, a co Cię powstrzymuje?",
+      "q_energy_ph": "Opisz środowisko, tempo, odpowiedzialność, zespół lub rodzaj zadań.",
+      "q_proof_label": "Z jakiego doświadczenia lub wyniku jesteś dumny?",
+      "q_proof_ph": "Wszystko czego potrzebujesz to konkretna sytuacja, projekt lub problem, który rozwiązałeś.",
+      "q_work_direction_label": "Jakiego rodzaju pracy szukasz teraz?",
+      "q_work_direction_ph": "Np. praca nad produktem, operacje, rola techniczna, praca z ludźmi..."
     },
     "premium": {
       "benefit_ai_roles": "Ocena reklam AI",

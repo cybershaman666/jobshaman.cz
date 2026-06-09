@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { ArrowRight, CheckCircle2, FileText, Loader2, Sparkles, Upload, UserRound } from 'lucide-react';
 
 import type { CVDocument, UserProfile } from '../../types';
@@ -241,11 +242,11 @@ export const CandidateOnboardingWizard: React.FC<{
               <div className="mt-5 grid gap-4">
                 {questions.map((question) => (
                   <label key={question.id} className="block">
-                    <span className="text-sm font-semibold text-slate-800">{question.label}</span>
+                    <span className="text-sm font-semibold text-slate-800">{t(`rebuild.onboarding.q_${question.id}_label`, { defaultValue: question.label })}</span>
                     <textarea
                       value={answers[question.id] || ''}
                       onChange={(event) => setAnswers((current) => ({ ...current, [question.id]: event.target.value }))}
-                      placeholder={question.placeholder}
+                      placeholder={t(`rebuild.onboarding.q_${question.id}_ph`, { defaultValue: question.placeholder })}
                       className="mt-2 min-h-[6.5rem] w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-800 outline-none transition focus:border-[#0f95ac] focus:bg-white"
                     />
                   </label>
@@ -351,12 +352,15 @@ export const CandidateOnboardingWizard: React.FC<{
   );
 };
 
-const ReviewSectionToggle: React.FC<{ label: string; value?: string | null; checked: boolean; onChange: (checked: boolean) => void }> = ({ label, value, checked, onChange }) => (
+const ReviewSectionToggle: React.FC<{ label: string; value?: string | null; checked: boolean; onChange: (checked: boolean) => void }> = ({ label, value, checked, onChange }) => {
+  const { t } = useTranslation();
+  return (
   <label className="flex gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
     <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="mt-1 h-4 w-4 shrink-0 accent-[#0f95ac]" />
     <span>
       <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">{label}</span>
-      <span className="mt-1 block min-h-5 break-words text-sm font-semibold text-slate-900">{value || 'Doplnit později'}</span>
+      <span className="mt-1 block min-h-5 break-words text-sm font-semibold text-slate-900">{value || t('rebuild.onboarding.fill_later', { defaultValue: 'Doplnit později' })}</span>
     </span>
   </label>
-);
+  );
+};

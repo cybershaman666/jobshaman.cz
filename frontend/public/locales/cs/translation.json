@@ -6281,7 +6281,9 @@
       "sort_distance": "Nejbližší",
       "sort_relevance": "Nejrelevantnější",
       "sort_salary": "Nejvyšší mzda",
-      "why_match": "Proč je to match?"
+      "why_match": "Proč je to match?",
+      "shifts_3": "3 směny",
+      "try_it": "Vyzkoušet"
     },
     "status": {
       "in_review": "V recenzí",
@@ -7781,7 +7783,14 @@
       "signin_title": "Nejdřív vytvoříme účet.",
       "story_cta": "Vyhodnotit onboarding",
       "story_title": "Nejdřív pracovní směr.",
-      "title": "Postavíme profil bez ručního vyplňování."
+      "title": "Postavíme profil bez ručního vyplňování.",
+      "fill_later": "Doplnit později",
+      "q_energy_label": "Co ti v práci dodává energii a co tě naopak brzdí?",
+      "q_energy_ph": "Popiš prostředí, tempo, odpovědnost, tým nebo typ úkolů.",
+      "q_proof_label": "Na jakou zkušenost nebo výsledek jsi pyšný/á?",
+      "q_proof_ph": "Stačí konkrétní situace, projekt nebo problém, který jsi vyřešil/a.",
+      "q_work_direction_label": "Jaký typ práce teď hledáš?",
+      "q_work_direction_ph": "Např. produktová práce, operations, technická role, práce s lidmi..."
     },
     "premium": {
       "benefit_ai_roles": "AI hodnocení inzerátů",

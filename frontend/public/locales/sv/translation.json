@@ -6185,7 +6185,9 @@
       "sort_distance": "Den närmaste",
       "sort_relevance": "Den mest relevanta",
       "sort_salary": "Högsta lönen",
-      "why_match": "Varför är det en match?"
+      "why_match": "Varför är det en match?",
+      "shifts_3": "3 skift",
+      "try_it": "Prova det"
     },
     "status": {
       "in_review": "Granskas",
@@ -7830,7 +7832,14 @@
       "signin_title": "Först skapar vi ett konto.",
       "story_cta": "Utvärdera onboarding",
       "story_title": "Först arbetsriktningen.",
-      "title": "Vi kommer att bygga en profil utan manuell fyllning."
+      "title": "Vi kommer att bygga en profil utan manuell fyllning.",
+      "fill_later": "Lägg till senare",
+      "q_energy_label": "Vad ger dig energi på jobbet och vad håller dig tillbaka?",
+      "q_energy_ph": "Beskriv miljö, takt, ansvar, team eller typ av uppgifter.",
+      "q_proof_label": "Vilken erfarenhet eller resultat är du stolt över?",
+      "q_proof_ph": "Allt du behöver är en specifik situation, projekt eller problem som du har löst.",
+      "q_work_direction_label": "Vilken typ av jobb söker du nu?",
+      "q_work_direction_ph": "Till exempel. produktarbete, drift, teknisk roll, arbete med människor..."
     },
     "premium": {
       "benefit_ai_roles": "AI-annonsutvärdering",

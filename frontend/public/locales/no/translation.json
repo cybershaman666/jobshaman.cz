@@ -6185,7 +6185,9 @@
       "sort_distance": "Den nærmeste",
       "sort_relevance": "Den mest relevante",
       "sort_salary": "Høyeste lønn",
-      "why_match": "Hvorfor er det en match?"
+      "why_match": "Hvorfor er det en match?",
+      "shifts_3": "3 skift",
+      "try_it": "Prøv det"
     },
     "status": {
       "in_review": "Til vurdering",
@@ -7830,7 +7832,14 @@
       "signin_title": "Først oppretter vi en konto.",
       "story_cta": "Evaluer onboarding",
       "story_title": "Først arbeidsretningen.",
-      "title": "Vi skal bygge en profil uten manuell utfylling."
+      "title": "Vi skal bygge en profil uten manuell utfylling.",
+      "fill_later": "Legg til senere",
+      "q_energy_label": "Hva gir deg energi på jobb og hva holder deg tilbake?",
+      "q_energy_ph": "Beskriv miljø, tempo, ansvar, team eller type oppgaver.",
+      "q_proof_label": "Hvilken erfaring eller resultat er du stolt av?",
+      "q_proof_ph": "Alt du trenger er en spesifikk situasjon, prosjekt eller problem som du har løst.",
+      "q_work_direction_label": "Hva slags jobb ser du etter nå?",
+      "q_work_direction_ph": "f.eks. produktarbeid, drift, teknisk rolle, arbeid med mennesker..."
     },
     "premium": {
       "benefit_ai_roles": "AI annonseevaluering",

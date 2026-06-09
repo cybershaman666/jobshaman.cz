@@ -6282,7 +6282,9 @@
       "sort_distance": "The closest",
       "sort_relevance": "The most relevant",
       "sort_salary": "Highest salary",
-      "why_match": "Why is it a match?"
+      "why_match": "Why is it a match?",
+      "shifts_3": "3 shifts",
+      "try_it": "Try it out"
     },
     "status": {
       "in_review": "In review",
@@ -7782,7 +7784,14 @@
       "signin_title": "First we create an account.",
       "story_cta": "Evaluate onboarding",
       "story_title": "First, the work direction.",
-      "title": "We will build a profile without manual filling."
+      "title": "We will build a profile without manual filling.",
+      "fill_later": "Add later",
+      "q_energy_label": "What gives you energy at work and what holds you back?",
+      "q_energy_ph": "Describe the environment, pace, responsibility, team or type of tasks.",
+      "q_proof_label": "What experience or result are you proud of?",
+      "q_proof_ph": "All you need is a specific situation, project or problem that you solved.",
+      "q_work_direction_label": "What type of job are you looking for now?",
+      "q_work_direction_ph": "E.g. product work, operations, technical role, working with people..."
     },
     "premium": {
       "benefit_ai_roles": "AI ad evaluation",

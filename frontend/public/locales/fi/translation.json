@@ -6198,7 +6198,9 @@
       "sort_distance": "Lähin",
       "sort_relevance": "Asianmukaisin",
       "sort_salary": "Korkein palkka",
-      "why_match": "Miksi tämä sopii?"
+      "why_match": "Miksi tämä sopii?",
+      "shifts_3": "3 vuoroa",
+      "try_it": "Kokeile sitä"
     },
     "status": {
       "in_review": "Arvioinnissa",
@@ -7843,7 +7845,14 @@
       "signin_title": "Ensin luomme tilin.",
       "story_cta": "Arvioi perehdytys",
       "story_title": "Ensinnäkin työn suunta.",
-      "title": "Rakennamme profiilin ilman manuaalista täyttöä."
+      "title": "Rakennamme profiilin ilman manuaalista täyttöä.",
+      "fill_later": "Lisää myöhemmin",
+      "q_energy_label": "Mikä antaa sinulle energiaa työssä ja mikä pidättelee sinua?",
+      "q_energy_ph": "Kuvaile ympäristöä, tahtia, vastuuta, tiimiä tai tehtävien tyyppiä.",
+      "q_proof_label": "Mistä kokemuksesta tai tuloksesta olet ylpeä?",
+      "q_proof_ph": "Tarvitset vain tietyn tilanteen, projektin tai ongelman, jonka olet ratkaissut.",
+      "q_work_direction_label": "Millaista työtä haet nyt?",
+      "q_work_direction_ph": "Esim. tuotetyö, toiminta, tekninen rooli, työskentely ihmisten kanssa..."
     },
     "premium": {
       "benefit_ai_roles": "AI-mainoksen arviointi",

@@ -6189,7 +6189,9 @@
       "sort_distance": "Am nächsten",
       "sort_relevance": "Das Relevanteste",
       "sort_salary": "Höchstes Gehalt",
-      "why_match": "Warum passt es?"
+      "why_match": "Warum passt es?",
+      "shifts_3": "3 Schichten",
+      "try_it": "Probieren Sie es aus"
     },
     "status": {
       "in_review": "In Prüfung",
@@ -7819,7 +7821,14 @@
       "signin_title": "Zuerst erstellen wir ein Konto.",
       "story_cta": "Bewerten Sie das Onboarding",
       "story_title": "Erstens die Arbeitsrichtung.",
-      "title": "Wir erstellen ein Profil ohne manuelles Ausfüllen."
+      "title": "Wir erstellen ein Profil ohne manuelles Ausfüllen.",
+      "fill_later": "Später hinzufügen",
+      "q_energy_label": "Was gibt Ihnen bei der Arbeit Energie und was hält Sie zurück?",
+      "q_energy_ph": "Beschreiben Sie die Umgebung, das Tempo, die Verantwortung, das Team oder die Art der Aufgaben.",
+      "q_proof_label": "Auf welches Erlebnis oder Ergebnis sind Sie stolz?",
+      "q_proof_ph": "Alles, was Sie brauchen, ist eine konkrete Situation, ein Projekt oder ein Problem, das Sie gelöst haben.",
+      "q_work_direction_label": "Nach welcher Art von Job suchen Sie derzeit?",
+      "q_work_direction_ph": "Z.B. Produktarbeit, Betrieb, technische Rolle, Arbeit mit Menschen ..."
     },
     "premium": {
       "benefit_ai_roles": "KI-Anzeigenbewertung",
