@@ -6777,7 +6777,138 @@
       "response_quality_title": "Kvalita měření",
       "coverage": "Pokrytí",
       "response_quality_flagged": "Výsledek je uložen, ale některé odpovědní vzorce snižují jistotu interpretace.",
-      "response_quality_clean": "Odpovědi mají dostatečné rozlišení pro základní interpretaci profilu."
+      "response_quality_clean": "Odpovědi mají dostatečné rozlišení pro základní interpretaci profilu.",
+      "drag_assign_cause": "Sem přetáhni nebo přiřaď příčinu",
+      "report": {
+        "d10_ambiguity_interpretation": {
+          "balanced": "Nejasnost zvládáš, pokud máš možnost postupně ověřovat další kroky.",
+          "development": "U nejasného úkolu si napiš: co vím, co nevím, co ověřím do 48 hodin.",
+          "environment": "Prostředí s proměnlivými zadáními, ale dobrou oporou v prioritách a rozhodovacích právech.",
+          "high": "V nejistotě vidíš směr a příležitosti. Umíš začít, i když zadání ještě není dokonalé.",
+          "low": "Nejasné zadání může brzdit energii. Pomůže definovat minimální další signál a první bezpečný krok.",
+          "summary": "Jak čteš nejasné situace: rizika vs. příležitosti."
+        },
+        "d11_problem_decomposition": {
+          "balanced": "Dokážeš problém rozložit, když máš jasný cíl a dost kontextu.",
+          "development": "Každý větší problém rozděl na blokátor, první krok a měřitelný výstup týdne.",
+          "environment": "Role, kde se strategie převádí do priorit, experimentů a praktického doručení.",
+          "high": "Umíš rychle vytvořit strukturu kroků. Silné pro strategii, delivery, provozní změny i komplexní projekty.",
+          "low": "Velký problém může působit zahlcujícím dojmem. Pomůže jeden malý experiment a jednoduché priority.",
+          "summary": "Schopnost rozsekat velký problém na jasné kroky."
+        },
+        "d12_moral_compass": {
+          "balanced": "Etické dopady bereš v úvahu, zejména když jsou jasně pojmenované.",
+          "development": "U dilemat si napiš: koho to ovlivní, co se stane později a co bych obhájil/a nahlas.",
+          "environment": "Organizace, která bere vážně důvěru, odpovědnost a transparentní rozhodování.",
+          "high": "Silný morální kompas. V tlaku držíš integritu, důvěru a dlouhodobé dopady.",
+          "low": "V tlaku může být těžší otevřít nepohodlné téma. Pomůže předem daný princip rozhodování.",
+          "summary": "Stabilita hodnot v dilematech a tlakových situacích."
+        },
+        "d1_cognitive": {
+          "balanced": "Umíš kombinovat analýzu s praktickou intuicí. Nejlépe funguješ, když máš dost signálů, ale nezasekneš se v detailu.",
+          "development": "Před důležitým rozhodnutím si sepiš 3 fakta, 1 riziko a 1 alternativu.",
+          "environment": "Role s jasným kontextem, možností analyzovat problém a převádět ho do rozhodnutí.",
+          "high": "Přirozeně si rovnáš fakta, souvislosti a dopady. Vynikáš tam, kde je potřeba oddělit šum od podstaty.",
+          "low": "Více se opíráš o intuici a celkový dojem. U důležitých rozhodnutí pomůže krátká kontrola faktů.",
+          "summary": "Způsob zpracování informací a řešení problémů."
+        },
+        "d2_social": {
+          "balanced": "Sociální orientace je vyvážená. Dokážeš fungovat v týmu i samostatně podle potřeby.",
+          "development": "Před schůzkou si pojmenuj očekávaný výsledek a po ní jeden jasný další krok.",
+          "environment": "Tým se srozumitelnou komunikací, pravidelnou zpětnou vazbou a rozumnou mírou autonomie.",
+          "high": "Umíš držet důvěru, domluvu a společný směr. Tvoje síla je číst lidi bez ztráty věcnosti.",
+          "low": "Pravděpodobně preferuješ samostatnou práci a menší množství sociální koordinace.",
+          "summary": "Preferovaný způsob interakce s lidmi a týmové dynamiky."
+        },
+        "d3_motivational": {
+          "balanced": "Zvládáš jak vnitřní smysl, tak jasné cíle a odměny. Pomáhá ujasnit si aktuální prioritu.",
+          "development": "U každého většího úkolu si napiš, komu pomáhá a podle čeho poznáš dobrý výsledek.",
+          "environment": "Projekty s viditelným dopadem, férovou odpovědností a prostorem něco zlepšovat.",
+          "high": "Silně tě táhne smysl, dopad a růst odpovědnosti. Potřebuješ chápat proč, ne jen co.",
+          "low": "Motivace může víc stát na konkrétní odměně, stabilitě nebo jasně zadaném výsledku.",
+          "summary": "Co tě pohání a co považuješ za odměnu."
+        },
+        "d4_energy": {
+          "balanced": "Umíš přepínat mezi sprintem a stabilním tempem. Dobře funguje rytmus s jasnými prioritami.",
+          "development": "Na 14 dní si nastav rytmus sprint, pauza, review: co bere energii a co ji vrací.",
+          "environment": "Práce s realistickými prioritami, možností chránit hlubokou práci a domluvenými sprinty.",
+          "high": "Zvládáš vyšší tempo a dynamické situace. Klíčové je plánovat regeneraci, aby výkon zůstal udržitelný.",
+          "low": "Spíš potřebuješ stabilnější tempo, méně přepínání a chráněný prostor pro soustředění.",
+          "summary": "Tempo, intenzita a styl práce."
+        },
+        "d5_values": {
+          "balanced": "Hodnoty máš vyvážené a umíš se přizpůsobit různým kulturám, pokud víš, co je důležité.",
+          "development": "Sepiš si 3 pracovní situace, které jsou pro tebe nepřekročitelné, a proč.",
+          "environment": "Kultura s férovostí, transparentností a prostorem mluvit o dopadech rozhodnutí.",
+          "high": "Hodnoty jsou silná kotva. Integrita, důvěra a dlouhodobý dopad pro tebe nejsou dekorace.",
+          "low": "Můžeš snáze tolerovat různá prostředí, ale vyplatí se vědomě pojmenovat vlastní hranice.",
+          "summary": "Co musí práce přinášet, aby dávala smysl."
+        },
+        "d6_ai_readiness": {
+          "balanced": "Nové nástroje umíš použít, když dávají smysl. Nejlépe funguje praktické učení na reálném úkolu.",
+          "development": "Vyber jeden opakovaný úkol a zkus na něm AI použít třikrát s krátkým vyhodnocením.",
+          "environment": "Prostředí, kde se nové nástroje používají běžně, ale s jasným lidským úsudkem.",
+          "high": "Technologická adaptabilita je silná stránka. Rychle testuješ nové nástroje a hledáš praktickou hodnotu.",
+          "low": "Změna nástrojů může stát víc energie. Pomůže bezpečný trénink na malých pracovních případech.",
+          "summary": "Jak dobře prosperuješ v rychle se měnícím technologickém prostředí."
+        },
+        "d7_cognitive_reflection": {
+          "balanced": "Intuici umíš doplnit kontrolou. Pomáhá jednoduchý rozhodovací checklist u větších kroků.",
+          "development": "Před rozhodnutím si polož otázku: Jaký je důkaz a co by mě přesvědčilo o opaku?",
+          "environment": "Role, kde je čas na review rozhodnutí a chyby se používají jako učení, ne jako trest.",
+          "high": "Umíš brzdit první závěr a ověřovat důkazy. To zvyšuje kvalitu rozhodnutí s vyšším dopadem.",
+          "low": "Rychlá intuice může dominovat. U důležitých věcí přidej krátké zastav-se-ověř.",
+          "summary": "Schopnost zastavit první intuici a ověřit ji logikou."
+        },
+        "d8_digital_eq": {
+          "balanced": "Digitální komunikaci zvládáš prakticky. Pomáhá vědomě volit mezi zprávou a hovorem.",
+          "development": "U náročné zprávy napiš nejdřív záměr, potom fakta a nakonec konkrétní prosbu.",
+          "environment": "Hybridní nebo remote tým s jasnou komunikační hygienou a bezpečným prostorem pro otázky.",
+          "high": "V textu dobře čteš tón, podtext i důvěru. To je silné v asynchronní spolupráci a citlivých tématech.",
+          "low": "V textu může snáz vzniknout nedorozumění. Pomůže kratší zpráva, jasný záměr a ověření dopadu.",
+          "summary": "Citlivost na emoce, tón a důvěru v textové komunikaci."
+        },
+        "d9_systems_thinking": {
+          "balanced": "Umíš sledovat širší souvislosti, když máš jasně vymezený rámec problému.",
+          "development": "U jednoho problému nakresli mapu: příčina, dopad, zpětná vazba, skrytý náklad.",
+          "environment": "Procesní, produktové nebo provozní role, kde se zlepšují celé systémy, ne jen jednotlivé úkoly.",
+          "high": "Silné systémové myšlení. Vidíš vztahy, zpožděné dopady a místa, kde se problém vrací.",
+          "low": "Může být užitečné vědomě mapovat příčiny, následky a závislosti místo řešení izolovaného symptomu.",
+          "summary": "Jak dobře čteš vztahy, zpětné vazby a vedlejší efekty."
+        },
+        "i1_love": {
+          "balanced": "Zájem se probouzí v konkrétních situacích. Vyplatí se sledovat, kdy energie roste.",
+          "development": "Týden si zapisuj 3 momenty, kdy práce energii přidala nebo vzala.",
+          "environment": "Práce s prostorem pro ponor, tvorbu nebo problém, který tě osobně zajímá.",
+          "high": "Máš silný signál vnitřního zájmu. Hledej role, kde se tato energie používá často, ne jen okrajově.",
+          "low": "Zatím není jasné, co tě pracovně opravdu vtahuje. Pomůže mapovat aktivity, u kterých mizí čas.",
+          "summary": "Co tě přirozeně vtahuje a nabíjí."
+        },
+        "i2_good_at": {
+          "balanced": "Některé silné stránky už znáš, další se ukážou přes konkrétní pracovní důkazy.",
+          "development": "Sepiš 5 situací, kdy jsi někomu pomohl/a, a najdi společnou schopnost.",
+          "environment": "Role, kde se tvoje silné schopnosti používají pravidelně a jsou viditelné ve výsledku.",
+          "high": "Silně vnímáš své schopnosti a umíš je převést do přínosu pro ostatní.",
+          "low": "Můžeš podceňovat, v čem jsi dobrý/á. Hledej opakované žádosti o pomoc a výsledky.",
+          "summary": "V čem máš opakovaně použitelnou sílu."
+        },
+        "i3_world_needs": {
+          "balanced": "Smysl a užitek jsou důležité, ale nemusí být jediným zdrojem motivace.",
+          "development": "U nabídky práce si ověř, komu výsledek pomáhá a jak se to pozná.",
+          "environment": "Produkty, služby nebo provozy, kde je vidět reálný užitek práce.",
+          "high": "Dopad na konkrétní lidi je pro tebe důležitý zdroj smyslu a výdrže.",
+          "low": "Práce může dávat smysl i bez výrazného společenského dopadu, pokud sedí role, tým nebo odměna.",
+          "summary": "Jak moc potřebuješ vidět užitek pro lidi nebo svět."
+        },
+        "i4_paid_for": {
+          "balanced": "Ekonomickou hodnotu bereš v úvahu, ale bude dobré ji zpřesnit konkrétními důkazy.",
+          "development": "Ke každé silné stránce napiš jeden měřitelný přínos pro tým, zákazníka nebo firmu.",
+          "environment": "Role, kde je jasné, jak tvoje práce vytváří hodnotu a férovou odměnu.",
+          "high": "Dobře přemýšlíš o hodnotě své práce pro trh. To pomáhá volit udržitelné směřování.",
+          "low": "Může být potřeba víc přeložit schopnosti do řeči hodnoty pro firmu nebo zákazníka.",
+          "summary": "Jak propojuješ smysl, schopnosti a ekonomickou hodnotu."
+        }
+      }
     },
     "companies": {
       "hero": {

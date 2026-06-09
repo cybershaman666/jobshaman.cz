@@ -6644,7 +6644,138 @@
       "response_quality_title": "Mittauksen laatu",
       "coverage": "Kattavuus",
       "response_quality_flagged": "Tulos on tallennettu, mutta jotkin vastausmallit heikentävät tulkinnan varmuutta.",
-      "response_quality_clean": "Vastaukset ovat riittävän erottelevia perusprofiilin tulkintaan."
+      "response_quality_clean": "Vastaukset ovat riittävän erottelevia perusprofiilin tulkintaan.",
+      "drag_assign_cause": "Vedä tai määritä syy tähän",
+      "report": {
+        "d10_ambiguity_interpretation": {
+          "balanced": "Voit käsitellä epäselvyyttä, jos sinulla on mahdollisuus asteittain varmistaa seuraavat vaiheet.",
+          "development": "Jos tehtävä on epäselvä, kirjoita ylös: mitä tiedän, mitä en tiedä, mitä tarkistan 48 tunnin sisällä.",
+          "environment": "Ympäristö, jossa on vaihtelevia toimeksiantoja, mutta hyvä tuki prioriteeteissa ja päätöksenteko-oikeuksissa.",
+          "high": "Näet suunnan ja mahdollisuudet epävarmuudessa. Voit aloittaa, vaikka tehtävä ei olisi vielä täydellinen.",
+          "low": "Epäselvä syöttö voi haitata energiaa. Se auttaa määrittämään seuraavan vähimmäissignaalin ja ensimmäisen turvallisen askeleen.",
+          "summary": "Miten tulkitset epäselviä tilanteita: riskit vs. mahdollisuudet."
+        },
+        "d11_problem_decomposition": {
+          "balanced": "Voit purkaa ongelman, kun sinulla on selkeä tavoite ja riittävä konteksti.",
+          "development": "Erittele jokainen suuri ongelma estäjäksi, ensimmäiseksi askeleeksi ja viikon mitattavissa olevaan tulokseen.",
+          "environment": "Rooli, jossa strategia muunnetaan prioriteeteiksi, kokeiluiksi ja käytännön toimituksiksi.",
+          "high": "Voit nopeasti luoda vaiherakenteen. Vahva strategiaan, toimitukseen, operatiivisiin muutoksiin ja monimutkaisiin projekteihin.",
+          "low": "Suuri ongelma voi tuntua ylivoimaiselta. Yksi pieni kokeilu ja yksinkertaiset prioriteetit auttavat.",
+          "summary": "Kyky jakaa suuri ongelma selkeisiin vaiheisiin."
+        },
+        "d12_moral_compass": {
+          "balanced": "Otat eettiset vaikutukset huomioon, varsinkin kun ne on nimetty selkeästi.",
+          "development": "Ongelmien varalta kirjoita ylös: ketä se vaikuttaa, mitä tapahtuu myöhemmin ja mitä puolustaisin ääneen.",
+          "environment": "Organisaatio, joka ottaa luottamuksen, vastuullisuuden ja läpinäkyvän päätöksenteon vakavasti.",
+          "high": "Vahva moraalinen kompassi. Pidät rehellisyyden, luottamuksen ja pitkän aikavälin vaikutukset paineen alla.",
+          "low": "Paineen alla voi olla vaikeampaa avautua epämiellyttävästä aiheesta. Ennalta määrätty päätöksentekoperiaate auttaa.",
+          "summary": "Arvojen vakaus dilemmoissa ja painetilanteissa."
+        },
+        "d1_cognitive": {
+          "balanced": "Voit yhdistää analyysin käytännön intuitioon. Toimit parhaiten, kun sinulla on tarpeeksi signaaleja, mutta älä juutu yksityiskohtiin.",
+          "development": "Ennen kuin teet tärkeän päätöksen, kirjoita muistiin 3 tosiasiaa, 1 riski ja 1 vaihtoehto.",
+          "environment": "Rooli, jolla on selkeä konteksti, kyky analysoida ongelma ja muuttaa se päätökseksi.",
+          "high": "Yhdistät luonnollisesti tosiasiat, yhteydet ja vaikutukset. Loistat siellä, missä on tarpeen erottaa melu aineesta.",
+          "low": "Luotat enemmän intuitioon ja kokonaisvaikutelmaan. Nopea faktojen tarkistus auttaa tärkeissä päätöksissä.",
+          "summary": "Menetelmä tietojen käsittelyyn ja ongelmien ratkaisemiseen."
+        },
+        "d2_social": {
+          "balanced": "Sosiaalinen suuntautuminen on tasapainoista. Pystyt työskentelemään niin tiimissä kuin itsenäisesti tarpeen mukaan.",
+          "development": "Nimeä ennen kokousta odotettu tulos ja sen jälkeen selkeä seuraava askel.",
+          "environment": "Tiimi, jolla on selkeää viestintää, säännöllistä palautetta ja kohtuullista itsenäisyyttä.",
+          "high": "Pystyt säilyttämään luottamuksen, yhteisymmärryksen ja yhteisen suunnan. Vahvuutesi on ihmisten lukeminen objektiivisuutta menettämättä.",
+          "low": "Pidät luultavasti parempana itsenäistä työtä ja vähemmän sosiaalista koordinaatiota.",
+          "summary": "Suosituin tapa olla vuorovaikutuksessa ihmisten kanssa ja tiimidynamiikka."
+        },
+        "d3_motivational": {
+          "balanced": "Hallitset sekä sisäistä merkitystä että selkeitä tavoitteita ja palkintoja. Se auttaa selventämään nykyistä prioriteettia.",
+          "development": "Kirjoita jokaisen suuren tehtävän kohdalla ylös, ketä se auttaa ja mistä tiedät hyvän tuloksen.",
+          "environment": "Projekteja, joilla on näkyvä vaikutus, reilu vastuu ja parantamisen varaa.",
+          "high": "Sinua vetää vahvasti merkitys, vaikutus ja kasvava vastuu. Sinun on ymmärrettävä miksi, ei vain mitä.",
+          "low": "Motivaatio voi riippua enemmän tietystä palkkiosta, vakaudesta tai selkeästi määritellystä tuloksesta.",
+          "summary": "Mikä ajaa sinua ja mitä pidät palkitsevana."
+        },
+        "d4_energy": {
+          "balanced": "Voit vaihtaa sprintin ja tasaisen tahdin välillä. Rytmi, jolla on selkeät prioriteetit, toimii hyvin.",
+          "development": "Aseta 14 päivän ajan sprinttirytmi, tauko, tarkista: mikä vie energiaa ja mikä antaa sen takaisin.",
+          "environment": "Työskentele realistisilla prioriteeteilla, kyky suojata syvätyötä ja sovittuja sprinttejä.",
+          "high": "Pystyt käsittelemään korkeampaa tempoa ja dynaamisia tilanteita. Tärkeintä on suunnitella palautuminen niin, että suorituskyky pysyy kestävänä.",
+          "low": "Sen sijaan tarvitset vakaamman vauhdin, vähemmän vaihtoja ja suojatun tilan keskittymiselle.",
+          "summary": "Työn tahti, intensiteetti ja tyyli."
+        },
+        "d5_values": {
+          "balanced": "Arvosi ovat tasapainossa ja voit sopeutua erilaisiin kulttuureihin, jos tiedät mikä on tärkeää.",
+          "development": "Kirjoita ylös 3 työtilannetta, jotka ovat sinulle ylitsepääsemättömiä ja miksi.",
+          "environment": "Kulttuuri, jossa on oikeudenmukaisuutta, läpinäkyvyyttä ja tilaa puhua päätösten vaikutuksista.",
+          "high": "Arvot ovat vahva ankkuri. Rehellisyys, luottamus ja pitkäaikainen vaikutus eivät ole sinulle koristeita.",
+          "low": "Voit sietää helpommin erilaisia ​​ympäristöjä, mutta omat rajat kannattaa tietoisesti nimetä.",
+          "summary": "Mitä työn pitää tuoda mieleen."
+        },
+        "d6_ai_readiness": {
+          "balanced": "Voit käyttää uusia työkaluja, kun ne ovat järkeviä. Käytännön oppiminen todellisessa tehtävässä toimii parhaiten.",
+          "development": "Valitse yksi toistuva tehtävä ja yritä käyttää tekoälyä siinä kolme kertaa lyhyellä arvioinnilla.",
+          "environment": "Ympäristö, jossa uusia työkaluja käytetään rutiininomaisesti, mutta selkeällä inhimillisellä harkinnolla.",
+          "high": "Tekninen sopeutumiskyky on vahva puoli. Testaat nopeasti uusia työkaluja ja etsit käytännön arvoa.",
+          "low": "Työkalujen vaihtaminen voi maksaa enemmän energiaa. Turvallinen koulutus pienissä työtapauksissa auttaa.",
+          "summary": "Kuinka hyvin pärjäät nopeasti muuttuvassa teknologiaympäristössä?"
+        },
+        "d7_cognitive_reflection": {
+          "balanced": "Voit täydentää intuitiota ohjauksella. Yksinkertainen päätöksenteon tarkistuslista auttaa suuremmissa vaiheissa.",
+          "development": "Ennen kuin teet päätöksen, kysy itseltäsi: Mikä on todiste ja mikä vakuuttaisi minut toisin?",
+          "environment": "Roolia, jossa on aikaa tarkastella päätöksiä ja virheitä, käytetään oppimisena, ei rangaistuksena.",
+          "high": "Voit estää ensimmäisen johtopäätöksen ja tarkistaa todisteet. Tämä parantaa vaikutusvaltaisten päätösten laatua.",
+          "low": "Nopea intuitio voi hallita. Tärkeitä asioita varten lisää lyhyt stop-check-check.",
+          "summary": "Kyky pysäyttää ensimmäinen intuitio ja varmistaa se logiikan avulla."
+        },
+        "d8_digital_eq": {
+          "balanced": "Hallitset käytännössä digitaalista viestintää. Se auttaa tietoisesti valitsemaan viestin ja puhelun välillä.",
+          "development": "Jos viesti on vaikea, kirjoita ensin tarkoitus, sitten tosiasiat ja lopuksi erityinen pyyntö.",
+          "environment": "Hybridi- tai etätiimi, jossa on selkeä viestintähygienia ja turvallinen tila kysymyksille.",
+          "high": "Luit hyvin tekstin sävyn, alatekstin ja itseluottamuksen. Tämä on vahvaa asynkronisessa yhteistyössä ja herkissä aiheissa.",
+          "low": "Tekstissä voi syntyä helpommin väärinkäsityksiä. Lyhyempi viesti, selkeä tarkoitus ja vaikutuksen vahvistaminen auttavat.",
+          "summary": "Herkkyys tunteille, sävy ja itseluottamus tekstiviestinnässä."
+        },
+        "d9_systems_thinking": {
+          "balanced": "Voit seurata laajempia yhteyksiä, kun sinulla on selkeästi määritelty ongelman viitekehys.",
+          "development": "Piirrä yhdelle ongelmalle kartta: syy, seuraus, palaute, piilokustannukset.",
+          "environment": "Prosessi-, tuote- tai operatiiviset roolit, joissa parannetaan kokonaisia ​​järjestelmiä, ei vain yksittäisiä tehtäviä.",
+          "high": "Vahva järjestelmäajattelu. Näet suhteet, viivästyneet vaikutukset ja paikat, joissa ongelma palaa.",
+          "low": "Voi olla hyödyllistä kartoittaa tietoisesti syyt, seuraukset ja riippuvuudet yksittäisen oireen puuttumisen sijaan.",
+          "summary": "Kuinka hyvin luet suhteita, palautetta ja sivuvaikutuksia."
+        },
+        "i1_love": {
+          "balanced": "Kiinnostus herää tietyissä tilanteissa. Kannattaa katsoa, ​​kun energia nousee.",
+          "development": "Kirjoita viikon aikana muistiin 3 hetkeä, jolloin työ lisäsi tai vei energiaa.",
+          "environment": "Työskentele syventymisen, luomisen tai sinua henkilökohtaisesti kiinnostavan ongelman parissa.",
+          "high": "Sinulla on vahva signaali sisäisestä kiinnostuksestasi. Etsi rooleja, joissa tätä energiaa käytetään usein, ei vain marginaalisesti.",
+          "low": "Vielä ei ole selvää, mikä todella houkuttelee sinua työskentelemään. Se auttaa kartoittamaan toimintoja, joihin aika katoaa.",
+          "summary": "Mikä luonnollisesti vetää puoleensa ja lataa."
+        },
+        "i2_good_at": {
+          "balanced": "Osa vahvuuksista on jo tiedossa, osa paljastuu konkreettisen työn kautta.",
+          "development": "Kirjoita muistiin 5 tilannetta, joissa olet auttanut jotakuta ja löydä yhteinen kyky.",
+          "environment": "Rooli, jossa vahvaa osaamistasi käytetään säännöllisesti ja ne näkyvät tuloksessa.",
+          "high": "Sinulla on vahva käsitys kyvyistäsi ja osaat muuttaa ne hyödyksi muille.",
+          "low": "Saatat aliarvioida sitä, missä olet hyvä. Etsi toistuvia apua ja tuloksia koskevia pyyntöjä.",
+          "summary": "Mikä on uudelleenkäytettävä tehosi?"
+        },
+        "i3_world_needs": {
+          "balanced": "Merkitys ja hyödyllisyys ovat tärkeitä, mutta niiden ei tarvitse olla ainoa motivaation lähde.",
+          "development": "Tarkista työtarjouksen osalta, ketä tulos auttaa ja miten se voidaan tunnistaa.",
+          "environment": "Tuotteet, palvelut tai toiminnot, joissa työn todellinen hyöty näkyy.",
+          "high": "Vaikutus tiettyihin ihmisiin on sinulle tärkeä merkityksen ja kestävyyden lähde.",
+          "low": "Työ voi olla mielekästä myös ilman merkittävää sosiaalista vaikutusta, jos rooli, tiimi tai palkinto sopii.",
+          "summary": "Kuinka paljon sinun tarvitsee nähdäksesi hyödyt ihmisille tai maailmalle."
+        },
+        "i4_paid_for": {
+          "balanced": "Otat huomioon taloudellisen arvon, mutta se olisi hyvä täsmentää konkreettisilla todisteilla.",
+          "development": "Kirjoita jokaiselle vahvuudelle yksi mitattavissa oleva hyöty tiimille, asiakkaalle tai yritykselle.",
+          "environment": "Rooli, jossa on selvää, miten työsi luo arvoa ja oikeudenmukaista palkkiota.",
+          "high": "Mieti tarkkaan työsi arvoa markkinoille. Tämä auttaa valitsemaan kestävän suunnan.",
+          "low": "Voi olla tarvetta kääntää valmiuksia enemmän liiketoiminnan tai asiakkaan arvon kielelle.",
+          "summary": "Miten yhdistät merkityksen, kyvyt ja taloudellisen arvon?"
+        }
+      }
     },
     "companies": {
       "hero": {

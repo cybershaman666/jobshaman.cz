@@ -6631,7 +6631,138 @@
       "response_quality_title": "Målekvalitet",
       "coverage": "Dekning",
       "response_quality_flagged": "Resultatet er lagret, men noen svarmønstre senker tolkningssikkerheten.",
-      "response_quality_clean": "Svarene er tilstrekkelig differensierte for en grunnleggende profiltolkning."
+      "response_quality_clean": "Svarene er tilstrekkelig differensierte for en grunnleggende profiltolkning.",
+      "drag_assign_cause": "Dra eller tilordne en årsak her",
+      "report": {
+        "d10_ambiguity_interpretation": {
+          "balanced": "Du kan håndtere tvetydighet hvis du har mulighet til gradvis å verifisere de neste trinnene.",
+          "development": "For en uklar oppgave, skriv ned: hva jeg vet, hva jeg ikke vet, hva jeg vil bekrefte innen 48 timer.",
+          "environment": "Et miljø med varierende oppdrag, men god støtte i prioriteringer og beslutningsrett.",
+          "high": "Du ser retning og muligheter i usikkerhet. Du kan starte selv om oppgaven ikke er perfekt ennå.",
+          "low": "Uklare input kan hemme energi. Det vil hjelpe med å definere minimum neste signal og det første sikre trinnet.",
+          "summary": "Hvordan leser du tvetydige situasjoner: risiko vs. muligheter."
+        },
+        "d11_problem_decomposition": {
+          "balanced": "Du kan bryte ned et problem når du har et klart mål og nok kontekst.",
+          "development": "Bryt ned hvert større problem i en blokkering, et første trinn og en målbar utgang for uken.",
+          "environment": "En rolle hvor strategi omsettes til prioriteringer, eksperimenter og praktisk levering.",
+          "high": "Du kan raskt lage en trinnstruktur. Sterk for strategi, leveranse, driftsendringer og komplekse prosjekter.",
+          "low": "Et stort problem kan føles overveldende. Ett lite eksperiment og enkle prioriteringer vil hjelpe.",
+          "summary": "Evne til å bryte ned et stort problem i klare trinn."
+        },
+        "d12_moral_compass": {
+          "balanced": "Du tar de etiske implikasjonene i betraktning, spesielt når de er tydelig navngitt.",
+          "development": "For dilemmaer, skriv ned: hvem vil det påvirke, hva vil skje senere og hva jeg ville forsvart høyt.",
+          "environment": "En organisasjon som tar tillit, ansvarlighet og transparente beslutninger på alvor.",
+          "high": "Et sterkt moralsk kompass. Du holder integritet, tillit og langsiktige effekter under press.",
+          "low": "Under press kan det være vanskeligere å åpne opp om et ubehagelig tema. Et forhåndsbestemt beslutningsprinsipp vil hjelpe.",
+          "summary": "Verdistabilitet i dilemmaer og pressede situasjoner."
+        },
+        "d1_cognitive": {
+          "balanced": "Du kan kombinere analyse med praktisk intuisjon. Du fungerer best når du har nok signaler, men ikke henger deg fast i detaljer.",
+          "development": "Før du tar en viktig beslutning, skriv ned 3 fakta, 1 risiko og 1 alternativ.",
+          "environment": "En rolle med en klar kontekst, evne til å analysere et problem og omsette det til en beslutning.",
+          "high": "Du setter naturlig likhetstegn mellom fakta, sammenhenger og påvirkninger. Du utmerker deg der det er nødvendig å skille støyen fra stoffet.",
+          "low": "Du stoler mer på intuisjon og helhetsinntrykk. En rask faktasjekk vil hjelpe med viktige avgjørelser.",
+          "summary": "Metode for å behandle informasjon og løse problemer."
+        },
+        "d2_social": {
+          "balanced": "Sosial orientering er balansert. Du kan jobbe i team så vel som selvstendig etter behov.",
+          "development": "Før møtet, navngi forventet resultat og etter det ett klart neste trinn.",
+          "environment": "Et team med tydelig kommunikasjon, regelmessige tilbakemeldinger og en rimelig grad av autonomi.",
+          "high": "Du kan beholde tillit, enighet og felles retning. Din styrke er å lese folk uten å miste objektivitet.",
+          "low": "Du foretrekker sannsynligvis selvstendig arbeid og mindre sosial koordinering.",
+          "summary": "Foretrukket måte å samhandle med mennesker og teamdynamikk på."
+        },
+        "d3_motivational": {
+          "balanced": "Du forvalter både indre mening og klare mål og belønninger. Det bidrar til å tydeliggjøre dagens prioritering.",
+          "development": "For hver større oppgave, skriv ned hvem den hjelper og hvordan du vet et godt resultat.",
+          "environment": "Prosjekter med synlig effekt, rettferdig ansvar og rom for forbedring.",
+          "high": "Du er sterkt tiltrukket av mening, innflytelse og økende ansvar. Du må forstå hvorfor, ikke bare hva.",
+          "low": "Motivasjon kan avhenge mer av en spesifikk belønning, stabilitet eller et klart spesifisert resultat.",
+          "summary": "Hva driver deg og hva anser du som givende."
+        },
+        "d4_energy": {
+          "balanced": "Du kan bytte mellom sprint og jevnt tempo. En rytme med klare prioriteringer fungerer bra.",
+          "development": "I 14 dager, sett en sprintrytme, pause, gjennomgang: hva tar energi og hva gir den tilbake.",
+          "environment": "Arbeid med realistiske prioriteringer, evne til å beskytte dypt arbeid og avtalte spurter.",
+          "high": "Du kan håndtere høyere tempo og dynamiske situasjoner. Nøkkelen er å planlegge for utvinning slik at ytelsen forblir bærekraftig.",
+          "low": "I stedet trenger du et mer stabilt tempo, mindre veksling og et beskyttet rom for konsentrasjon.",
+          "summary": "Tempo, intensitet og arbeidsstil."
+        },
+        "d5_values": {
+          "balanced": "Verdiene dine er balanserte og du kan tilpasse deg ulike kulturer hvis du vet hva som er viktig.",
+          "development": "Skriv ned 3 arbeidssituasjoner som er uoverkommelige for deg, og hvorfor.",
+          "environment": "En kultur med rettferdighet, åpenhet og rom for å snakke om virkningen av beslutninger.",
+          "high": "Verdier er et sterkt anker. Integritet, tillit og langsiktig effekt er ikke pynt for deg.",
+          "low": "Du kan lettere tolerere ulike miljøer, men det lønner seg å bevisst sette opp egne grenser.",
+          "summary": "Hva må arbeidet bringe for å gi mening."
+        },
+        "d6_ai_readiness": {
+          "balanced": "Du kan bruke nye verktøy når de gir mening. Praktisk læring på en oppgave i den virkelige verden fungerer best.",
+          "development": "Velg en repeterende oppgave og prøv å bruke AI på den tre ganger med en kort evaluering.",
+          "environment": "Et miljø hvor nye verktøy brukes rutinemessig, men med tydelig menneskelig dømmekraft.",
+          "high": "Teknologisk tilpasningsevne er et sterkt punkt. Du tester raskt ut nye verktøy og ser etter praktisk verdi.",
+          "low": "Å bytte verktøy kan koste mer energi. Sikker opplæring på små arbeidssaker vil hjelpe.",
+          "summary": "Hvor godt trives du i et raskt skiftende teknologimiljø?"
+        },
+        "d7_cognitive_reflection": {
+          "balanced": "Du kan supplere intuisjonen med kontroll. En enkel sjekkliste for beslutninger hjelper med større trinn.",
+          "development": "Før du tar en avgjørelse, spør deg selv: Hva er bevisene og hva ville overbevise meg om noe annet?",
+          "environment": "En rolle hvor det er tid til å vurdere beslutninger og feil brukes som læring, ikke straff.",
+          "high": "Du kan hemme den første konklusjonen og bekrefte bevisene. Dette øker kvaliteten på beslutninger med høyere effekt.",
+          "low": "Rask intuisjon kan dominere. For viktige ting, legg til en kort stopp-sjekk-sjekk.",
+          "summary": "Evnen til å stoppe den første intuisjonen og verifisere den med logikk."
+        },
+        "d8_digital_eq": {
+          "balanced": "Du administrerer praktisk talt digital kommunikasjon. Det hjelper å bevisst velge mellom en melding og en samtale.",
+          "development": "For en vanskelig melding, skriv først intensjonen, deretter fakta og til slutt den spesifikke forespørselen.",
+          "environment": "Et hybrid eller eksternt team med tydelig kommunikasjonshygiene og et trygt rom for spørsmål.",
+          "high": "Du leser tonen, underteksten og tilliten til teksten godt. Dette er sterkt i asynkront samarbeid og sensitive temaer.",
+          "low": "Det kan lettere oppstå misforståelser i teksten. En kortere melding, klar intensjon og validering av innvirkning vil hjelpe.",
+          "summary": "Følsomhet for følelser, tone og selvtillit i tekstkommunikasjon."
+        },
+        "d9_systems_thinking": {
+          "balanced": "Du kan følge bredere sammenhenger når du har et klart definert rammeverk for problemet.",
+          "development": "For ett problem, tegn et kart: årsak, virkning, tilbakemelding, skjulte kostnader.",
+          "environment": "Prosess-, produkt- eller driftsroller der hele systemer forbedres, ikke bare enkeltoppgaver.",
+          "high": "Sterk systemtenkning. Du ser relasjonene, de forsinkede effektene og stedene hvor problemet kommer tilbake.",
+          "low": "Det kan være nyttig å bevisst kartlegge årsaker, virkninger og avhengigheter i stedet for å adressere et isolert symptom.",
+          "summary": "Hvor godt du leser relasjoner, tilbakemeldinger og bivirkninger."
+        },
+        "i1_love": {
+          "balanced": "Interessen vekkes i spesifikke situasjoner. Det lønner seg å se på når energien stiger.",
+          "development": "I løpet av uken, skriv ned 3 øyeblikk når arbeidet tilførte eller tok bort energi.",
+          "environment": "Arbeid med et rom for fordypning, skapelse eller et problem som interesserer deg personlig.",
+          "high": "Du har et sterkt signal om intern interesse. Se etter roller der denne energien brukes ofte, ikke bare marginalt.",
+          "low": "Det er ennå ikke klart hva som virkelig tiltrekker deg til jobb. Det vil bidra til å kartlegge aktivitetene der tiden forsvinner.",
+          "summary": "Det som naturlig trekker deg inn og belaster deg."
+        },
+        "i2_good_at": {
+          "balanced": "Noen styrker vet du allerede, andre vil bli avslørt gjennom konkrete arbeidsbevis.",
+          "development": "Skriv ned 5 situasjoner der du hjalp noen og finn en felles evne.",
+          "environment": "En rolle hvor dine sterke ferdigheter brukes jevnlig og er synlige i resultatet.",
+          "high": "Du har en sterk oppfatning av dine evner og vet hvordan du konverterer dem til fordeler for andre.",
+          "low": "Du kan undervurdere det du er god på. Se etter gjentatte forespørsler om hjelp og resultater.",
+          "summary": "Hva er din gjenbrukbare kraft?"
+        },
+        "i3_world_needs": {
+          "balanced": "Mening og nytte er viktig, men de trenger ikke være den eneste kilden til motivasjon.",
+          "development": "For jobbtilbudet, sjekk hvem resultatet hjelper og hvordan det kan gjenkjennes.",
+          "environment": "Produkter, tjenester eller operasjoner hvor den reelle fordelen av arbeidet kan sees.",
+          "high": "Påvirkningen på spesifikke mennesker er en viktig kilde til mening og utholdenhet for deg.",
+          "low": "Arbeid kan være meningsfylt selv uten betydelig sosial påvirkning dersom rollen, teamet eller belønningen passer.",
+          "summary": "Hvor mye trenger du for å se fordelene for mennesker eller verden."
+        },
+        "i4_paid_for": {
+          "balanced": "Du tar den økonomiske verdien i betraktning, men det ville være greit å spesifisere det med konkrete bevis.",
+          "development": "For hver styrke, skriv en målbar fordel for teamet, kunden eller selskapet.",
+          "environment": "En rolle hvor det er tydelig hvordan arbeidet ditt skaper verdi og en rettferdig belønning.",
+          "high": "Du tenker nøye over verdien av arbeidet ditt for markedet. Dette er med på å velge en bærekraftig retning.",
+          "low": "Det kan være behov for å oversette evner mer til forretningsspråket eller kundeverdi.",
+          "summary": "Hvordan kobler du sammen mening, evner og økonomisk verdi."
+        }
+      }
     },
     "companies": {
       "hero": {

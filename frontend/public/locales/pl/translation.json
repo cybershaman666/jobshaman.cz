@@ -7753,7 +7753,138 @@
       "response_quality_title": "Jakość pomiaru",
       "coverage": "Pokrycie",
       "response_quality_flagged": "Wynik został zapisany, ale niektóre wzorce odpowiedzi obniżają pewność interpretacji.",
-      "response_quality_clean": "Odpowiedzi są wystarczająco zróżnicowane do podstawowej interpretacji profilu."
+      "response_quality_clean": "Odpowiedzi są wystarczająco zróżnicowane do podstawowej interpretacji profilu.",
+      "drag_assign_cause": "Przeciągnij lub przypisz tutaj przyczynę",
+      "report": {
+        "d10_ambiguity_interpretation": {
+          "balanced": "Z niejasnościami sobie poradzisz, jeśli masz możliwość stopniowej weryfikacji kolejnych kroków.",
+          "development": "W przypadku niejasnego zadania napisz: co wiem, czego nie wiem, co zweryfikuję w ciągu 48 godzin.",
+          "environment": "Środowisko ze zmiennymi zadaniami, ale dobrym wsparciem w zakresie priorytetów i uprawnień do podejmowania decyzji.",
+          "high": "W niepewności widzisz kierunek i możliwości. Możesz zacząć, nawet jeśli zadanie nie jest jeszcze idealne.",
+          "low": "Niejasne dane wejściowe mogą utrudniać wytwarzanie energii. Pomoże to określić minimalny następny sygnał i pierwszy bezpieczny krok.",
+          "summary": "Jak odczytać sytuacje niejednoznaczne: ryzyko kontra możliwości."
+        },
+        "d11_problem_decomposition": {
+          "balanced": "Możesz rozbić problem, jeśli masz jasny cel i wystarczający kontekst.",
+          "development": "Podziel każdy główny problem na bloker, pierwszy krok i wymierny wynik na tydzień.",
+          "environment": "Rola, w której strategia przekłada się na priorytety, eksperymenty i praktyczną realizację.",
+          "high": "Możesz szybko stworzyć strukturę kroków. Mocny w zakresie strategii, dostaw, zmian operacyjnych i złożonych projektów.",
+          "low": "Duży problem może wydawać się przytłaczający. Pomoże jeden mały eksperyment i proste priorytety.",
+          "summary": "Umiejętność podzielenia dużego problemu na jasne kroki."
+        },
+        "d12_moral_compass": {
+          "balanced": "Bierze się pod uwagę implikacje etyczne, zwłaszcza gdy są one jasno określone.",
+          "development": "W przypadku dylematów napisz: kogo to będzie dotyczyć, co będzie później i czego bym głośno bronił.",
+          "environment": "Organizacja, która poważnie podchodzi do zaufania, odpowiedzialności i przejrzystego podejmowania decyzji.",
+          "high": "Silny kompas moralny. Utrzymujesz pod presją uczciwość, zaufanie i długoterminowe skutki.",
+          "low": "Pod presją otwarcie się na niewygodny temat może być trudniejsze. Pomocna będzie z góry określona zasada podejmowania decyzji.",
+          "summary": "Stabilność wartości w sytuacjach dylematów i presji."
+        },
+        "d1_cognitive": {
+          "balanced": "Analizę można połączyć z praktyczną intuicją. Najlepiej pracujesz, gdy masz wystarczającą liczbę sygnałów, ale nie zagłębiaj się w szczegóły.",
+          "development": "Zanim podejmiesz ważną decyzję, zapisz 3 fakty, 1 ryzyko i 1 alternatywę.",
+          "environment": "Rola z jasnym kontekstem, umiejętność analizy problemu i przełożenia go na decyzję.",
+          "high": "W naturalny sposób utożsamiasz fakty, powiązania i skutki. Doskonale sprawdzasz się tam, gdzie konieczne jest oddzielenie hałasu od treści.",
+          "low": "Bardziej polegasz na intuicji i ogólnym wrażeniu. Szybka weryfikacja faktów pomoże w podjęciu ważnych decyzji.",
+          "summary": "Sposób przetwarzania informacji i rozwiązywania problemów."
+        },
+        "d2_social": {
+          "balanced": "Orientacja społeczna jest zrównoważona. Potrafisz pracować w zespole, a także samodzielnie, jeśli zajdzie taka potrzeba.",
+          "development": "Przed spotkaniem nazwij oczekiwany rezultat, a po nim jasno określ kolejny krok.",
+          "environment": "Zespół z jasną komunikacją, regularnymi informacjami zwrotnymi i rozsądnym stopniem autonomii.",
+          "high": "Możesz zachować zaufanie, zgodę i wspólny kierunek. Twoją siłą jest czytanie ludzi bez utraty obiektywizmu.",
+          "low": "Prawdopodobnie wolisz niezależną pracę i mniejszą koordynację społeczną.",
+          "summary": "Preferowany sposób interakcji z ludźmi i dynamika zespołu."
+        },
+        "d3_motivational": {
+          "balanced": "Zarządzasz zarówno wewnętrznym znaczeniem, jak i jasnymi celami i nagrodami. Pomaga to w wyjaśnieniu bieżącego priorytetu.",
+          "development": "Przy każdym większym zadaniu zapisz, komu pomaga i skąd znasz dobry wynik.",
+          "environment": "Projekty o widocznym wpływie, uczciwej odpowiedzialności i możliwości poprawy.",
+          "high": "Silnie przyciąga Cię znaczenie, wpływ i rosnąca odpowiedzialność. Musisz zrozumieć dlaczego, a nie tylko co.",
+          "low": "Motywacja może zależeć bardziej od konkretnej nagrody, stabilności lub jasno określonego wyniku.",
+          "summary": "Co Cię motywuje i co uważasz za satysfakcję."
+        },
+        "d4_energy": {
+          "balanced": "Możesz przełączać się między sprintem a stałym tempem. Rytm z jasnymi priorytetami działa dobrze.",
+          "development": "Na 14 dni ustal rytm sprintu, zatrzymaj się, przeanalizuj: co zabiera energię, a co ją oddaje.",
+          "environment": "Pracuj z realistycznymi priorytetami, umiejętnością ochrony głębokiej pracy i ustalonymi sprintami.",
+          "high": "Poradzisz sobie w sytuacjach o wyższym tempie i dynamice. Kluczem jest zaplanowanie regeneracji, aby wyniki pozostały stabilne.",
+          "low": "Raczej potrzebujesz bardziej stabilnego tempa, mniejszej liczby zmian i chronionej przestrzeni do koncentracji.",
+          "summary": "Tempo, intensywność i styl pracy."
+        },
+        "d5_values": {
+          "balanced": "Twoje wartości są zrównoważone i możesz dostosować się do różnych kultur, jeśli wiesz, co jest ważne.",
+          "development": "Zapisz 3 sytuacje w pracy, które są dla Ciebie nie do pokonania i dlaczego.",
+          "environment": "Kultura charakteryzująca się uczciwością, przejrzystością i przestrzenią do rozmowy o wpływie decyzji.",
+          "high": "Wartości są silną kotwicą. Uczciwość, zaufanie i długoterminowy wpływ nie są dla Ciebie ozdobą.",
+          "low": "Możesz łatwiej tolerować różne środowiska, ale opłaca się świadomie wyznaczać własne granice.",
+          "summary": "Co musi wnosić praca, żeby miała sens."
+        },
+        "d6_ai_readiness": {
+          "balanced": "Możesz używać nowych narzędzi, jeśli mają sens. Najlepiej sprawdza się praktyczna nauka wykonywania zadań w świecie rzeczywistym.",
+          "development": "Wybierz jedno powtarzalne zadanie i spróbuj trzykrotnie użyć na nim AI z krótką oceną.",
+          "environment": "Środowisko, w którym nowe narzędzia są używane rutynowo, ale pod warunkiem jasnej, ludzkiej oceny.",
+          "high": "Możliwość dostosowania technologicznego jest mocną stroną. Szybko testujesz nowe narzędzia i szukasz praktycznej wartości.",
+          "low": "Zmiana narzędzi może kosztować więcej energii. Pomocne będzie bezpieczne szkolenie dotyczące małych przypadków roboczych.",
+          "summary": "Jak dobrze radzisz sobie w szybko zmieniającym się środowisku technologicznym?"
+        },
+        "d7_cognitive_reflection": {
+          "balanced": "Intuicję możesz uzupełnić kontrolą. Prosta lista kontrolna dotycząca podejmowania decyzji pomaga w przypadku większych kroków.",
+          "development": "Przed podjęciem decyzji zadaj sobie pytanie: Jakie są dowody i co by mnie przekonało, że jest inaczej?",
+          "environment": "Rola, w której jest czas na przegląd decyzji i błędów, jest wykorzystywana jako nauka, a nie kara.",
+          "high": "Możesz zahamować pierwszy wniosek i zweryfikować dowody. Zwiększa to jakość decyzji o większym wpływie.",
+          "low": "Szybka intuicja może dominować. W przypadku ważnych rzeczy dodaj krótką kontrolę typu stop-check-check.",
+          "summary": "Umiejętność zatrzymania pierwszej intuicji i sprawdzenia jej logiką."
+        },
+        "d8_digital_eq": {
+          "balanced": "Praktycznie zarządzasz komunikacją cyfrową. Pomaga świadomie wybierać pomiędzy wiadomością a telefonem.",
+          "development": "W przypadku trudnej wiadomości napisz najpierw intencję, potem fakty, a na końcu konkretną prośbę.",
+          "environment": "Zespół hybrydowy lub zdalny z jasną higieną komunikacji i bezpieczną przestrzenią na pytania.",
+          "high": "Dobrze odczytujesz ton, podtekst i pewność siebie w tekście. Jest to mocne w przypadku współpracy asynchronicznej i wrażliwych tematów.",
+          "low": "W tekście łatwiej mogą pojawić się nieporozumienia. Krótszy przekaz, jasna intencja i walidacja wpływu będą pomocne.",
+          "summary": "Wrażliwość na emocje, ton i pewność siebie w komunikacji tekstowej."
+        },
+        "d9_systems_thinking": {
+          "balanced": "Możesz podążać za szerszymi powiązaniami, jeśli masz jasno określone ramy problemu.",
+          "development": "Dla jednego problemu narysuj mapę: przyczyna, skutek, informacja zwrotna, ukryty koszt.",
+          "environment": "Role procesowe, produktowe lub operacyjne, w których ulepszane są całe systemy, a nie tylko pojedyncze zadania.",
+          "high": "Silne myślenie systemowe. Widzisz zależności, opóźnione efekty i miejsca, w których problem powraca.",
+          "low": "Zamiast zajmować się izolowanym objawem, pomocne może być świadome mapowanie przyczyn, skutków i zależności.",
+          "summary": "Jak dobrze czytasz relacje, opinie i skutki uboczne."
+        },
+        "i1_love": {
+          "balanced": "Zainteresowanie budzi się w konkretnych sytuacjach. Warto obserwować, kiedy energia wzrasta.",
+          "development": "W ciągu tygodnia zapisz 3 momenty, w których praca dodała lub odebrała energię.",
+          "environment": "Pracuj z przestrzenią do zanurzenia, tworzenia lub problemu, który Cię osobiście interesuje.",
+          "high": "Masz silny sygnał wewnętrznego zainteresowania. Poszukaj ról, w których ta energia jest wykorzystywana często, a nie tylko marginalnie.",
+          "low": "Nie jest jeszcze jasne, co tak naprawdę przyciąga Cię do pracy. Pomoże to w mapowaniu działań, w których czas znika.",
+          "summary": "Co Cię w naturalny sposób wciąga i obciąża."
+        },
+        "i2_good_at": {
+          "balanced": "Niektóre mocne strony już znasz, inne zostaną ujawnione poprzez konkretne dowody pracy.",
+          "development": "Zapisz 5 sytuacji, w których pomogłeś komuś i znajdź wspólną umiejętność.",
+          "environment": "Rolę, w której Twoje silne umiejętności są regularnie wykorzystywane i widoczne w rezultacie.",
+          "high": "Masz silną świadomość swoich umiejętności i wiesz, jak przekształcić je w korzyści dla innych.",
+          "low": "Możesz nie doceniać tego, w czym jesteś dobry. Szukaj powtarzających się próśb o pomoc i rezultaty.",
+          "summary": "Jaka jest Twoja moc wielokrotnego użytku?"
+        },
+        "i3_world_needs": {
+          "balanced": "Znaczenie i użyteczność są ważne, ale nie muszą być jedynym źródłem motywacji.",
+          "development": "W przypadku oferty pracy sprawdź, komu pomaga wynik i jak można go rozpoznać.",
+          "environment": "Produkty, usługi lub operacje, w których można dostrzec prawdziwe korzyści z pracy.",
+          "high": "Wpływ na konkretne osoby jest dla Ciebie ważnym źródłem sensu i wytrzymałości.",
+          "low": "Praca może mieć sens nawet bez znaczącego wpływu społecznego, jeśli pasuje do niej rola, zespół lub nagroda.",
+          "summary": "Ile potrzebujesz, aby zobaczyć korzyść dla ludzi i świata."
+        },
+        "i4_paid_for": {
+          "balanced": "Bierze się pod uwagę wartość ekonomiczną, ale dobrze byłoby ją określić konkretnymi dowodami.",
+          "development": "Dla każdej mocnej strony napisz jedną wymierną korzyść dla zespołu, klienta lub firmy.",
+          "environment": "Stanowisko, w którym jasne jest, w jaki sposób Twoja praca tworzy wartość i godziwą nagrodę.",
+          "high": "Dokładnie myślisz o wartości swojej pracy dla rynku. Pomaga to wybrać zrównoważony kierunek.",
+          "low": "Może zaistnieć potrzeba większego przełożenia możliwości na język biznesu lub wartości dla klienta.",
+          "summary": "Jak połączyć znaczenie, możliwości i wartość ekonomiczną."
+        }
+      }
     },
     "companies": {
       "hero": {

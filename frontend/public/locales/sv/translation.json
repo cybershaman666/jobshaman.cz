@@ -6631,7 +6631,138 @@
       "response_quality_title": "Mätkvalitet",
       "coverage": "Täckning",
       "response_quality_flagged": "Resultatet är sparat, men vissa svarsmönster sänker tolkningssäkerheten.",
-      "response_quality_clean": "Svarens variation räcker för en grundläggande profiltolkning."
+      "response_quality_clean": "Svarens variation räcker för en grundläggande profiltolkning.",
+      "drag_assign_cause": "Dra eller tilldela en orsak här",
+      "report": {
+        "d10_ambiguity_interpretation": {
+          "balanced": "Du kan hantera oklarheter om du har möjlighet att successivt verifiera nästa steg.",
+          "development": "För en otydlig uppgift, skriv ner: vad jag vet, vad jag inte vet, vad jag kommer att verifiera inom 48 timmar.",
+          "environment": "En miljö med rörliga uppdrag, men bra stöd i prioriteringar och beslutsrätt.",
+          "high": "Du ser riktning och möjligheter i osäkerhet. Du kan börja även om uppdraget inte är perfekt ännu.",
+          "low": "Otydlig input kan hämma energi. Det kommer att hjälpa till att definiera minsta nästa signal och det första säkra steget.",
+          "summary": "Hur läser du tvetydiga situationer: risker kontra möjligheter."
+        },
+        "d11_problem_decomposition": {
+          "balanced": "Du kan bryta ner ett problem när du har ett tydligt mål och tillräckligt med sammanhang.",
+          "development": "Dela upp varje större problem i en blockerare, ett första steg och en mätbar utdata för veckan.",
+          "environment": "En roll där strategi omsätts till prioriteringar, experiment och praktisk leverans.",
+          "high": "Du kan snabbt skapa en struktur av steg. Stark för strategi, leverans, verksamhetsförändringar och komplexa projekt.",
+          "low": "Ett stort problem kan kännas överväldigande. Ett litet experiment och enkla prioriteringar kommer att hjälpa.",
+          "summary": "Förmåga att bryta ner ett stort problem i tydliga steg."
+        },
+        "d12_moral_compass": {
+          "balanced": "Du tar hänsyn till de etiska implikationerna, särskilt när de är tydligt namngivna.",
+          "development": "För dilemman, skriv ner: vem kommer det att påverka, vad som kommer att hända senare och vad jag skulle försvara högt.",
+          "environment": "En organisation som tar förtroende, ansvarighet och öppet beslutsfattande på allvar.",
+          "high": "En stark moralisk kompass. Du håller integritet, förtroende och långsiktiga effekter under press.",
+          "low": "Under press kan det vara svårare att öppna sig om ett obehagligt ämne. En förutbestämd princip för beslutsfattande kommer att hjälpa.",
+          "summary": "Värdestabilitet i dilemman och pressade situationer."
+        },
+        "d1_cognitive": {
+          "balanced": "Du kan kombinera analys med praktisk intuition. Du fungerar bäst när du har tillräckligt med signaler, men fastnar inte i detaljer.",
+          "development": "Innan du fattar ett viktigt beslut, skriv ner 3 fakta, 1 risk och 1 alternativ.",
+          "environment": "En roll med ett tydligt sammanhang, förmåga att analysera ett problem och omsätta det till ett beslut.",
+          "high": "Du sätter naturligtvis likhetstecken mellan fakta, samband och effekter. Du briljerar där det är nödvändigt att separera bruset från substansen.",
+          "low": "Du litar mer på intuition och helhetsintryck. En snabb faktakontroll hjälper dig med viktiga beslut.",
+          "summary": "Metod för att bearbeta information och lösa problem."
+        },
+        "d2_social": {
+          "balanced": "Social orientering är balanserad. Du kan arbeta i team såväl som självständigt vid behov.",
+          "development": "Namnge det förväntade resultatet före mötet och efter det ett tydligt nästa steg.",
+          "environment": "Ett team med tydlig kommunikation, regelbunden feedback och en rimlig grad av självständighet.",
+          "high": "Du kan behålla förtroende, enighet och gemensam riktning. Din styrka är att läsa människor utan att tappa objektivitet.",
+          "low": "Du föredrar förmodligen självständigt arbete och mindre social samordning.",
+          "summary": "Föredraget sätt att interagera med människor och teamdynamik."
+        },
+        "d3_motivational": {
+          "balanced": "Du hanterar både inre mening och tydliga mål och belöningar. Det hjälper till att förtydliga den nuvarande prioriteringen.",
+          "development": "För varje större uppgift, skriv ner vem den hjälper och hur du vet ett bra resultat.",
+          "environment": "Projekt med synlig påverkan, rättvist ansvar och utrymme för förbättringar.",
+          "high": "Du dras starkt till mening, påverkan och växande ansvar. Du måste förstå varför, inte bara vad.",
+          "low": "Motivation kan bero mer på en specifik belöning, stabilitet eller ett tydligt specificerat resultat.",
+          "summary": "Vad driver dig och vad tycker du är givande."
+        },
+        "d4_energy": {
+          "balanced": "Du kan växla mellan sprint och jämnt tempo. En rytm med tydliga prioriteringar fungerar bra.",
+          "development": "I 14 dagar, ställ in en sprintrytm, pausa, granska: vad tar energi och vad ger tillbaka den.",
+          "environment": "Arbeta med realistiska prioriteringar, förmåga att skydda djuparbete och överenskomna spurter.",
+          "high": "Du kan hantera högre tempo och dynamiska situationer. Nyckeln är att planera för återhämtning så att prestandan förblir hållbar.",
+          "low": "Snarare behöver du ett mer stabilt tempo, mindre omkoppling och ett skyddat utrymme för koncentration.",
+          "summary": "Tempo, intensitet och arbetsstil."
+        },
+        "d5_values": {
+          "balanced": "Dina värderingar är balanserade och du kan anpassa dig till olika kulturer om du vet vad som är viktigt.",
+          "development": "Skriv ner 3 arbetssituationer som är oöverstigliga för dig, och varför.",
+          "environment": "En kultur med rättvisa, transparens och utrymme för att prata om effekterna av beslut.",
+          "high": "Värderingar är ett starkt ankare. Integritet, förtroende och långsiktig påverkan är inte dekorationer för dig.",
+          "low": "Man kan lättare tolerera olika miljöer, men det lönar sig att medvetet sätta sina egna gränser.",
+          "summary": "Vad måste arbetet medföra för att vara vettigt."
+        },
+        "d6_ai_readiness": {
+          "balanced": "Du kan använda nya verktyg när de är vettiga. Praktisk inlärning på en verklig uppgift fungerar bäst.",
+          "development": "Välj en repetitiv uppgift och försök använda AI på den tre gånger med en kort utvärdering.",
+          "environment": "En miljö där nya verktyg används rutinmässigt men med tydligt mänskligt omdöme.",
+          "high": "Teknisk anpassningsförmåga är en stark sida. Du testar snabbt nya verktyg och letar efter praktiskt värde.",
+          "low": "Att byta verktyg kan kosta mer energi. Säker utbildning i små arbetsfall hjälper.",
+          "summary": "Hur väl trivs du i en snabbt föränderlig teknikmiljö?"
+        },
+        "d7_cognitive_reflection": {
+          "balanced": "Du kan komplettera intuitionen med kontroll. En enkel checklista för beslutsfattande hjälper till med större steg.",
+          "development": "Innan du fattar ett beslut, fråga dig själv: Vilka är bevisen och vad skulle övertyga mig om något annat?",
+          "environment": "En roll där det finns tid att se över beslut och misstag används som lärande, inte straff.",
+          "high": "Du kan hämma den första slutsatsen och verifiera bevisen. Detta ökar kvaliteten på beslut med högre genomslagskraft.",
+          "low": "Snabb intuition kan dominera. För viktiga saker, lägg till en kort stop-check-check.",
+          "summary": "Förmågan att stoppa den första intuitionen och verifiera den med logik."
+        },
+        "d8_digital_eq": {
+          "balanced": "Du hanterar praktiskt digital kommunikation. Det hjälper att medvetet välja mellan ett meddelande och ett samtal.",
+          "development": "För ett svårt meddelande, skriv först avsikten, sedan fakta och slutligen den specifika begäran.",
+          "environment": "Ett hybrid- eller distansteam med tydlig kommunikationshygien och ett säkert utrymme för frågor.",
+          "high": "Du läser tonen, undertexten och förtroendet i texten väl. Detta är starkt i asynkront samarbete och känsliga ämnen.",
+          "low": "Det kan lättare uppstå missförstånd i texten. Ett kortare budskap, tydlig avsikt och validering av påverkan kommer att hjälpa.",
+          "summary": "Känslighet för känslor, ton och självförtroende i textkommunikation."
+        },
+        "d9_systems_thinking": {
+          "balanced": "Du kan följa bredare samband när du har en tydligt definierad ram för problemet.",
+          "development": "För ett problem, rita en karta: orsak, verkan, feedback, dold kostnad.",
+          "environment": "Process-, produkt- eller operativa roller där hela system förbättras, inte bara enskilda uppgifter.",
+          "high": "Starkt systemtänkande. Du ser relationerna, de fördröjda effekterna och de platser där problemet återkommer.",
+          "low": "Det kan vara till hjälp att medvetet kartlägga orsaker, effekter och beroenden istället för att ta itu med ett isolerat symptom.",
+          "summary": "Hur väl läser du relationer, feedback och biverkningar."
+        },
+        "i1_love": {
+          "balanced": "Intresset väcks i specifika situationer. Det lönar sig att titta på när energin stiger.",
+          "development": "Skriv under veckan ner 3 ögonblick när arbetet tillförde eller tog bort energi.",
+          "environment": "Arbeta med ett utrymme för fördjupning, skapande eller ett problem som intresserar dig personligen.",
+          "high": "Du har en stark signal om internt intresse. Leta efter roller där denna energi används ofta, inte bara marginellt.",
+          "low": "Det är ännu inte klart vad som verkligen lockar dig till jobbet. Det kommer att hjälpa till att kartlägga aktiviteterna där tiden försvinner.",
+          "summary": "Det som naturligt drar in dig och laddar dig."
+        },
+        "i2_good_at": {
+          "balanced": "Vissa styrkor känner du redan till, andra kommer att avslöjas genom konkreta arbetsbevis.",
+          "development": "Skriv ner 5 situationer där du hjälpte någon och hitta en gemensam förmåga.",
+          "environment": "En roll där din starka kompetens används regelbundet och syns i resultatet.",
+          "high": "Du har en stark uppfattning om dina förmågor och vet hur du omvandlar dem till fördelar för andra.",
+          "low": "Du kanske underskattar vad du är bra på. Leta efter upprepade förfrågningar om hjälp och resultat.",
+          "summary": "Vad är din återanvändbara kraft?"
+        },
+        "i3_world_needs": {
+          "balanced": "Mening och nytta är viktiga, men de behöver inte vara den enda källan till motivation.",
+          "development": "För jobberbjudandet, kolla vem resultatet hjälper och hur det kan kännas igen.",
+          "environment": "Produkter, tjänster eller verksamhet där den verkliga nyttan av arbetet kan ses.",
+          "high": "Inverkan på specifika människor är en viktig källa till mening och uthållighet för dig.",
+          "low": "Arbete kan vara meningsfullt även utan betydande social påverkan om rollen, teamet eller belöningen passar.",
+          "summary": "Hur mycket behöver du för att se nyttan för människor eller världen."
+        },
+        "i4_paid_for": {
+          "balanced": "Man tar hänsyn till det ekonomiska värdet, men det vore bra att precisera det med konkreta bevis.",
+          "development": "För varje styrka, skriv en mätbar fördel för teamet, kunden eller företaget.",
+          "environment": "En roll där det är tydligt hur ditt arbete skapar värde och en rättvis belöning.",
+          "high": "Du tänker noga på värdet av ditt arbete för marknaden. Detta hjälper till att välja en hållbar riktning.",
+          "low": "Det kan finnas ett behov av att översätta kapacitet mer till affärsspråket eller kundvärde.",
+          "summary": "Hur kopplar du ihop mening, förmågor och ekonomiskt värde."
+        }
+      }
     },
     "companies": {
       "hero": {

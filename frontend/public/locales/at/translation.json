@@ -6620,7 +6620,138 @@
       "response_quality_title": "Messqualität",
       "coverage": "Abdeckung",
       "response_quality_flagged": "Das Ergebnis wurde gespeichert, aber einige Antwortmuster senken die Sicherheit der Interpretation.",
-      "response_quality_clean": "Die Antworten sind ausreichend differenziert für eine grundlegende Profilinterpretation."
+      "response_quality_clean": "Die Antworten sind ausreichend differenziert für eine grundlegende Profilinterpretation.",
+      "drag_assign_cause": "Ziehen Sie hier eine Ursache oder weisen Sie sie zu",
+      "report": {
+        "d10_ambiguity_interpretation": {
+          "balanced": "Sie können mit Unklarheiten umgehen, wenn Sie die Möglichkeit haben, die nächsten Schritte schrittweise zu überprüfen.",
+          "development": "Schreiben Sie bei einer unklaren Aufgabe auf: Was ich weiß, was ich nicht weiß, was ich innerhalb von 48 Stunden überprüfen werde.",
+          "environment": "Ein Umfeld mit variablen Aufgaben, aber guter Unterstützung bei Prioritäten und Entscheidungsrechten.",
+          "high": "Sie sehen in der Ungewissheit eine Richtung und Chancen. Auch wenn die Aufgabe noch nicht perfekt ist, kann es losgehen.",
+          "low": "Unklare Eingaben können die Energie beeinträchtigen. Es hilft dabei, das minimale nächste Signal und den ersten sicheren Schritt zu definieren.",
+          "summary": "Wie liest man mehrdeutige Situationen: Risiken vs. Chancen."
+        },
+        "d11_problem_decomposition": {
+          "balanced": "Sie können ein Problem aufschlüsseln, wenn Sie ein klares Ziel und genügend Kontext haben.",
+          "development": "Unterteilen Sie jedes größere Problem in einen Blocker, einen ersten Schritt und einen messbaren Output für die Woche.",
+          "environment": "Eine Rolle, in der Strategie in Prioritäten, Experimente und praktische Umsetzung umgesetzt wird.",
+          "high": "Sie können schnell eine Struktur aus Schritten erstellen. Stark für Strategie, Umsetzung, betriebliche Veränderungen und komplexe Projekte.",
+          "low": "Ein großes Problem kann sich überwältigend anfühlen. Ein kleines Experiment und einfache Prioritäten helfen.",
+          "summary": "Fähigkeit, ein großes Problem in klare Schritte zu zerlegen."
+        },
+        "d12_moral_compass": {
+          "balanced": "Sie berücksichtigen die ethischen Implikationen, insbesondere wenn diese klar benannt werden.",
+          "development": "Schreiben Sie bei Dilemmata auf: Wen wird es betreffen, was wird später passieren und was würde ich lautstark verteidigen.",
+          "environment": "Eine Organisation, die Vertrauen, Verantwortung und transparente Entscheidungsfindung ernst nimmt.",
+          "high": "Ein starker moralischer Kompass. Sie halten Integrität, Vertrauen und langfristige Auswirkungen unter Druck.",
+          "low": "Unter Druck kann es schwieriger sein, sich über ein unangenehmes Thema zu äußern. Dabei hilft ein vorgegebenes Entscheidungsprinzip.",
+          "summary": "Wertestabilität in Dilemmata und Drucksituationen."
+        },
+        "d1_cognitive": {
+          "balanced": "Sie können Analyse mit praktischer Intuition kombinieren. Sie arbeiten am besten, wenn Sie genügend Signale haben, aber verlieren Sie sich nicht in Details.",
+          "development": "Bevor Sie eine wichtige Entscheidung treffen, notieren Sie sich 3 Fakten, 1 Risiko und 1 Alternative.",
+          "environment": "Eine Rolle mit einem klaren Kontext, der Fähigkeit, ein Problem zu analysieren und in eine Entscheidung umzusetzen.",
+          "high": "Sie setzen Fakten, Zusammenhänge und Auswirkungen selbstverständlich gleich. Sie zeichnen sich dort aus, wo es darauf ankommt, den Lärm von der Substanz zu trennen.",
+          "low": "Sie verlassen sich mehr auf die Intuition und den Gesamteindruck. Ein kurzer Faktencheck hilft bei wichtigen Entscheidungen.",
+          "summary": "Methode zur Informationsverarbeitung und Problemlösung."
+        },
+        "d2_social": {
+          "balanced": "Die soziale Ausrichtung ist ausgewogen. Sie können bei Bedarf sowohl im Team als auch selbstständig arbeiten.",
+          "development": "Nennen Sie vor dem Meeting das erwartete Ergebnis und danach einen klaren nächsten Schritt.",
+          "environment": "Ein Team mit klarer Kommunikation, regelmäßigem Feedback und einem angemessenen Maß an Autonomie.",
+          "high": "Sie können Vertrauen, Einigkeit und eine gemeinsame Richtung bewahren. Ihre Stärke besteht darin, Menschen zu lesen, ohne die Objektivität zu verlieren.",
+          "low": "Sie bevorzugen wahrscheinlich unabhängiges Arbeiten und weniger soziale Koordination.",
+          "summary": "Bevorzugte Art der Interaktion mit Menschen und der Teamdynamik."
+        },
+        "d3_motivational": {
+          "balanced": "Sie verwalten sowohl die innere Bedeutung als auch klare Ziele und Belohnungen. Es hilft, die aktuelle Priorität zu klären.",
+          "development": "Schreiben Sie für jede größere Aufgabe auf, wem sie hilft und wie Sie ein gutes Ergebnis erzielen.",
+          "environment": "Projekte mit sichtbarer Wirkung, fairer Verantwortung und Verbesserungspotenzial.",
+          "high": "Sie fühlen sich stark von Bedeutung, Wirkung und wachsender Verantwortung angezogen. Sie müssen verstehen, warum, nicht nur was.",
+          "low": "Motivation kann eher von einer bestimmten Belohnung, Stabilität oder einem klar festgelegten Ergebnis abhängen.",
+          "summary": "Was treibt Sie an und was empfinden Sie als lohnend?"
+        },
+        "d4_energy": {
+          "balanced": "Sie können zwischen Sprinten und gleichmäßigem Tempo wechseln. Ein Rhythmus mit klaren Prioritäten funktioniert gut.",
+          "development": "Legen Sie 14 Tage lang einen Sprintrhythmus fest, pausieren Sie, überprüfen Sie: Was verbraucht Energie und was gibt sie zurück?",
+          "environment": "Arbeiten Sie mit realistischen Prioritäten, der Fähigkeit, Deep Work zu schützen und vereinbarten Sprints.",
+          "high": "Sie können mit höherem Tempo und dynamischen Situationen umgehen. Der Schlüssel liegt darin, die Erholung so zu planen, dass die Leistung nachhaltig bleibt.",
+          "low": "Vielmehr braucht es ein stabileres Tempo, weniger Wechsel und einen geschützten Raum für die Konzentration.",
+          "summary": "Tempo, Intensität und Arbeitsstil."
+        },
+        "d5_values": {
+          "balanced": "Ihre Werte sind ausgewogen und Sie können sich an verschiedene Kulturen anpassen, wenn Sie wissen, worauf es ankommt.",
+          "development": "Schreiben Sie 3 Arbeitssituationen auf, die für Sie unüberwindbar sind, und warum.",
+          "environment": "Eine Kultur mit Fairness, Transparenz und Raum, um über die Auswirkungen von Entscheidungen zu sprechen.",
+          "high": "Werte sind ein starker Anker. Integrität, Vertrauen und langfristige Wirkung sind für Sie kein Schmuckstück.",
+          "low": "Man kann unterschiedliche Umgebungen leichter tolerieren, aber es lohnt sich, die eigenen Grenzen bewusst zu benennen.",
+          "summary": "Was muss die Arbeit mitbringen, damit sie einen Sinn ergibt?"
+        },
+        "d6_ai_readiness": {
+          "balanced": "Sie können neue Tools verwenden, wenn sie sinnvoll sind. Praktisches Lernen an einer realen Aufgabe funktioniert am besten.",
+          "development": "Wählen Sie eine sich wiederholende Aufgabe aus und versuchen Sie dreimal, die KI mit einer kurzen Bewertung darauf anzuwenden.",
+          "environment": "Eine Umgebung, in der neue Tools routinemäßig, aber mit klarem menschlichen Urteilsvermögen eingesetzt werden.",
+          "high": "Die technologische Anpassungsfähigkeit ist eine Stärke. Sie testen schnell neue Tools und suchen nach einem praktischen Nutzen.",
+          "low": "Der Werkzeugwechsel kann mehr Energie kosten. Eine sichere Schulung zu kleinen Arbeitsfällen wird hilfreich sein.",
+          "summary": "Wie gut gedeihen Sie in einem sich schnell verändernden Technologieumfeld?"
+        },
+        "d7_cognitive_reflection": {
+          "balanced": "Sie können Ihre Intuition durch Kontrolle ergänzen. Bei größeren Schritten hilft eine einfache Entscheidungscheckliste.",
+          "development": "Bevor Sie eine Entscheidung treffen, fragen Sie sich: Welche Beweise gibt es und was würde mich vom Gegenteil überzeugen?",
+          "environment": "Eine Rolle, in der es Zeit gibt, Entscheidungen zu überprüfen und Fehler als Lernen und nicht als Bestrafung zu nutzen.",
+          "high": "Sie können die erste Schlussfolgerung verhindern und die Beweise überprüfen. Dies erhöht die Qualität von Entscheidungen mit größerer Wirkung.",
+          "low": "Schnelle Intuition kann dominieren. Fügen Sie für wichtige Dinge einen kurzen Stop-Check-Check hinzu.",
+          "summary": "Die Fähigkeit, die erste Intuition zu stoppen und sie mit Logik zu überprüfen."
+        },
+        "d8_digital_eq": {
+          "balanced": "Du managest praktisch die digitale Kommunikation. Es hilft, bewusst zwischen einer Nachricht und einem Anruf zu wählen.",
+          "development": "Schreiben Sie bei einer schwierigen Nachricht zuerst die Absicht, dann die Fakten und schließlich die konkrete Anfrage.",
+          "environment": "Ein Hybrid- oder Remote-Team mit klarer Kommunikationshygiene und einem sicheren Raum für Fragen.",
+          "high": "Sie lesen den Ton, den Subtext und das Vertrauen in den Text gut. Dies gilt insbesondere für asynchrone Zusammenarbeit und sensible Themen.",
+          "low": "Im Text kann es leichter zu Missverständnissen kommen. Eine kürzere Botschaft, eine klare Absicht und eine Bestätigung der Wirkung werden hilfreich sein.",
+          "summary": "Sensibilität für Emotionen, Ton und Selbstvertrauen in der Textkommunikation."
+        },
+        "d9_systems_thinking": {
+          "balanced": "Sie können umfassendere Zusammenhänge verfolgen, wenn Sie einen klar definierten Rahmen für das Problem haben.",
+          "development": "Zeichnen Sie für ein Problem eine Karte: Ursache, Wirkung, Feedback, versteckte Kosten.",
+          "environment": "Prozess-, Produkt- oder Betriebsrollen, bei denen ganze Systeme verbessert werden, nicht nur einzelne Aufgaben.",
+          "high": "Starkes Systemdenken. Sie sehen die Zusammenhänge, die verzögerten Auswirkungen und die Orte, an denen das Problem erneut auftritt.",
+          "low": "Es kann hilfreich sein, Ursachen, Wirkungen und Abhängigkeiten bewusst abzubilden, anstatt ein isoliertes Symptom zu behandeln.",
+          "summary": "Wie gut lesen Sie Zusammenhänge, Rückmeldungen und Nebenwirkungen?"
+        },
+        "i1_love": {
+          "balanced": "Das Interesse wird in bestimmten Situationen geweckt. Es lohnt sich zu beobachten, wann die Energie steigt.",
+          "development": "Schreiben Sie im Laufe der Woche drei Momente auf, in denen die Arbeit Energie hinzufügte oder raubte.",
+          "environment": "Arbeiten Sie mit einem Raum zum Eintauchen, Schaffen oder einem Problem, das Sie persönlich interessiert.",
+          "high": "Sie haben ein starkes Signal internen Interesses. Suchen Sie nach Rollen, bei denen diese Energie häufig und nicht nur am Rande genutzt wird.",
+          "low": "Es ist noch nicht klar, was Sie wirklich an der Arbeit reizt. Es wird hilfreich sein, die Aktivitäten abzubilden, bei denen die Zeit verschwindet.",
+          "summary": "Was Sie auf natürliche Weise anzieht und auflädt."
+        },
+        "i2_good_at": {
+          "balanced": "Einige Stärken kennen Sie bereits, andere werden durch konkrete Arbeitsnachweise offenbart.",
+          "development": "Schreiben Sie 5 Situationen auf, in denen Sie jemandem geholfen haben, und finden Sie eine gemeinsame Fähigkeit.",
+          "environment": "Eine Rolle, bei der Ihre starken Fähigkeiten regelmäßig zum Einsatz kommen und im Ergebnis sichtbar sind.",
+          "high": "Sie haben ein starkes Gespür für Ihre Fähigkeiten und wissen, wie Sie diese in Vorteile für andere umwandeln können.",
+          "low": "Möglicherweise unterschätzen Sie, worin Sie gut sind. Suchen Sie nach wiederholten Anfragen nach Hilfe und Ergebnissen.",
+          "summary": "Wie groß ist Ihre wiederverwendbare Energie?"
+        },
+        "i3_world_needs": {
+          "balanced": "Sinn und Nutzen sind wichtig, müssen aber nicht die einzige Motivationsquelle sein.",
+          "development": "Prüfen Sie beim Stellenangebot, wem das Ergebnis hilft und wie es anerkannt werden kann.",
+          "environment": "Produkte, Dienstleistungen oder Vorgänge, bei denen der tatsächliche Nutzen der Arbeit erkennbar ist.",
+          "high": "Die Wirkung auf bestimmte Menschen ist für Sie eine wichtige Quelle von Sinn und Ausdauer.",
+          "low": "Arbeit kann auch ohne nennenswerte soziale Auswirkungen sinnvoll sein, wenn die Rolle, das Team oder die Belohnung passen.",
+          "summary": "Wie viel brauchen Sie, um den Nutzen für die Menschen oder die Welt zu sehen?"
+        },
+        "i4_paid_for": {
+          "balanced": "Sie berücksichtigen den wirtschaftlichen Wert, es wäre aber gut, ihn mit konkreten Belegen zu belegen.",
+          "development": "Schreiben Sie für jede Stärke einen messbaren Nutzen für das Team, den Kunden oder das Unternehmen auf.",
+          "environment": "Eine Rolle, bei der klar ist, wie Ihre Arbeit Mehrwert und eine faire Vergütung schafft.",
+          "high": "Sie denken sorgfältig über den Wert Ihrer Arbeit für den Markt nach. Dies hilft, eine nachhaltige Richtung zu wählen.",
+          "low": "Möglicherweise müssen die Fähigkeiten stärker in die Sprache des Geschäfts oder des Kundennutzens übersetzt werden.",
+          "summary": "Wie verbinden Sie Bedeutung, Fähigkeiten und wirtschaftlichen Wert?"
+        }
+      }
     },
     "auth": {
       "sign_in": "Anmelden",

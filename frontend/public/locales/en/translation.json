@@ -6778,7 +6778,138 @@
       "response_quality_title": "Measurement quality",
       "coverage": "Coverage",
       "response_quality_flagged": "The result is saved, but some response patterns lower interpretation confidence.",
-      "response_quality_clean": "Responses are sufficiently differentiated for a basic profile interpretation."
+      "response_quality_clean": "Responses are sufficiently differentiated for a basic profile interpretation.",
+      "drag_assign_cause": "Drag or assign a cause here",
+      "report": {
+        "d10_ambiguity_interpretation": {
+          "balanced": "You can handle ambiguity if you have the opportunity to gradually verify the next steps.",
+          "development": "For an unclear task, write down: what I know, what I don't know, what I will verify within 48 hours.",
+          "environment": "An environment with variable assignments, but good support in priorities and decision-making rights.",
+          "high": "You see direction and opportunities in uncertainty. You can start even if the assignment is not perfect yet.",
+          "low": "Unclear input can hamper energy. It will help define the minimum next signal and the first safe step.",
+          "summary": "How do you read ambiguous situations: risks vs. opportunities."
+        },
+        "d11_problem_decomposition": {
+          "balanced": "You can break down a problem when you have a clear goal and enough context.",
+          "development": "Break down each major problem into a blocker, a first step, and a measurable output for the week.",
+          "environment": "A role where strategy is translated into priorities, experiments and practical delivery.",
+          "high": "You can quickly create a structure of steps. Strong for strategy, delivery, operational changes and complex projects.",
+          "low": "A big problem can feel overwhelming. One small experiment and simple priorities will help.",
+          "summary": "Ability to break down a large problem into clear steps."
+        },
+        "d12_moral_compass": {
+          "balanced": "You take the ethical implications into account, especially when they are clearly named.",
+          "development": "For dilemmas, write down: who will it affect, what will happen later and what I would defend out loud.",
+          "environment": "An organization that takes trust, accountability and transparent decision-making seriously.",
+          "high": "A strong moral compass. You keep integrity, trust and long-term effects under pressure.",
+          "low": "Under pressure, it can be harder to open up about an uncomfortable topic. A predetermined decision-making principle will help.",
+          "summary": "Stability of values ​​in dilemmas and pressure situations."
+        },
+        "d1_cognitive": {
+          "balanced": "You can combine analysis with practical intuition. You work best when you have enough signals, but don't get bogged down in detail.",
+          "development": "Before making an important decision, write down 3 facts, 1 risk and 1 alternative.",
+          "environment": "A role with a clear context, the ability to analyze a problem and translate it into a decision.",
+          "high": "You naturally equate facts, connections and impacts. You excel where it is necessary to separate the noise from the substance.",
+          "low": "You rely more on intuition and overall impression. A quick fact check will help with important decisions.",
+          "summary": "Method of processing information and solving problems."
+        },
+        "d2_social": {
+          "balanced": "Social orientation is balanced. You can work in a team as well as independently as needed.",
+          "development": "Before the meeting, name the expected result and after it one clear next step.",
+          "environment": "A team with clear communication, regular feedback and a reasonable degree of autonomy.",
+          "high": "You can keep trust, agreement and common direction. Your strength is reading people without losing objectivity.",
+          "low": "You probably prefer independent work and less social coordination.",
+          "summary": "Preferred way of interacting with people and team dynamics."
+        },
+        "d3_motivational": {
+          "balanced": "You manage both inner meaning and clear goals and rewards. It helps to clarify the current priority.",
+          "development": "For each major task, write down who it helps and how you know a good result.",
+          "environment": "Projects with a visible impact, fair responsibility and room for improvement.",
+          "high": "You are strongly drawn to meaning, impact and growing responsibility. You need to understand why, not just what.",
+          "low": "Motivation may depend more on a specific reward, stability or a clearly specified result.",
+          "summary": "What drives you and what do you consider rewarding."
+        },
+        "d4_energy": {
+          "balanced": "You can switch between sprinting and a steady pace. A rhythm with clear priorities works well.",
+          "development": "For 14 days, set a sprint rhythm, pause, review: what takes energy and what gives it back.",
+          "environment": "Work with realistic priorities, the ability to protect deep work and agreed sprints.",
+          "high": "You can handle higher tempo and dynamic situations. The key is to plan for recovery so that performance remains sustainable.",
+          "low": "Rather, you need a more stable pace, less switching and a protected space for concentration.",
+          "summary": "Pace, intensity and style of work."
+        },
+        "d5_values": {
+          "balanced": "Your values ​​are balanced and you can adapt to different cultures if you know what is important.",
+          "development": "Write down 3 work situations that are insurmountable for you, and why.",
+          "environment": "A culture with fairness, transparency and space to talk about the impact of decisions.",
+          "high": "Values ​​are a strong anchor. Integrity, trust and long-term impact are not decorations for you.",
+          "low": "You can more easily tolerate different environments, but it pays to consciously name your own boundaries.",
+          "summary": "What must the work bring to make sense."
+        },
+        "d6_ai_readiness": {
+          "balanced": "You can use new tools when they make sense. Hands-on learning on a real-world task works best.",
+          "development": "Pick one repetitive task and try to use the AI ​​on it three times with a short evaluation.",
+          "environment": "An environment where new tools are used routinely but with clear human judgment.",
+          "high": "Technological adaptability is a strong point. You quickly test new tools and look for practical value.",
+          "low": "Changing tools can cost more energy. Safe training on small work cases will help.",
+          "summary": "How well do you thrive in a rapidly changing technology environment?"
+        },
+        "d7_cognitive_reflection": {
+          "balanced": "You can supplement intuition with control. A simple decision-making checklist helps with larger steps.",
+          "development": "Before making a decision, ask yourself: What is the evidence and what would convince me otherwise?",
+          "environment": "A role where there is time to review decisions and mistakes are used as learning, not punishment.",
+          "high": "You can inhibit the first conclusion and verify the evidence. This increases the quality of decisions with higher impact.",
+          "low": "Quick intuition can dominate. For important things, add a short stop-check-check.",
+          "summary": "The ability to stop the first intuition and verify it with logic."
+        },
+        "d8_digital_eq": {
+          "balanced": "You practically manage digital communication. It helps to consciously choose between a message and a call.",
+          "development": "For a difficult message, write the intention first, then the facts and finally the specific request.",
+          "environment": "A hybrid or remote team with clear communication hygiene and a safe space for questions.",
+          "high": "You read the tone, subtext and confidence in the text well. This is strong in asynchronous collaboration and sensitive topics.",
+          "low": "Misunderstandings can more easily arise in the text. A shorter message, clear intent and validation of impact will help.",
+          "summary": "Sensitivity to emotion, tone and confidence in text communication."
+        },
+        "d9_systems_thinking": {
+          "balanced": "You can follow wider connections when you have a clearly defined framework of the problem.",
+          "development": "For one problem, draw a map: cause, effect, feedback, hidden cost.",
+          "environment": "Process, product or operational roles where whole systems are improved, not just individual tasks.",
+          "high": "Strong systems thinking. You see relationships, delayed effects and places where the problem returns.",
+          "low": "It can be helpful to consciously map causes, effects, and dependencies instead of addressing an isolated symptom.",
+          "summary": "How well you read relationships, feedback and side effects."
+        },
+        "i1_love": {
+          "balanced": "Interest is awakened in specific situations. It pays to watch when the energy rises.",
+          "development": "During the week, write down 3 moments when work added or took away energy.",
+          "environment": "Work with a space for immersion, creation or a problem that interests you personally.",
+          "high": "You have a strong signal of internal interest. Look for roles where this energy is used frequently, not just marginally.",
+          "low": "It is not yet clear what really attracts you to work. It will help to map the activities where time is disappearing.",
+          "summary": "What naturally draws you in and charges you."
+        },
+        "i2_good_at": {
+          "balanced": "Some strengths you already know, others will be revealed through concrete work evidence.",
+          "development": "Write down 5 situations where you helped someone and find a common ability.",
+          "environment": "A role where your strong skills are used regularly and are visible in the result.",
+          "high": "You have a strong perception of your abilities and know how to convert them into benefits for others.",
+          "low": "You may underestimate what you are good at. Look for repeat requests for help and results.",
+          "summary": "What is your reusable power?"
+        },
+        "i3_world_needs": {
+          "balanced": "Meaning and utility are important, but they don't have to be the only source of motivation.",
+          "development": "For the job offer, check who the result helps and how it can be recognized.",
+          "environment": "Products, services or operations where the real benefit of the work can be seen.",
+          "high": "The impact on specific people is an important source of meaning and endurance for you.",
+          "low": "Work can be meaningful even without significant social impact if the role, team or reward fits.",
+          "summary": "How much do you need to see the benefit to people or the world."
+        },
+        "i4_paid_for": {
+          "balanced": "You take the economic value into account, but it would be good to specify it with concrete evidence.",
+          "development": "For each strength, write one measurable benefit for the team, customer or company.",
+          "environment": "A role where it is clear how your work creates value and a fair reward.",
+          "high": "You think carefully about the value of your work to the market. This helps to choose a sustainable direction.",
+          "low": "There may be a need to translate capabilities more into the language of business or customer value.",
+          "summary": "How do you connect meaning, capabilities and economic value."
+        }
+      }
     },
     "companies": {
       "hero": {
