@@ -42,6 +42,11 @@ class JobInteractionStateSyncRequest(BaseModel):
     source: str | None = None
 
 
+class SearchParseRequest(BaseModel):
+    query: str = Field(default="", max_length=400)
+    locale: str | None = Field(default="cs", max_length=10)
+
+
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -233,6 +238,24 @@ async def sync_job_interaction_state(
         "dismissed_job_ids": dismissed_job_ids,
         "updated_at": _now_iso(),
     }
+
+
+@router.post("/search/parse")
+async def parse_search_query(
+    payload: SearchParseRequest,
+    current_user: dict = Depends(AccessControlService.get_current_user),
+) -> Dict[str, Any]:
+    """Convert a natural-language search query into structured marketplace filters.
+
+    Uses the AI orchestration client when configured, otherwise falls back to a
+    deterministic heuristic parser so the search box always works.
+    """
+    from app.services.search_nl_parser import parse_natural_language_search
+
+    query = str(payload.query or "").strip()
+    locale = str(payload.locale or "cs").strip().lower() or "cs"
+    filters = parse_natural_language_search(query, locale=locale)
+    return {"status": "success", "filters": filters}
 
 
 @router.get("/{job_id}")
