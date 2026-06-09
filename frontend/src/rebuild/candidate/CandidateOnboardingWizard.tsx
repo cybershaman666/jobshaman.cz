@@ -79,11 +79,11 @@ export const CandidateOnboardingWizard: React.FC<{
   const [error, setError] = React.useState('');
 
   const getBasePreferences = React.useCallback((): UserProfile['preferences'] => ({
+    ...(userProfile.preferences || {}),
     workLifeBalance: userProfile.preferences?.workLifeBalance ?? 50,
     financialGoals: userProfile.preferences?.financialGoals ?? 50,
     commuteTolerance: userProfile.preferences?.commuteTolerance ?? 45,
     priorities: userProfile.preferences?.priorities ?? [],
-    ...(userProfile.preferences || {}),
   }), [userProfile.preferences]);
 
   const parsed = activeCvDocument?.parsedData || {};
@@ -290,42 +290,36 @@ export const CandidateOnboardingWizard: React.FC<{
                   label={t('rebuild.onboarding.review_identity', { defaultValue: 'Jméno a kontakt' })}
                   value={[parsed.name || userProfile.name, parsed.phone || userProfile.phone].filter(Boolean).join(' · ')}
                   onChange={(checked) => setSelectedSections((current) => ({ ...current, identity: checked }))}
-                  t={t}
                 />
                 <ReviewSectionToggle
                   checked={selectedSections.headline}
                   label={t('rebuild.profile.job_title', { defaultValue: 'Role' })}
                   value={parsed.jobTitle || userProfile.jobTitle}
                   onChange={(checked) => setSelectedSections((current) => ({ ...current, headline: checked }))}
-                  t={t}
                 />
                 <ReviewSectionToggle
                   checked={selectedSections.skills}
                   label={t('rebuild.profile.skills', { defaultValue: 'Dovednosti' })}
                   value={listText(parsed.skills || userProfile.skills)}
                   onChange={(checked) => setSelectedSections((current) => ({ ...current, skills: checked }))}
-                  t={t}
                 />
                 <ReviewSectionToggle
                   checked={selectedSections.workHistory}
                   label={t('rebuild.profile.experience', { defaultValue: 'Zkušenosti' })}
                   value={(parsed.workHistory || userProfile.workHistory || []).map((item: any) => [item.role, item.company].filter(Boolean).join(' @ ')).filter(Boolean).slice(0, 3).join(', ')}
                   onChange={(checked) => setSelectedSections((current) => ({ ...current, workHistory: checked }))}
-                  t={t}
                 />
                 <ReviewSectionToggle
                   checked={selectedSections.education}
                   label={t('rebuild.profile.education', { defaultValue: 'Vzdělání' })}
                   value={(parsed.education || userProfile.education || []).map((item: any) => [item.degree, item.school].filter(Boolean).join(' · ')).filter(Boolean).slice(0, 3).join(', ')}
                   onChange={(checked) => setSelectedSections((current) => ({ ...current, education: checked }))}
-                  t={t}
                 />
                 <ReviewSectionToggle
                   checked={selectedSections.languages}
                   label={t('rebuild.profile.languages', { defaultValue: 'Jazyky' })}
                   value={(parsed.languages || userProfile.languages || []).map((item: any) => item.label || item.name).filter(Boolean).slice(0, 5).join(', ')}
                   onChange={(checked) => setSelectedSections((current) => ({ ...current, languages: checked }))}
-                  t={t}
                 />
               </div>
               <label className="mt-4 block rounded-lg border border-slate-200 bg-slate-50 p-4">
@@ -357,17 +351,32 @@ export const CandidateOnboardingWizard: React.FC<{
   );
 };
 
-const ReviewSectionToggle: React.FC<{ label: string; value?: string | null; checked: boolean; onChange: (checked: boolean) => void }> = ({ label, value, checked, onChange }) => {
+const ReviewSectionToggle: React.FC<{
+  label: string;
+  value?: string | null;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}> = ({ label, value, checked, onChange }) => {
   const { t } = useTranslation();
   return (
-const ReviewSectionToggle: React.FC<{ label: string; value?: string | null; checked: boolean; onChange: (checked: boolean) => void; t: (key: string, options?: { defaultValue?: string } & Record<string, any>) => string }> = ({ label, value, checked, onChange, t }) => (
-  <label className="flex gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-    <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="mt-1 h-4 w-4 shrink-0 accent-[#0f95ac]" />
-    <span>
-      <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">{label}</span>
-      <span className="mt-1 block min-h-5 break-words text-sm font-semibold text-slate-900">{value || t('rebuild.onboarding.fill_later', { defaultValue: 'Doplnit později' })}</span>
-      <span className="mt-1 block min-h-5 break-words text-sm font-semibold text-slate-900">{value || t('rebuild.onboarding.review_missing', { defaultValue: 'Doplnit později' })}</span>
-    </span>
-  </label>
+    <label className="flex gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        className="mt-1 h-4 w-4 shrink-0 accent-[#0f95ac]"
+      />
+      <span>
+        <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">
+          {label}
+        </span>
+        <span className="mt-1 block min-h-5 break-words text-sm font-semibold text-slate-900">
+          {value || t('rebuild.onboarding.fill_later', { defaultValue: 'Doplnit později' })}
+        </span>
+        <span className="mt-1 block min-h-5 break-words text-sm font-semibold text-slate-900">
+          {value || t('rebuild.onboarding.review_missing', { defaultValue: 'Doplnit později' })}
+        </span>
+      </span>
+    </label>
   );
 };
