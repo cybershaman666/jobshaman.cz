@@ -548,21 +548,21 @@ const FeaturedOpportunityCard: React.FC<{
         ) : (
           <div className="h-full w-full bg-gradient-to-br from-[#0f4f73] to-[#0f95ac]" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/72 via-slate-950/12 to-slate-950/24" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/30" />
         <span className={cn('absolute left-3 top-3 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-black shadow-sm', hot ? 'bg-gradient-to-r from-orange-500 to-rose-500 text-white' : getMatchBadgeClass(matchPercent))}>
           {hot ? <><Flame size={12} /> {t('rebuild.marketplace.hot_opportunity', { defaultValue: 'Horká příležitost' })}</> : `${matchPercent}% Match`}
         </span>
         <button
           type="button"
           onClick={(event) => { event.stopPropagation(); onToggleSaved(); }}
-          className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-lg bg-white/90 text-slate-600 shadow-sm transition hover:bg-white hover:text-[#0f95ac] dark:bg-slate-900/80 dark:text-slate-300"
+          className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-lg bg-white shadow-sm transition hover:bg-white hover:text-[#0f95ac] dark:bg-white"
           aria-label={t('rebuild.marketplace.save_role', { defaultValue: 'Uložit nabídku' })}
         >
           <Bookmark size={15} className={cn(saved && 'fill-[#12afcb] text-[#12afcb]')} />
         </button>
         <div className="absolute bottom-3 left-3 flex items-center gap-2">
           <CompanyLogoBadge role={role} className="h-9 w-9" />
-          <span className="max-w-[150px] truncate text-[13px] font-black text-white drop-shadow">{role.companyName}</span>
+          <span className="max-w-[150px] truncate text-[13px] font-black text-white drop-shadow-lg">{role.companyName}</span>
         </div>
         {candidateAvatar ? (
           <img src={candidateAvatar} alt="" className="absolute -bottom-5 right-4 h-12 w-12 rounded-full object-cover ring-4 ring-white dark:ring-slate-900" loading="lazy" />
@@ -1252,6 +1252,12 @@ export const MarketplaceV2: React.FC<{
         title={t('rebuild.marketplace.header_title', { defaultValue: 'Marketplace práce' })}
         subtitle={t('rebuild.marketplace.header_subtitle', { defaultValue: 'Procházej nabídky, uprav filtry a otevírej jen ty role, které dávají smysl.' })}
         t={t}
+        aiSearchValue={aiQuery}
+        onAiSearchChange={(val) => setAiQuery(val)}
+        onAiSearchSubmit={() => { void runAiSearch(aiQuery); }}
+        aiSearchBusy={aiBusy}
+        onFiltersOpen={() => setFiltersOpen(true)}
+        activeFilterCount={activeFilterCount}
         actionRegion={
           <button type="button" onClick={() => setFiltersOpen(true)} className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-white/86 text-[#08788a] shadow-[0_14px_34px_-28px_rgba(15,23,42,0.4)] ring-1 ring-slate-900/[0.06] transition hover:bg-[#f7fcfd] dark:bg-slate-900 dark:text-cyan-300 dark:ring-white/10" aria-label={t('rebuild.marketplace.open_search', { defaultValue: 'Otevřít vyhledávání' })}>
             <SlidersHorizontal size={16} />
@@ -1261,64 +1267,34 @@ export const MarketplaceV2: React.FC<{
       >
         <MarketplaceSchema roles={visibleRoles} t={t} />
         <div className="space-y-10 scroll-smooth pb-12">
-          {/* AI natural-language search */}
-          <section className="rounded-[24px] bg-white/80 p-4 shadow-[0_18px_60px_-50px_rgba(15,23,42,0.4)] ring-1 ring-slate-200/60 backdrop-blur dark:bg-slate-900/70 dark:ring-slate-800 sm:p-5">
-            <form
-              onSubmit={(event) => { event.preventDefault(); void runAiSearch(aiQuery); }}
-              className="flex flex-col gap-3 sm:flex-row sm:items-center"
-            >
-              <div className="flex flex-1 items-center gap-3 rounded-2xl bg-slate-50 px-4 py-2.5 ring-1 ring-slate-200/70 focus-within:ring-2 focus-within:ring-[#12afcb]/40 dark:bg-slate-800/60 dark:ring-slate-700">
-                <Search size={18} className="shrink-0 text-[#0f95ac]" />
-                <input
-                  value={aiQuery}
-                  onChange={(event) => setAiQuery(event.target.value)}
-                  placeholder={t('rebuild.marketplace.ai_search_placeholder', { defaultValue: 'Hledat podle role, skillu, firmy… nebo přirozeně: „remote React práce v Praze nad 60k“' })}
-                  className="w-full bg-transparent text-[14px] font-semibold text-slate-800 outline-none placeholder:text-slate-400 dark:text-slate-100"
-                  aria-label={t('rebuild.marketplace.ai_search_label', { defaultValue: 'Vyhledávání pomocí AI' })}
-                />
-                {aiQuery ? (
-                  <button type="button" onClick={() => { setAiQuery(''); void runAiSearch(''); }} className="shrink-0 rounded-md px-1 text-[12px] font-bold text-slate-400 hover:text-slate-600">×</button>
-                ) : null}
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="submit"
-                  disabled={aiBusy}
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#12afcb] px-5 text-[13px] font-black text-white shadow-sm transition hover:bg-[#0f95ac] disabled:cursor-wait disabled:opacity-70"
-                >
-                  {aiBusy ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-                  {t('rebuild.marketplace.ai_search_button', { defaultValue: 'Hledat s AI' })}
-                </button>
-                <button type="button" onClick={() => setFiltersOpen(true)} className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-white px-4 text-[13px] font-black text-slate-700 ring-1 ring-slate-200/70 transition hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700">
-                  <Filter size={15} />
-                  <span className="hidden sm:inline">{t('rebuild.marketplace.filters', { defaultValue: 'Filtry' })}</span>
-                  {activeFilterCount ? <span className="rounded-full bg-[#12afcb] px-1.5 text-[10px] text-white">{activeFilterCount}</span> : null}
-                </button>
-              </div>
-            </form>
-            {aiNotice ? (
-              <div className="mt-3 flex items-center gap-2 px-1 text-[12px] font-bold text-[#0f95ac]">
-                <BrainCircuit size={14} className="shrink-0" />
-                <span className="truncate">{aiNotice}</span>
-                <button type="button" onClick={onResetFilters} className="ml-auto shrink-0 text-[11px] font-bold text-slate-400 hover:text-slate-600">{t('rebuild.marketplace.reset', { defaultValue: 'Zrušit' })}</button>
-              </div>
-            ) : null}
-          </section>
+          {/* AI notice */}
+          {aiNotice ? (
+            <div className="flex items-center gap-2 px-1 text-[12px] font-bold text-[#0f95ac]">
+              <BrainCircuit size={14} className="shrink-0" />
+              <span className="truncate">{aiNotice}</span>
+              <button type="button" onClick={onResetFilters} className="ml-auto shrink-0 text-[11px] font-bold text-slate-400 hover:text-slate-600">{t('rebuild.marketplace.reset', { defaultValue: 'Zrušit' })}</button>
+            </div>
+          ) : null}
 
           {/* Section 1 — Best opportunities */}
           {featuredCandidates.length > 0 ? (
-            <section className="space-y-4">
-              <div className="flex items-end justify-between gap-4 px-1">
+            <section className="space-y-3">
+              <div className="flex items-center justify-between gap-2">
                 <div>
-                  <h2 className="flex items-center gap-2 text-[22px] font-black tracking-normal text-slate-950 dark:text-slate-100">
+                  <h2 className="flex items-center gap-1.5 text-lg font-bold text-slate-950 dark:text-slate-100">
                     {t('rebuild.marketplace.best_opportunities', { defaultValue: 'Tvé nejlepší příležitosti' })}
-                    <Sparkles size={18} className="text-[#12afcb]" />
+                    <Sparkles size={15} className="text-[#12afcb]" />
                   </h2>
-                  <p className="mt-1 text-sm font-medium text-slate-500">{t('rebuild.marketplace.based_on_profile', { defaultValue: 'Na základě tvého profilu a preferencí' })}</p>
+                  <p className="text-xs font-medium text-slate-500">{t('rebuild.marketplace.based_on_profile', { defaultValue: 'Na základě tvého profilu a preferencí' })}</p>
                 </div>
-                <button type="button" onClick={() => scrollByCards(featuredScrollRef, 1)} className="hidden h-10 w-10 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-200/70 transition hover:text-[#0f95ac] dark:bg-slate-900 dark:ring-slate-800 sm:flex" aria-label={t('rebuild.marketplace.scroll_more', { defaultValue: 'Posunout dál' })}>
-                  <ChevronRight size={18} />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button type="button" onClick={() => scrollByCards(featuredScrollRef, -1)} className="hidden h-8 w-8 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-200/70 transition hover:text-[#0f95ac] dark:bg-slate-900 dark:ring-slate-800 sm:flex" aria-label={t('rebuild.marketplace.scroll_back', { defaultValue: 'Posunout zpět' })}>
+                    <ChevronRight size={15} className="rotate-180" />
+                  </button>
+                  <button type="button" onClick={() => scrollByCards(featuredScrollRef, 1)} className="hidden h-8 w-8 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-200/70 transition hover:text-[#0f95ac] dark:bg-slate-900 dark:ring-slate-800 sm:flex" aria-label={t('rebuild.marketplace.scroll_more', { defaultValue: 'Posunout dál' })}>
+                    <ChevronRight size={15} />
+                  </button>
+                </div>
               </div>
               <div ref={featuredScrollRef} className="-mx-1 flex snap-x gap-4 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {featuredCandidates.map((candidate) => (
@@ -1368,12 +1344,17 @@ export const MarketplaceV2: React.FC<{
             <section className="space-y-4">
               <div className="flex items-end justify-between gap-4 px-1">
                 <div>
-                  <h2 className="text-[22px] font-black tracking-normal text-slate-950 dark:text-slate-100">{t('rebuild.marketplace.similar_to_interest', { defaultValue: 'Podobné jako to, co tě zajímá' })}</h2>
-                  <p className="mt-1 text-sm font-medium text-slate-500">{t('rebuild.marketplace.similar_sub', { defaultValue: 'Role a firmy v podobném zaměření' })}</p>
+                  <h2 className="text-lg font-bold text-slate-950 dark:text-slate-100">{t('rebuild.marketplace.similar_to_interest', { defaultValue: 'Podobné jako to, co tě zajímá' })}</h2>
+                  <p className="text-xs font-medium text-slate-500">{t('rebuild.marketplace.similar_sub', { defaultValue: 'Role a firmy v podobném zaměření' })}</p>
                 </div>
-                <button type="button" onClick={() => scrollByCards(similarScrollRef, 1)} className="hidden h-10 w-10 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-200/70 transition hover:text-[#0f95ac] dark:bg-slate-900 dark:ring-slate-800 sm:flex" aria-label={t('rebuild.marketplace.scroll_more', { defaultValue: 'Posunout dál' })}>
-                  <ChevronRight size={18} />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button type="button" onClick={() => scrollByCards(similarScrollRef, -1)} className="hidden h-8 w-8 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-200/70 transition hover:text-[#0f95ac] dark:bg-slate-900 dark:ring-slate-800 sm:flex" aria-label={t('rebuild.marketplace.scroll_back', { defaultValue: 'Posunout zpět' })}>
+                    <ChevronRight size={15} className="rotate-180" />
+                  </button>
+                  <button type="button" onClick={() => scrollByCards(similarScrollRef, 1)} className="hidden h-8 w-8 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-200/70 transition hover:text-[#0f95ac] dark:bg-slate-900 dark:ring-slate-800 sm:flex" aria-label={t('rebuild.marketplace.scroll_more', { defaultValue: 'Posunout dál' })}>
+                    <ChevronRight size={15} />
+                  </button>
+                </div>
               </div>
               <div ref={similarScrollRef} className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {similarCandidates.map((candidate) => (

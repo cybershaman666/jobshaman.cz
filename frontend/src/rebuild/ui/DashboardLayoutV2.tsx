@@ -24,6 +24,13 @@ export const DashboardLayoutV2: React.FC<{
   currentLanguage?: string;
   onLanguageChange?: (lang: string) => void;
   t: (key: string, options?: { defaultValue?: string } & Record<string, any>) => string;
+  // AI search props for candidate marketplace (passed through to TopBarV2)
+  aiSearchValue?: string;
+  onAiSearchChange?: (val: string) => void;
+  onAiSearchSubmit?: () => void;
+  aiSearchBusy?: boolean;
+  onFiltersOpen?: () => void;
+  activeFilterCount?: number;
 }> = ({
   userRole,
   navItems,
@@ -43,7 +50,13 @@ export const DashboardLayoutV2: React.FC<{
   children,
   currentLanguage = 'cs',
   onLanguageChange = () => {},
-  t
+  t,
+  aiSearchValue,
+  onAiSearchChange,
+  onAiSearchSubmit,
+  aiSearchBusy,
+  onFiltersOpen,
+  activeFilterCount,
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
@@ -83,7 +96,7 @@ export const DashboardLayoutV2: React.FC<{
         />
       )}
 
-      <div className="flex flex-1 flex-col overflow-hidden lg:pl-[248px]">
+      <div className="flex flex-1 flex-col overflow-hidden lg:pl-[232px]">
         <TopBarV2
           userRole={userRole}
           title={title}
@@ -99,6 +112,12 @@ export const DashboardLayoutV2: React.FC<{
           onLanguageChange={onLanguageChange}
           t={t}
           onMenuToggle={toggleMobileMenu}
+          aiSearchValue={aiSearchValue}
+          onAiSearchChange={onAiSearchChange}
+          onAiSearchSubmit={onAiSearchSubmit}
+          aiSearchBusy={aiSearchBusy}
+          onFiltersOpen={onFiltersOpen}
+          activeFilterCount={activeFilterCount}
         />
         <main className={cn(
           'relative flex-1 overflow-y-auto bg-[color:var(--dashboard-page-bg)] px-2 pb-3 sm:px-3 lg:px-4',

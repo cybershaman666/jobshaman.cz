@@ -83,6 +83,13 @@ export const TopBarV2: React.FC<{
   onLanguageChange: (lang: string) => void;
   t: (key: string, options?: { defaultValue?: string } & Record<string, any>) => string;
   onMenuToggle?: () => void;
+  // AI search props for candidate marketplace
+  aiSearchValue?: string;
+  onAiSearchChange?: (val: string) => void;
+  onAiSearchSubmit?: () => void;
+  aiSearchBusy?: boolean;
+  onFiltersOpen?: () => void;
+  activeFilterCount?: number;
 }> = ({
   userRole,
   title,
@@ -99,6 +106,12 @@ export const TopBarV2: React.FC<{
   onLanguageChange,
   t,
   onMenuToggle,
+  aiSearchValue,
+  onAiSearchChange,
+  onAiSearchSubmit,
+  aiSearchBusy,
+  onFiltersOpen,
+  activeFilterCount,
 }) => {
   const { resolvedMode } = useRebuildTheme();
   const candidateLight = resolvedMode === 'light';
@@ -327,6 +340,46 @@ export const TopBarV2: React.FC<{
           )}
         </div>
       </div>
+      {/* AI search row for candidate marketplace */}
+      {userRole === 'candidate' && onAiSearchChange ? (
+        <div className="px-4 sm:px-6 pb-3">
+          <form
+            onSubmit={(event) => { event.preventDefault(); onAiSearchSubmit?.(); }}
+            className="flex flex-col gap-3 sm:flex-row sm:items-center"
+          >
+            <div className="flex flex-1 items-center gap-3 rounded-2xl bg-slate-50 px-4 py-2.5 ring-1 ring-slate-200/70 focus-within:ring-2 focus-within:ring-[#12afcb]/40 dark:bg-slate-800/60 dark:ring-slate-700">
+              <Search size={18} className="shrink-0 text-[#0f95ac]" />
+              <input
+                value={aiSearchValue || ''}
+                onChange={(event) => onAiSearchChange(event.target.value)}
+                placeholder={t('rebuild.marketplace.ai_search_placeholder', { defaultValue: 'Hledat podle role, skillu, firmy… nebo přirozeně: „remote React práce v Praze nad 60k“' })}
+                className="w-full bg-transparent text-[14px] font-semibold text-slate-800 outline-none placeholder:text-slate-400 dark:text-slate-100"
+                aria-label={t('rebuild.marketplace.ai_search_label', { defaultValue: 'Vyhledávání pomocí AI' })}
+              />
+              {aiSearchValue ? (
+                <button type="button" onClick={() => { onAiSearchChange(''); onAiSearchSubmit?.(); }} className="shrink-0 rounded-md px-1 text-[12px] font-bold text-slate-400 hover:text-slate-600">
+                  ×
+                </button>
+              ) : null}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="submit"
+                disabled={aiSearchBusy}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#12afcb] px-5 text-[13px] font-black text-white shadow-sm transition hover:bg-[#0f95ac] disabled:cursor-wait disabled:opacity-70"
+              >
+                <Search size={16} />
+                {t('rebuild.marketplace.ai_search_button', { defaultValue: 'Hledat' })}
+              </button>
+              <button type="button" onClick={onFiltersOpen} className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-white px-4 text-[13px] font-black text-slate-700 ring-1 ring-slate-200/70 transition hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+                <span className="hidden sm:inline">{t('rebuild.marketplace.filters', { defaultValue: 'Filtry' })}</span>
+                {activeFilterCount ? <span className="rounded-full bg-[#12afcb] px-1.5 text-[10px] text-white">{activeFilterCount}</span> : null}
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : null}
     </header>
   );
 };
