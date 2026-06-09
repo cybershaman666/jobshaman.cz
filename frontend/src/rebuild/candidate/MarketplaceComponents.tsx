@@ -120,7 +120,7 @@ export const FeaturedRoleCard: React.FC<{
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1.5 text-[11px] font-bold text-slate-600 dark:text-slate-300">
               <Clock3 size={12} className="text-slate-400" />
-              {role.workModel || '3 směny'}
+              {role.workModel || t('rebuild.marketplace.shifts_3', { defaultValue: '3 směny' })}
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1.5 text-[11px] font-bold text-slate-600 dark:text-slate-300">
               {t('rebuild.marketplace.start_immediately')}
@@ -296,7 +296,9 @@ export const MiniSandboxCard: React.FC<{
   title: string;
   sub: string;
   onOpen: () => void;
-}> = ({ title, sub, onOpen }) => (
+}> = ({ title, sub, onOpen }) => {
+  const { t } = useTranslation();
+  return (
   <button
     onClick={onOpen}
     className="group flex flex-1 flex-col items-center gap-3 rounded-[24px] border border-slate-100 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 p-4 text-center transition hover:border-slate-200 dark:hover:border-slate-700 hover:bg-white dark:hover:bg-slate-800 hover:shadow-lg"
@@ -309,10 +311,11 @@ export const MiniSandboxCard: React.FC<{
       <div className="mt-0.5 truncate text-[11px] font-medium text-slate-400">{sub}</div>
     </div>
     <div className="mt-2 rounded-lg bg-slate-50 dark:bg-slate-800 px-3 py-1 text-[11px] font-bold text-slate-500 dark:text-slate-400 group-hover:bg-[#fff5e6] dark:group-hover:bg-amber-900/40 group-hover:text-amber-700 dark:group-hover:text-amber-400">
-      Vyzkoušet
+      {t('rebuild.marketplace.try_it', { defaultValue: 'Vyzkoušet' })}
     </div>
   </button>
-);
+  );
+};
 
 export const CandidateKompas: React.FC<{
   score: number;

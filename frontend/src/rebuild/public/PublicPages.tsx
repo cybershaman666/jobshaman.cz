@@ -365,10 +365,10 @@ export const CompanyEntryPage: React.FC<{
 
       <section className="mx-auto grid w-full max-w-[1280px] gap-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 lg:grid-cols-[0.9fr_1.1fr] lg:p-8">
         <div>
-          <div className={pillEyebrowClass}>Co to zlepší</div>
-          <h2 className="mt-4 text-3xl font-semibold tracking-[-0.04em] text-slate-950 dark:text-white">Méně dohadů, víc použitelných signálů.</h2>
+          <div className={pillEyebrowClass}>{t('rebuild.company_landing.improve_eyebrow', { defaultValue: 'Co to zlepší' })}</div>
+          <h2 className="mt-4 text-3xl font-semibold tracking-[-0.04em] text-slate-950 dark:text-white">{t('rebuild.company_landing.improve_title', { defaultValue: 'Méně dohadů, víc použitelných signálů.' })}</h2>
           <p className="mt-4 text-base leading-8 text-slate-600 dark:text-slate-400">
-            JobShaman není ATS náhrada pro všechno. Je to pracovní vrstva pro začátek výběru: role, první odpověď kandidáta, týmové posouzení a další krok.
+            {t('rebuild.company_landing.improve_copy', { defaultValue: 'JobShaman není ATS náhrada pro všechno. Je to pracovní vrstva pro začátek výběru: role, první odpověď kandidáta, týmové posouzení a další krok.' })}
           </p>
         </div>
         <div className="grid gap-4 sm:grid-cols-3">
@@ -389,10 +389,10 @@ export const CompanyEntryPage: React.FC<{
       <section id="pricing" className="mx-auto w-full max-w-[1280px] py-14">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div className="max-w-2xl">
-            <div className={pillEyebrowClass}>Ceny</div>
-            <h2 className="mt-4 text-3xl font-semibold tracking-[-0.04em] text-slate-950 dark:text-white md:text-4xl">Začněte malým pilotem. Plaťte až za opakované používání.</h2>
+            <div className={pillEyebrowClass}>{t('rebuild.company_landing.pricing_eyebrow', { defaultValue: 'Ceny' })}</div>
+            <h2 className="mt-4 text-3xl font-semibold tracking-[-0.04em] text-slate-950 dark:text-white md:text-4xl">{t('rebuild.company_landing.pricing_title', { defaultValue: 'Začněte malým pilotem. Plaťte až za opakované používání.' })}</h2>
           </div>
-          <p className="max-w-md text-sm leading-7 text-slate-600 dark:text-slate-400">Ceny jsou orientační pro V2 pilot. Finální tarif se může upravit podle objemu rolí, podpory a integrací.</p>
+          <p className="max-w-md text-sm leading-7 text-slate-600 dark:text-slate-400">{t('rebuild.company_landing.pricing_note', { defaultValue: 'Ceny jsou orientační pro V2 pilot. Finální tarif se může upravit podle objemu rolí, podpory a integrací.' })}</p>
         </div>
         <div className="mt-8 grid gap-4 lg:grid-cols-4">
           {plans.map((plan) => (
@@ -403,7 +403,7 @@ export const CompanyEntryPage: React.FC<{
                 plan.highlighted ? 'border-[#c99a4a] ring-4 ring-[#c99a4a]/12 dark:border-amber-500/50 dark:ring-amber-500/5' : 'border-slate-200 dark:border-slate-800',
               )}
             >
-              {plan.highlighted ? <div className="mb-4 w-fit rounded-full bg-[#f3eadb] px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-[#8c6727] dark:bg-amber-900/40 dark:text-amber-400">Doporučeno</div> : null}
+              {plan.highlighted ? <div className="mb-4 w-fit rounded-full bg-[#f3eadb] px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-[#8c6727] dark:bg-amber-900/40 dark:text-amber-400">{t('rebuild.company_landing.recommended', { defaultValue: 'Doporučeno' })}</div> : null}
               <h3 className="text-2xl font-semibold text-slate-950 dark:text-white">{plan.name}</h3>
               <div className="mt-5 flex items-baseline gap-2">
                 <span className="text-4xl font-semibold tracking-[-0.04em] text-slate-950 dark:text-white">{plan.price}</span>
@@ -434,9 +434,9 @@ export const CompanyEntryPage: React.FC<{
 
       <section id="faq" className="mx-auto grid w-full max-w-[1280px] gap-4 pb-10 lg:grid-cols-3">
         {[
-          ['Je to náhrada ATS?', 'Ne primárně. JobShaman řeší pracovní zadání, první signál a týmové rozhodování. ATS může zůstat systém evidence.'],
-          ['Musí kandidát nahrát CV?', 'Ne. CV může pomoct později, ale první interakce stojí na konkrétní odpovědi k roli.'],
-          ['Co se stane po registraci?', 'Založíte firmu, doplníte profil a můžete připravit první roli nebo pilotní zadání.'],
+          [t('rebuild.company_landing.faq1_q', { defaultValue: 'Je to náhrada ATS?' }), t('rebuild.company_landing.faq1_a', { defaultValue: 'Ne primárně. JobShaman řeší pracovní zadání, první signál a týmové rozhodování. ATS může zůstat systém evidence.' })],
+          [t('rebuild.company_landing.faq2_q', { defaultValue: 'Musí kandidát nahrát CV?' }), t('rebuild.company_landing.faq2_a', { defaultValue: 'Ne. CV může pomoct později, ale první interakce stojí na konkrétní odpovědi k roli.' })],
+          [t('rebuild.company_landing.faq3_q', { defaultValue: 'Co se stane po registraci?' }), t('rebuild.company_landing.faq3_a', { defaultValue: 'Založíte firmu, doplníte profil a můžete připravit první roli nebo pilotní zadání.' })],
         ].map(([title, copy]) => (
           <article key={title} className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <h3 className="text-lg font-semibold text-slate-950 dark:text-white">{title}</h3>
@@ -447,11 +447,11 @@ export const CompanyEntryPage: React.FC<{
 
       <section className="mx-auto mb-8 flex w-full max-w-[1280px] flex-col gap-5 rounded-lg bg-slate-950 p-6 text-white md:flex-row md:items-center md:justify-between md:p-8 dark:bg-black dark:border dark:border-slate-800">
         <div>
-          <h2 className="text-2xl font-semibold tracking-[-0.03em]">Připravte první roli bez velkého projektu.</h2>
-          <p className="mt-2 text-sm leading-7 text-slate-300">Pilot může začít jednou pozicí a malým týmem.</p>
+          <h2 className="text-2xl font-semibold tracking-[-0.03em]">{t('rebuild.company_landing.cta_title', { defaultValue: 'Připravte první roli bez velkého projektu.' })}</h2>
+          <p className="mt-2 text-sm leading-7 text-slate-300">{t('rebuild.company_landing.cta_copy', { defaultValue: 'Pilot může začít jednou pozicí a malým týmem.' })}</p>
         </div>
         <button type="button" onClick={primaryAction} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#c99a4a] px-5 text-sm font-bold text-slate-950 transition hover:bg-[#e0b665]">
-          {companyReady ? 'Otevřít firemní prostor' : 'Začít jako firma'}
+          {companyReady ? t('rebuild.company_landing.action_open', { defaultValue: 'Otevřít firemní prostor' }) : t('rebuild.company_landing.action_start', { defaultValue: 'Začít jako firma' })}
           <ArrowRight size={16} />
         </button>
       </section>

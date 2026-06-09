@@ -52,7 +52,15 @@
     "clear": "Rensa",
     "demo_alert": "Provläge aktivt — upptäck alla premiumförmåner",
     "saving": "Sparar...",
-    "edit": "Redigera"
+    "edit": "Redigera",
+    "chatMentor": {
+      "inputPlaceholder": "Fråga Shami eller skriv nästa steg...",
+      "brandHint": "Powered by JobShaman AI",
+      "welcomeTitle": "Shami AI - Din karriärguide",
+      "slogan": "Shami ser kopplingarna i profilen, hittar nästa steg – utan HR-såsen.",
+      "avatarAlt": "Shami avatar",
+      "shamiName": "Shami"
+    }
   },
   "home": {
     "discovery": {
@@ -5775,7 +5783,11 @@
       "video": "Video",
       "photo": "Photo",
       "no_banner_media": "No slideshow media yet. The main cover will be used by itself.",
-      "primary_video_url": "Primary video URL"
+      "primary_video_url": "Primary video URL",
+      "cybershaman_advises": "Shami rekommenderar nästa steg",
+      "cybershaman_tip": "Shamis tips",
+      "nav_calendar": "Kalender",
+      "subtitle_calendar": "Schemalagda intervjuer, tillgänglighetsinställningar och kalendersynkronisering."
     },
     "editor": {
       "step_essence": "Rollens kärna",
@@ -5880,7 +5892,11 @@
       "hide_preview": "Hide preview",
       "show_preview": "Show preview",
       "preview": "Preview",
-      "preview_empty": "Formatted preview will appear here."
+      "preview_empty": "Formatted preview will appear here.",
+      "employment_part_time_short": "Partiell",
+      "employment_gig_short": "Disponibel",
+      "employment_full_time_short": "Omfattande",
+      "employment_contract_short": "Kontrakt"
     },
     "role": {
       "full_journey": "Full Jobshaman journey",
@@ -5904,7 +5920,11 @@
       "border_disabled": "{{country}} disabled",
       "summary_curated": "JHI {{score}}/100, estimated net value {{value}} {{currency}} monthly and direct branded journey entry.",
       "summary_imported": "JHI {{score}}/100, realistic outbound preparation considering {{fit}} fit and real costs.",
-      "domestic": "domestic"
+      "domestic": "domestic",
+      "border": "gräns",
+      "open_listing": "Öppna den ursprungliga annonsen",
+      "market_domestic": "Inhemsk",
+      "market_cross_border": "Gränsöverskridande"
     },
     "marketplace": {
       "pulse_title": "What's new",
@@ -6156,7 +6176,56 @@
       "hero_level_expert": "Expert",
       "you": "ty",
       "load_more_count": "Zobrazit dalších {{count}} nabídek",
-      "load_next_from_db": "Načíst dalších {{count}} z databáze"
+      "load_next_from_db": "Načíst dalších {{count}} z databáze",
+      "ai_applied": "AI-filter: {{chips}}",
+      "ai_applied_text": "Söker efter: {{query}}",
+      "ai_search_button": "Sök med AI",
+      "ai_search_label": "Sök med AI",
+      "ai_search_placeholder": "Sök efter roll, kompetens, företag... eller naturligtvis: \"remote React jobb i Prag över 60k\"",
+      "all_active": "Alla aktiva möjligheter",
+      "badge_best_fit": "Vi rekommenderar",
+      "best_opportunities": "Dina bästa möjligheter",
+      "commute_from_home": "{{count}} min hemifrån",
+      "commute_minutes": "{{count}} min",
+      "companies_interested": "Företag som vill lära känna dig",
+      "companies_interested_sub": "Företag som ser potential i din profil",
+      "company_match_line": "Din profil matchar {{percent}}% av det vi letar efter.",
+      "company_match_sub": "Vi kommer gärna att träffa dig i ett handslag.",
+      "difficulty": "Svårighet",
+      "difficulty_any": "Några",
+      "difficulty_high": "Hög",
+      "difficulty_label": "{{level}} svårighet",
+      "difficulty_low": "Låg",
+      "difficulty_medium": "Medium",
+      "discover_by_category": "Upptäck efter kategori",
+      "field": "Fält",
+      "hot_opportunity": "Hett tillfälle",
+      "learn_more": "Ta reda på mer",
+      "location": "Orter",
+      "location_all": "Alla platser",
+      "net_suffix": "rena",
+      "no_results": "Inga erbjudanden matchar din sökning. Försök att redigera filtren eller frågan.",
+      "open_handshake": "Öppna Handshake",
+      "percent_match": "{{percent}} % matchning",
+      "position_count": "{{count}} positioner",
+      "reset": "Avboka",
+      "salary": "Lön",
+      "salary_any": "Vilken lön som helst",
+      "scroll_more": "Gå vidare",
+      "search_in_marketplace": "Sök på marknadsplatsen...",
+      "show_more_offers": "Se fler erbjudanden",
+      "similar_sub": "Roller och företag i liknande inriktning",
+      "similar_to_interest": "Liknar det du är intresserad av",
+      "slots_few": "{{count}} lediga slots",
+      "slots_many": "{{count}} lediga slots",
+      "slots_one": "{{count}} ledig slot",
+      "sort": "Sortering",
+      "sort_distance": "Den närmaste",
+      "sort_relevance": "Den mest relevanta",
+      "sort_salary": "Högsta lönen",
+      "why_match": "Varför är det en match?",
+      "shifts_3": "3 skift",
+      "try_it": "Prova det"
     },
     "status": {
       "in_review": "Granskas",
@@ -6400,7 +6469,19 @@
       "skills_help_match": "Help us understand which skills you want to use in this role.",
       "selected": "Selected Skills",
       "supported_providers": "Supported Providers",
-      "tip": "Tip"
+      "tip": "Tip",
+      "add": "tillägga",
+      "problem_frame_helper": "Svara specifikt och ange antaganden och risker.",
+      "problem_frame_title": "Förstå prompten",
+      "risk_helper": "Ett bra svar nämner också det du inte vet ännu.",
+      "risk_prompt": "Vad kan gå fel och vad behöver du verifiera?",
+      "risk_title": "Risker & okända",
+      "schedule_helper": "Sloten är en begäran, företaget kommer att bekräfta efter granskning.",
+      "schedule_title": "Schemadiskussion",
+      "work_sample_comment_placeholder": "Kort sammanhang för recensenten",
+      "work_sample_helper": "Beskriv steg, bevis och beslutskriterier.",
+      "work_sample_title": "Praktiska steg",
+      "work_sample_url_placeholder": "https://..."
     },
     "insights": {
       "title": "Insikter",
@@ -6588,7 +6669,138 @@
       "response_quality_title": "Mätkvalitet",
       "coverage": "Täckning",
       "response_quality_flagged": "Resultatet är sparat, men vissa svarsmönster sänker tolkningssäkerheten.",
-      "response_quality_clean": "Svarens variation räcker för en grundläggande profiltolkning."
+      "response_quality_clean": "Svarens variation räcker för en grundläggande profiltolkning.",
+      "drag_assign_cause": "Dra eller tilldela en orsak här",
+      "report": {
+        "d10_ambiguity_interpretation": {
+          "balanced": "Du kan hantera oklarheter om du har möjlighet att successivt verifiera nästa steg.",
+          "development": "För en otydlig uppgift, skriv ner: vad jag vet, vad jag inte vet, vad jag kommer att verifiera inom 48 timmar.",
+          "environment": "En miljö med rörliga uppdrag, men bra stöd i prioriteringar och beslutsrätt.",
+          "high": "Du ser riktning och möjligheter i osäkerhet. Du kan börja även om uppdraget inte är perfekt ännu.",
+          "low": "Otydlig input kan hämma energi. Det kommer att hjälpa till att definiera minsta nästa signal och det första säkra steget.",
+          "summary": "Hur läser du tvetydiga situationer: risker kontra möjligheter."
+        },
+        "d11_problem_decomposition": {
+          "balanced": "Du kan bryta ner ett problem när du har ett tydligt mål och tillräckligt med sammanhang.",
+          "development": "Dela upp varje större problem i en blockerare, ett första steg och en mätbar utdata för veckan.",
+          "environment": "En roll där strategi omsätts till prioriteringar, experiment och praktisk leverans.",
+          "high": "Du kan snabbt skapa en struktur av steg. Stark för strategi, leverans, verksamhetsförändringar och komplexa projekt.",
+          "low": "Ett stort problem kan kännas överväldigande. Ett litet experiment och enkla prioriteringar kommer att hjälpa.",
+          "summary": "Förmåga att bryta ner ett stort problem i tydliga steg."
+        },
+        "d12_moral_compass": {
+          "balanced": "Du tar hänsyn till de etiska implikationerna, särskilt när de är tydligt namngivna.",
+          "development": "För dilemman, skriv ner: vem kommer det att påverka, vad som kommer att hända senare och vad jag skulle försvara högt.",
+          "environment": "En organisation som tar förtroende, ansvarighet och öppet beslutsfattande på allvar.",
+          "high": "En stark moralisk kompass. Du håller integritet, förtroende och långsiktiga effekter under press.",
+          "low": "Under press kan det vara svårare att öppna sig om ett obehagligt ämne. En förutbestämd princip för beslutsfattande kommer att hjälpa.",
+          "summary": "Värdestabilitet i dilemman och pressade situationer."
+        },
+        "d1_cognitive": {
+          "balanced": "Du kan kombinera analys med praktisk intuition. Du fungerar bäst när du har tillräckligt med signaler, men fastnar inte i detaljer.",
+          "development": "Innan du fattar ett viktigt beslut, skriv ner 3 fakta, 1 risk och 1 alternativ.",
+          "environment": "En roll med ett tydligt sammanhang, förmåga att analysera ett problem och omsätta det till ett beslut.",
+          "high": "Du sätter naturligtvis likhetstecken mellan fakta, samband och effekter. Du briljerar där det är nödvändigt att separera bruset från substansen.",
+          "low": "Du litar mer på intuition och helhetsintryck. En snabb faktakontroll hjälper dig med viktiga beslut.",
+          "summary": "Metod för att bearbeta information och lösa problem."
+        },
+        "d2_social": {
+          "balanced": "Social orientering är balanserad. Du kan arbeta i team såväl som självständigt vid behov.",
+          "development": "Namnge det förväntade resultatet före mötet och efter det ett tydligt nästa steg.",
+          "environment": "Ett team med tydlig kommunikation, regelbunden feedback och en rimlig grad av självständighet.",
+          "high": "Du kan behålla förtroende, enighet och gemensam riktning. Din styrka är att läsa människor utan att tappa objektivitet.",
+          "low": "Du föredrar förmodligen självständigt arbete och mindre social samordning.",
+          "summary": "Föredraget sätt att interagera med människor och teamdynamik."
+        },
+        "d3_motivational": {
+          "balanced": "Du hanterar både inre mening och tydliga mål och belöningar. Det hjälper till att förtydliga den nuvarande prioriteringen.",
+          "development": "För varje större uppgift, skriv ner vem den hjälper och hur du vet ett bra resultat.",
+          "environment": "Projekt med synlig påverkan, rättvist ansvar och utrymme för förbättringar.",
+          "high": "Du dras starkt till mening, påverkan och växande ansvar. Du måste förstå varför, inte bara vad.",
+          "low": "Motivation kan bero mer på en specifik belöning, stabilitet eller ett tydligt specificerat resultat.",
+          "summary": "Vad driver dig och vad tycker du är givande."
+        },
+        "d4_energy": {
+          "balanced": "Du kan växla mellan sprint och jämnt tempo. En rytm med tydliga prioriteringar fungerar bra.",
+          "development": "I 14 dagar, ställ in en sprintrytm, pausa, granska: vad tar energi och vad ger tillbaka den.",
+          "environment": "Arbeta med realistiska prioriteringar, förmåga att skydda djuparbete och överenskomna spurter.",
+          "high": "Du kan hantera högre tempo och dynamiska situationer. Nyckeln är att planera för återhämtning så att prestandan förblir hållbar.",
+          "low": "Snarare behöver du ett mer stabilt tempo, mindre omkoppling och ett skyddat utrymme för koncentration.",
+          "summary": "Tempo, intensitet och arbetsstil."
+        },
+        "d5_values": {
+          "balanced": "Dina värderingar är balanserade och du kan anpassa dig till olika kulturer om du vet vad som är viktigt.",
+          "development": "Skriv ner 3 arbetssituationer som är oöverstigliga för dig, och varför.",
+          "environment": "En kultur med rättvisa, transparens och utrymme för att prata om effekterna av beslut.",
+          "high": "Värderingar är ett starkt ankare. Integritet, förtroende och långsiktig påverkan är inte dekorationer för dig.",
+          "low": "Man kan lättare tolerera olika miljöer, men det lönar sig att medvetet sätta sina egna gränser.",
+          "summary": "Vad måste arbetet medföra för att vara vettigt."
+        },
+        "d6_ai_readiness": {
+          "balanced": "Du kan använda nya verktyg när de är vettiga. Praktisk inlärning på en verklig uppgift fungerar bäst.",
+          "development": "Välj en repetitiv uppgift och försök använda AI på den tre gånger med en kort utvärdering.",
+          "environment": "En miljö där nya verktyg används rutinmässigt men med tydligt mänskligt omdöme.",
+          "high": "Teknisk anpassningsförmåga är en stark sida. Du testar snabbt nya verktyg och letar efter praktiskt värde.",
+          "low": "Att byta verktyg kan kosta mer energi. Säker utbildning i små arbetsfall hjälper.",
+          "summary": "Hur väl trivs du i en snabbt föränderlig teknikmiljö?"
+        },
+        "d7_cognitive_reflection": {
+          "balanced": "Du kan komplettera intuitionen med kontroll. En enkel checklista för beslutsfattande hjälper till med större steg.",
+          "development": "Innan du fattar ett beslut, fråga dig själv: Vilka är bevisen och vad skulle övertyga mig om något annat?",
+          "environment": "En roll där det finns tid att se över beslut och misstag används som lärande, inte straff.",
+          "high": "Du kan hämma den första slutsatsen och verifiera bevisen. Detta ökar kvaliteten på beslut med högre genomslagskraft.",
+          "low": "Snabb intuition kan dominera. För viktiga saker, lägg till en kort stop-check-check.",
+          "summary": "Förmågan att stoppa den första intuitionen och verifiera den med logik."
+        },
+        "d8_digital_eq": {
+          "balanced": "Du hanterar praktiskt digital kommunikation. Det hjälper att medvetet välja mellan ett meddelande och ett samtal.",
+          "development": "För ett svårt meddelande, skriv först avsikten, sedan fakta och slutligen den specifika begäran.",
+          "environment": "Ett hybrid- eller distansteam med tydlig kommunikationshygien och ett säkert utrymme för frågor.",
+          "high": "Du läser tonen, undertexten och förtroendet i texten väl. Detta är starkt i asynkront samarbete och känsliga ämnen.",
+          "low": "Det kan lättare uppstå missförstånd i texten. Ett kortare budskap, tydlig avsikt och validering av påverkan kommer att hjälpa.",
+          "summary": "Känslighet för känslor, ton och självförtroende i textkommunikation."
+        },
+        "d9_systems_thinking": {
+          "balanced": "Du kan följa bredare samband när du har en tydligt definierad ram för problemet.",
+          "development": "För ett problem, rita en karta: orsak, verkan, feedback, dold kostnad.",
+          "environment": "Process-, produkt- eller operativa roller där hela system förbättras, inte bara enskilda uppgifter.",
+          "high": "Starkt systemtänkande. Du ser relationerna, de fördröjda effekterna och de platser där problemet återkommer.",
+          "low": "Det kan vara till hjälp att medvetet kartlägga orsaker, effekter och beroenden istället för att ta itu med ett isolerat symptom.",
+          "summary": "Hur väl läser du relationer, feedback och biverkningar."
+        },
+        "i1_love": {
+          "balanced": "Intresset väcks i specifika situationer. Det lönar sig att titta på när energin stiger.",
+          "development": "Skriv under veckan ner 3 ögonblick när arbetet tillförde eller tog bort energi.",
+          "environment": "Arbeta med ett utrymme för fördjupning, skapande eller ett problem som intresserar dig personligen.",
+          "high": "Du har en stark signal om internt intresse. Leta efter roller där denna energi används ofta, inte bara marginellt.",
+          "low": "Det är ännu inte klart vad som verkligen lockar dig till jobbet. Det kommer att hjälpa till att kartlägga aktiviteterna där tiden försvinner.",
+          "summary": "Det som naturligt drar in dig och laddar dig."
+        },
+        "i2_good_at": {
+          "balanced": "Vissa styrkor känner du redan till, andra kommer att avslöjas genom konkreta arbetsbevis.",
+          "development": "Skriv ner 5 situationer där du hjälpte någon och hitta en gemensam förmåga.",
+          "environment": "En roll där din starka kompetens används regelbundet och syns i resultatet.",
+          "high": "Du har en stark uppfattning om dina förmågor och vet hur du omvandlar dem till fördelar för andra.",
+          "low": "Du kanske underskattar vad du är bra på. Leta efter upprepade förfrågningar om hjälp och resultat.",
+          "summary": "Vad är din återanvändbara kraft?"
+        },
+        "i3_world_needs": {
+          "balanced": "Mening och nytta är viktiga, men de behöver inte vara den enda källan till motivation.",
+          "development": "För jobberbjudandet, kolla vem resultatet hjälper och hur det kan kännas igen.",
+          "environment": "Produkter, tjänster eller verksamhet där den verkliga nyttan av arbetet kan ses.",
+          "high": "Inverkan på specifika människor är en viktig källa till mening och uthållighet för dig.",
+          "low": "Arbete kan vara meningsfullt även utan betydande social påverkan om rollen, teamet eller belöningen passar.",
+          "summary": "Hur mycket behöver du för att se nyttan för människor eller världen."
+        },
+        "i4_paid_for": {
+          "balanced": "Man tar hänsyn till det ekonomiska värdet, men det vore bra att precisera det med konkreta bevis.",
+          "development": "För varje styrka, skriv en mätbar fördel för teamet, kunden eller företaget.",
+          "environment": "En roll där det är tydligt hur ditt arbete skapar värde och en rättvis belöning.",
+          "high": "Du tänker noga på värdet av ditt arbete för marknaden. Detta hjälper till att välja en hållbar riktning.",
+          "low": "Det kan finnas ett behov av att översätta kapacitet mer till affärsspråket eller kundvärde.",
+          "summary": "Hur kopplar du ihop mening, förmågor och ekonomiskt värde."
+        }
+      }
     },
     "companies": {
       "hero": {
@@ -6940,7 +7152,63 @@
       "patience": "Patience",
       "motivation_default": "Vaše motivace směřuje k seberealizaci a objevování nových obzorů.",
       "resonance": "Rezonance",
-      "unlock_identity": "Odemkni svou identitu"
+      "unlock_identity": "Odemkni svou identitu",
+      "start_onboarding": "Komplett onboarding",
+      "mentor_new": "Ny chatt",
+      "mentor_send": "Skicka",
+      "mentor_ready": "Shami är redo att utveckla din karriär.",
+      "mentor_typing": "Shami förbereder ett svar...",
+      "active_apps_count": "{{count}} av aktiva förfrågningar",
+      "active_deals": "Aktiv förhandling",
+      "all": "Alla",
+      "archetype_unlocked": "Arketyp olåst",
+      "blindspots_fallback": "Vi kommer att specificera de döda fläckarna enligt JobFit Compass.",
+      "career_identity": "Karriäridentitet",
+      "chat_with_shami": "Chatta med Shami",
+      "closest_themes": "Ämnen närmast i värde: {{themes}}.",
+      "compass_eyebrow": "Din arbetskompass",
+      "edit_profile": "Redigera profil",
+      "explore_job_market": "Utforska arbetsmarknaden",
+      "explore_market_short": "Utforska marknaden",
+      "explore_offers": "Utforska erbjudanden →",
+      "finish_compass_hint": "Slutför JobFit Compass och lås upp din karriärarketyp.",
+      "growth_path_title": "Utvecklingens väg",
+      "growth_plan": "Utvecklingsplan",
+      "kpi_active_applications": "Aktiva förfrågningar",
+      "kpi_free_slots": "Gratis slots",
+      "kpi_offers": "Erbjudanden",
+      "mentor_advice_default": "Lyssna på din inre röst. Din professionella väg börjar ta form. Fråga mig vad som helst.",
+      "mentor_input_ph": "Fråga om din karriär...",
+      "milestone_compass": "JobFit kompass",
+      "milestone_first_deal": "Första mötet",
+      "milestone_offer": "Jobberbjudande",
+      "milestone_offer_cap": "Mål: framgångsrik placering",
+      "milestone_onboarding": "Onboarding",
+      "milestone_onboarding_cap": "Grundprofilen klar",
+      "motivational_quote": "Alla har potential. Vårt uppdrag är att väcka honom.",
+      "no_applications": "Inga förfrågningar ännu.",
+      "no_offers": "Inga erbjudanden",
+      "open_full_chat": "Öppna full chattspegel",
+      "open_role_detail": "Öppna rolldetalj",
+      "opportunity": "Möjlighet",
+      "quick_actions": "Snabba åtgärder",
+      "recommended_challenge": "Rekommenderad utmaning",
+      "recommended_offers": "Rekommenderade erbjudanden",
+      "run_unlock_profile": "Kör och lås upp din profil",
+      "section_environment": "Idealisk miljö",
+      "section_motivation": "Shamans rekommendation",
+      "section_risks": "Tillväxtområden",
+      "section_skills": "Karriärens väsen",
+      "section_values": "Värdejustering",
+      "send_first_app": "Skicka den första förfrågan",
+      "shami_guide": "Guide till Shami",
+      "shami_subtitle": "Din AI-karriärmentor",
+      "start_compass": "Starta JobFit Compass",
+      "unlock_identity_hint": "Gå igenom JobFit Compass och se karriärarketypen och inriktningsindexet.",
+      "view_compass": "Se JobFit Compass",
+      "watch_out": "Se upp för: {{items}}.",
+      "week_focus": "Veckans fokus",
+      "your_dashboard": "Din instrumentpanel"
     },
     "applications": {
       "active_handshakes": "Active handshakes",
@@ -7125,7 +7393,12 @@
     },
     "dialogue": {
       "environment_fit": "Environment fit",
-      "next_steps": "Next steps"
+      "next_steps": "Next steps",
+      "candidate_profile_signal": "Kandidatprofilsignal",
+      "full_report": "Fullständig rapport",
+      "jobfit_shared_copy": "JobFit Compass delades med svaret och kan förfina rekryterarens läsning av kandidaten.",
+      "shared_jobfit_signal": "Delad JobFit Compass-signal",
+      "summary": "Sammanfattning"
     },
     "landing": {
       "eyebrow": "Skill-first hiring for candidates and companies",
@@ -7264,7 +7537,20 @@
       "mock_nav_roles": "Roles",
       "mock_nav_candidates": "Candidates",
       "mock_nav_decisions": "Decisions",
-      "workflow_label": "Workflow"
+      "workflow_label": "Workflow",
+      "cta_copy": "En pilot kan börja med en position och ett litet team.",
+      "cta_title": "Förbered den första rullen utan ett stort projekt.",
+      "faq1_a": "Inte i första hand. JobShaman hanterar jobbtilldelning, första signal och teambeslut. ATS kan förbli ett registersystem.",
+      "faq1_q": "Är det en ATS-ersättning?",
+      "faq2_a": "Nej. Ett CV kan hjälpa senare, men den första interaktionen bygger på ett specifikt svar på rollen.",
+      "faq2_q": "Måste kandidaten ladda upp ett CV?",
+      "faq3_a": "Du startar ett företag, kompletterar din profil och du kan förbereda din första roll eller pilotuppdrag.",
+      "faq3_q": "Vad händer efter registrering?",
+      "improve_copy": "JobShaman är inte en ATS-ersättning för allt. Det är arbetslagret för att starta urvalet: rollen, kandidatens första svar, teambedömningen och nästa steg.",
+      "improve_eyebrow": "Vad kommer att göra det bättre",
+      "improve_title": "Mindre gissningar, mer handlingskraftiga signaler.",
+      "pricing_note": "Priserna är vägledande för V2-piloten. Den slutliga tariffen kan justeras efter volymen av roller, support och integrationer.",
+      "recommended": "Rekommenderad"
     },
     "legal": {
       "privacy_title": "Integritetspolicy",
@@ -7584,7 +7870,14 @@
       "photo_upload_failed": "Bilden kunde inte laddas upp.",
       "cv_upload_failed": "Dokumentet kunde inte laddas upp.",
       "certifications_label": "Certifieringar",
-      "certificates_label": "Intyg"
+      "certificates_label": "Intyg",
+      "education": "Utbildning",
+      "experience": "Erfarenhet",
+      "job_title": "Roll",
+      "languages": "Språk",
+      "skills": "Färdigheter",
+      "linkedin_label": "LinkedIn",
+      "portfolio_label": "Portfolio"
     },
     "ui": {
       "cookie_banner": {
@@ -7746,7 +8039,86 @@
       "guide_fallback": "Read the challenge carefully. Your first response should demonstrate that you understand the core problem — not just that you are interested.",
       "guide_loading": "Shami läser rollen, verklighetslagret och din profil...",
       "watch_out": "Se upp med",
-      "first_move": "Första steg"
+      "first_move": "Första steg",
+      "locked_role_insight_copy": "Shami jämför erbjudandet med profilen, CV:t och JobFit Compass: vad rollen verkligen testar, var finns risken och vilket första steg som är vettigt.",
+      "locked_role_insight_title": "AI-annonsutvärdering är i Premium.",
+      "guide_title_company": "Vad {{company}} vill förstå om dig"
+    },
+    "onboarding": {
+      "ai_summary": "AI sammanfattning från CV",
+      "answer_more": "Vänligen fyll i minst två svar, oavsett vad profilen baseras på.",
+      "back_to_cv": "Ladda upp ytterligare ett CV",
+      "cv_copy": "AI kommer att utvinna erfarenhet, färdigheter, utbildning och kontaktuppgifter från det. Du kontrollerar allt innan du sparar.",
+      "cv_skip": "Hoppa över och fortsätt",
+      "cv_title": "Ladda eventuellt upp ett CV.",
+      "cv_upload": "Ladda upp CV",
+      "eyebrow": "Kandidatintroduktion",
+      "failed": "Onboarding kunde inte slutföras.",
+      "finish": "Fyll i profilen",
+      "no_cv_summary": "Profil utan CV",
+      "no_cv_summary_copy": "Du kan lägga till ditt CV senare i din profil. För närvarande använder vi introduktionssvaren.",
+      "profile_save_failed": "Det gick inte att spara profilen.",
+      "review_identity": "Namn och kontakt",
+      "review_title": "Kolla profilen.",
+      "signin_copy": "Sedan guidar vi dig genom onboarding, ett valfritt CV och profilkontroll.",
+      "signin_cta": "Fortsätt med registreringen",
+      "signin_title": "Först skapar vi ett konto.",
+      "story_cta": "Utvärdera onboarding",
+      "story_title": "Först arbetsriktningen.",
+      "title": "Vi kommer att bygga en profil utan manuell fyllning.",
+      "fill_later": "Lägg till senare",
+      "q_energy_label": "Vad ger dig energi på jobbet och vad håller dig tillbaka?",
+      "q_energy_ph": "Beskriv miljö, takt, ansvar, team eller typ av uppgifter.",
+      "q_proof_label": "Vilken erfarenhet eller resultat är du stolt över?",
+      "q_proof_ph": "Allt du behöver är en specifik situation, projekt eller problem som du har löst.",
+      "q_work_direction_label": "Vilken typ av jobb söker du nu?",
+      "q_work_direction_ph": "Till exempel. produktarbete, drift, teknisk roll, arbete med människor..."
+    },
+    "premium": {
+      "benefit_ai_roles": "AI-annonsutvärdering",
+      "benefit_jobfit": "JobFit Compass ingår",
+      "benefit_slots": "25 aktiva svarsluckor",
+      "candidate_title": "Lås upp JobFit Compass och fler svar.",
+      "jobfit_copy": "Testet låser upp arbetsstil, styrkor och mer exakta rekommendationer. I Premium får du även fler svarsluckor och AI-utvärdering av erbjudanden.",
+      "jobfit_title": "JobFit Kompas är en del av Premium.",
+      "upgrade_cta": "Uppgradera till Premium"
+    },
+    "calendar": {
+      "connected": "Ansluten och synkroniserad",
+      "day_in_month": "Dag {{day}}. i månaden",
+      "disconnected": "Osammanhängande",
+      "dow_fri": "fre",
+      "dow_mon": "efter",
+      "dow_sat": "lö",
+      "dow_sun": "Inga",
+      "dow_thu": "torsdag",
+      "dow_tue": "tis",
+      "dow_wed": "St",
+      "duration_15": "15 minuter (snabbt introduktionssamtal)",
+      "duration_30": "30 minuter (Standard recension)",
+      "duration_45": "45 minuter (Djupintervju)",
+      "duration_60": "60 minuter (teknisk panel)",
+      "duration_label": "Standard möteslängd",
+      "join": "Häng med",
+      "join_alert": "Jag startar en intervju med {{name}} via Google Meet...",
+      "more_events": "{{count}} nästa",
+      "no_events": "Inga inbokade möten i kalendern.",
+      "overview_eyebrow": "Mötesöversikt",
+      "platform_label": "Intervjuplattform",
+      "platform_meet": "Google Meet (Automatisk länkgenerering)",
+      "platform_phone": "Telefonsamtal",
+      "reminder_alert": "Omdirigering till talangpool med filter för väntande datum...",
+      "reminder_cta": "Lös förfrågningar",
+      "reminder_text": "Du har 2 nya kandidater som begär ett första intervjudatum.",
+      "reminder_title": "Påminnelse om mötesschema",
+      "settings_title": "Mötesinställningar",
+      "stage_assessment": "Testgranskning",
+      "stage_default": "Intervju",
+      "stage_initial": "Introduktionssamtal",
+      "stage_offer": "Erbjuda",
+      "stage_panel": "Företag / Panel",
+      "sync_title": "Kalendersynkronisering",
+      "upcoming_title": "Kommande möten ({{count}})"
     }
   }
 }

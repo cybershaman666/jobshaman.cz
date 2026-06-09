@@ -164,7 +164,7 @@ export const ChatMentor: React.FC<ChatMentorProps> = ({
       }`}>
         <img
           src={messages.length <= 1 ? "/shami-tip.png" : "/shami.png"}
-          alt={t('chatMentor.avatarAlt', 'Shami avatar')}
+          alt={t('app.chatMentor.avatarAlt', 'Shami avatar')}
           className={`rounded-full shrink-0 transition-all duration-300 ${
             messages.length <= 1 
               ? 'max-w-[110px] w-auto h-auto' 
@@ -175,12 +175,12 @@ export const ChatMentor: React.FC<ChatMentorProps> = ({
         {messages.length <= 1 && (
           <>
             <div className="flex flex-col">
-              <span className="font-black tracking-wider uppercase text-cyan-500 text-2xl">{t('chatMentor.shamiName', 'SHAMI')}</span>
-              <span className="text-[11px] text-slate-400">{t('chatMentor.brandHint', 'Powered by JobShaman AI')}</span>
+              <span className="font-black tracking-wider uppercase text-cyan-500 text-2xl">{t('app.chatMentor.shamiName', 'SHAMI')}</span>
+              <span className="text-[11px] text-slate-400">{t('app.chatMentor.brandHint', 'Powered by JobShaman AI')}</span>
             </div>
             <div className="flex-1 flex flex-col ml-3 min-w-0">
-              <span className="text-lg md:text-xl font-semibold text-slate-800 dark:text-white leading-snug truncate">{t('chatMentor.welcomeTitle', 'Shami AI – Tvůj kariérní průvodce')}</span>
-              <span className="text-xs text-slate-500 dark:text-slate-300 mt-0.5 leading-snug truncate">{t('chatMentor.slogan', 'Shami vidí souvislosti v profilu, najde další krok – bez HR omáčky.')}</span>
+              <span className="text-lg md:text-xl font-semibold text-slate-800 dark:text-white leading-snug truncate">{t('app.chatMentor.welcomeTitle', 'Shami AI – Tvůj kariérní průvodce')}</span>
+              <span className="text-xs text-slate-500 dark:text-slate-300 mt-0.5 leading-snug truncate">{t('app.chatMentor.slogan', 'Shami vidí souvislosti v profilu, najde další krok – bez HR omáčky.')}</span>
             </div>
           </>
         )}
@@ -207,7 +207,7 @@ export const ChatMentor: React.FC<ChatMentorProps> = ({
               {m.role === 'assistant' && (
                 <img
                   src="/shami.png"
-                  alt={t('chatMentor.avatarAlt', 'Shami avatar')}
+                  alt={t('app.chatMentor.avatarAlt', 'Shami avatar')}
                   className="w-10 h-10 mr-3 object-contain rounded-full"
                   style={{ background: "transparent", border: "none", boxShadow: "none" }}
                 />
@@ -259,7 +259,7 @@ export const ChatMentor: React.FC<ChatMentorProps> = ({
           className="flex-1 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:border-cyan-400"
           value={draft}
           onChange={e => setDraft(e.target.value)}
-          placeholder={t('chatMentor.inputPlaceholder', "Zeptej se Shamiho nebo naťukej další krok...")}
+          placeholder={t('app.chatMentor.inputPlaceholder', "Zeptej se Shamiho nebo naťukej další krok...")}
           disabled={busy}
           autoFocus
         />

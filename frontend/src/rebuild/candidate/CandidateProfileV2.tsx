@@ -68,24 +68,24 @@ const formatEmploymentType = (value?: string, t?: (k: string, d: string) => stri
 };
 
 const EMPLOYMENT_TYPE_OPTIONS = [
-  { value: 'full_time', label: 'Plný úvazek' },
-  { value: 'part_time', label: 'Zkrácený úvazek' },
-  { value: 'contract', label: 'Kontrakt' },
-  { value: 'internship', label: 'Stáž' },
-  { value: 'temporary', label: 'Dočasná spolupráce' },
+  { value: 'full_time', label: 'Plný úvazek', i18nKey: 'rebuild.profile.employment_full_time' },
+  { value: 'part_time', label: 'Zkrácený úvazek', i18nKey: 'rebuild.profile.employment_part_time' },
+  { value: 'contract', label: 'Kontrakt', i18nKey: 'rebuild.profile.employment_contract' },
+  { value: 'internship', label: 'Stáž', i18nKey: 'rebuild.profile.employment_internship' },
+  { value: 'temporary', label: 'Dočasná spolupráce', i18nKey: 'rebuild.profile.employment_temporary' },
 ] as const;
 
 const TRANSPORT_MODE_OPTIONS = [
-  { value: 'public', label: 'Dle příležitosti' },
-  { value: 'car', label: 'Auto' },
-  { value: 'bike', label: 'Kolo' },
-  { value: 'walk', label: 'Pěšky' },
+  { value: 'public', label: 'Dle příležitosti', i18nKey: 'rebuild.profile.transport_public' },
+  { value: 'car', label: 'Auto', i18nKey: 'rebuild.profile.transport_car' },
+  { value: 'bike', label: 'Kolo', i18nKey: 'rebuild.profile.transport_bike' },
+  { value: 'walk', label: 'Pěšky', i18nKey: 'rebuild.profile.transport_walk' },
 ] as const;
 
 const VISIBILITY_OPTIONS = [
-  { value: 'private', label: 'Soukromý profil' },
-  { value: 'recruiter', label: 'Viditelný firmám' },
-  { value: 'public', label: 'Veřejný profil' },
+  { value: 'private', label: 'Soukromý profil', i18nKey: 'rebuild.profile.visibility_private' },
+  { value: 'recruiter', label: 'Viditelný firmám', i18nKey: 'rebuild.profile.visibility_recruiter' },
+  { value: 'public', label: 'Veřejný profil', i18nKey: 'rebuild.profile.visibility_public' },
 ] as const;
 
 const parseListInput = (value: string) =>
@@ -707,13 +707,13 @@ const education = React.useMemo(
                       <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('rebuild.profile.employment_type_label', 'Typ úvazku')}</label>
                       <select value={editForm.desiredEmploymentType} onChange={(e) => setEditForm(prev => ({ ...prev, desiredEmploymentType: e.target.value as ProfileEditForm['desiredEmploymentType'] }))} className="w-full rounded-[12px] border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-[#255DAB]">
                         <option value="">{t('rebuild.profile.employment_flexible', 'Flexibilní')}</option>
-                        {EMPLOYMENT_TYPE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                        {EMPLOYMENT_TYPE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{t(option.i18nKey, { defaultValue: option.label })}</option>)}
                       </select>
                     </div>
                     <div>
                       <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('rebuild.profile.transport_label', 'Doprava')}</label>
                       <select value={editForm.transportMode} onChange={(e) => setEditForm(prev => ({ ...prev, transportMode: e.target.value as TransportMode }))} className="w-full rounded-[12px] border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-[#255DAB]">
-                        {TRANSPORT_MODE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                        {TRANSPORT_MODE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{t(option.i18nKey, { defaultValue: option.label })}</option>)}
                       </select>
                     </div>
                   </div>
@@ -743,7 +743,7 @@ const education = React.useMemo(
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('rebuild.profile.visibility_label', 'Viditelnost')}</label>
                   <select value={editForm.profileVisibility} onChange={(e) => setEditForm(prev => ({ ...prev, profileVisibility: e.target.value as ProfileEditForm['profileVisibility'] }))} className="w-full rounded-[12px] border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-[#255DAB]">
-                    {VISIBILITY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                    {VISIBILITY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{t(option.i18nKey, { defaultValue: option.label })}</option>)}
                   </select>
                 </div>
               </div>

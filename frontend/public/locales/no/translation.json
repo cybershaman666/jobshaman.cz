@@ -52,7 +52,15 @@
     "clear": "Tøm",
     "demo_alert": "Prøvemodus aktiv — oppdag alle premiumfordeler",
     "saving": "Lagrer...",
-    "edit": "Rediger"
+    "edit": "Rediger",
+    "chatMentor": {
+      "inputPlaceholder": "Spør Shami eller skriv neste trinn...",
+      "brandHint": "Powered by JobShaman AI",
+      "welcomeTitle": "Shami AI - Din karriereguide",
+      "slogan": "Shami ser sammenhengene i profilen, finner neste steg – uten HR-sausen.",
+      "avatarAlt": "Shami avatar",
+      "shamiName": "Shami"
+    }
   },
   "home": {
     "discovery": {
@@ -5785,7 +5793,11 @@
       "video": "Video",
       "photo": "Photo",
       "no_banner_media": "No slideshow media yet. The main cover will be used by itself.",
-      "primary_video_url": "Primary video URL"
+      "primary_video_url": "Primary video URL",
+      "cybershaman_advises": "Shami anbefaler neste trinn",
+      "cybershaman_tip": "Shamis tips",
+      "nav_calendar": "Kalender",
+      "subtitle_calendar": "Planlagte intervjuer, tilgjengelighetspreferanser og kalendersynkronisering."
     },
     "editor": {
       "step_essence": "Rollens kjerne",
@@ -5890,7 +5902,11 @@
       "hide_preview": "Hide preview",
       "show_preview": "Show preview",
       "preview": "Preview",
-      "preview_empty": "Formatted preview will appear here."
+      "preview_empty": "Formatted preview will appear here.",
+      "employment_part_time_short": "Delvis",
+      "employment_gig_short": "Engangs",
+      "employment_full_time_short": "Omfattende",
+      "employment_contract_short": "Kontrakt"
     },
     "role": {
       "full_journey": "Full Jobshaman journey",
@@ -5914,7 +5930,11 @@
       "border_disabled": "{{country}} disabled",
       "summary_curated": "JHI {{score}}/100, estimated net value {{value}} {{currency}} monthly and direct branded journey entry.",
       "summary_imported": "JHI {{score}}/100, realistic outbound preparation considering {{fit}} fit and real costs.",
-      "domestic": "domestic"
+      "domestic": "domestic",
+      "border": "grense",
+      "open_listing": "Åpne den opprinnelige annonsen",
+      "market_domestic": "Innenlands",
+      "market_cross_border": "Grenseoverskridende"
     },
     "marketplace": {
       "pulse_title": "What's new",
@@ -6166,7 +6186,56 @@
       "hero_level_expert": "Ekspert",
       "you": "ty",
       "load_more_count": "Zobrazit dalších {{count}} nabídek",
-      "load_next_from_db": "Načíst dalších {{count}} z databáze"
+      "load_next_from_db": "Načíst dalších {{count}} z databáze",
+      "ai_applied": "AI-filtre: {{chips}}",
+      "ai_applied_text": "Søker etter: {{query}}",
+      "ai_search_button": "Søk med AI",
+      "ai_search_label": "Søk med AI",
+      "ai_search_placeholder": "Søk etter rolle, ferdighet, selskap... eller naturlig: \"remote React-jobber i Praha over 60k\"",
+      "all_active": "Alle aktive muligheter",
+      "badge_best_fit": "Vi anbefaler",
+      "best_opportunities": "Dine beste muligheter",
+      "commute_from_home": "{{count}} min hjemmefra",
+      "commute_minutes": "{{count}} min",
+      "companies_interested": "Bedrifter som ønsker å bli kjent med deg",
+      "companies_interested_sub": "Bedrifter som ser potensiale i profilen din",
+      "company_match_line": "Profilen din samsvarer med {{percent}}% av det vi ser etter.",
+      "company_match_sub": "Vi vil gjerne møte deg i et håndtrykk.",
+      "difficulty": "Vanskelighet",
+      "difficulty_any": "Noen",
+      "difficulty_high": "Høy",
+      "difficulty_label": "{{level}} vanskelighetsgrad",
+      "difficulty_low": "Lav",
+      "difficulty_medium": "Medium",
+      "discover_by_category": "Oppdag etter kategori",
+      "field": "Felt",
+      "hot_opportunity": "Varm mulighet",
+      "learn_more": "Finn ut mer",
+      "location": "Lokaliteter",
+      "location_all": "Alle steder",
+      "net_suffix": "rengjøre",
+      "no_results": "Ingen tilbud samsvarer med søket ditt. Prøv å redigere filtrene eller spørringen.",
+      "open_handshake": "Åpne Handshake",
+      "percent_match": "{{percent}} % samsvar",
+      "position_count": "{{count}} stillinger",
+      "reset": "Kansellere",
+      "salary": "Lønn",
+      "salary_any": "Eventuell lønn",
+      "scroll_more": "Gå videre",
+      "search_in_marketplace": "Søk på markedsplassen...",
+      "show_more_offers": "Se flere tilbud",
+      "similar_sub": "Roller og bedrifter i lignende fokus",
+      "similar_to_interest": "I likhet med det du er interessert i",
+      "slots_few": "{{count}} ledige slots",
+      "slots_many": "{{count}} ledige slots",
+      "slots_one": "{{count}} ledig slot",
+      "sort": "Sortering",
+      "sort_distance": "Den nærmeste",
+      "sort_relevance": "Den mest relevante",
+      "sort_salary": "Høyeste lønn",
+      "why_match": "Hvorfor er det en match?",
+      "shifts_3": "3 skift",
+      "try_it": "Prøv det"
     },
     "status": {
       "in_review": "Til vurdering",
@@ -6410,7 +6479,19 @@
       "skills_help_match": "Help us understand which skills you want to use in this role.",
       "selected": "Selected Skills",
       "supported_providers": "Supported Providers",
-      "tip": "Tip"
+      "tip": "Tip",
+      "add": "legge til",
+      "problem_frame_helper": "Svar spesifikt, og oppgi forutsetninger og risikoer.",
+      "problem_frame_title": "Forstå ledeteksten",
+      "risk_helper": "Et godt svar gir også navn til det du ikke vet ennå.",
+      "risk_prompt": "Hva kan gå galt og hva må du bekrefte?",
+      "risk_title": "Risikoer og ukjente",
+      "schedule_helper": "Sporet er en forespørsel, selskapet vil bekrefte etter gjennomgang.",
+      "schedule_title": "Planlegg diskusjon",
+      "work_sample_comment_placeholder": "Kort kontekst for anmelderen",
+      "work_sample_helper": "Beskriv trinn, bevis og beslutningskriterier.",
+      "work_sample_title": "Praktiske trinn",
+      "work_sample_url_placeholder": "https://..."
     },
     "insights": {
       "title": "Innsikt",
@@ -6598,7 +6679,138 @@
       "response_quality_title": "Målekvalitet",
       "coverage": "Dekning",
       "response_quality_flagged": "Resultatet er lagret, men noen svarmønstre senker tolkningssikkerheten.",
-      "response_quality_clean": "Svarene er tilstrekkelig differensierte for en grunnleggende profiltolkning."
+      "response_quality_clean": "Svarene er tilstrekkelig differensierte for en grunnleggende profiltolkning.",
+      "drag_assign_cause": "Dra eller tilordne en årsak her",
+      "report": {
+        "d10_ambiguity_interpretation": {
+          "balanced": "Du kan håndtere tvetydighet hvis du har mulighet til gradvis å verifisere de neste trinnene.",
+          "development": "For en uklar oppgave, skriv ned: hva jeg vet, hva jeg ikke vet, hva jeg vil bekrefte innen 48 timer.",
+          "environment": "Et miljø med varierende oppdrag, men god støtte i prioriteringer og beslutningsrett.",
+          "high": "Du ser retning og muligheter i usikkerhet. Du kan starte selv om oppgaven ikke er perfekt ennå.",
+          "low": "Uklare input kan hemme energi. Det vil hjelpe med å definere minimum neste signal og det første sikre trinnet.",
+          "summary": "Hvordan leser du tvetydige situasjoner: risiko vs. muligheter."
+        },
+        "d11_problem_decomposition": {
+          "balanced": "Du kan bryte ned et problem når du har et klart mål og nok kontekst.",
+          "development": "Bryt ned hvert større problem i en blokkering, et første trinn og en målbar utgang for uken.",
+          "environment": "En rolle hvor strategi omsettes til prioriteringer, eksperimenter og praktisk levering.",
+          "high": "Du kan raskt lage en trinnstruktur. Sterk for strategi, leveranse, driftsendringer og komplekse prosjekter.",
+          "low": "Et stort problem kan føles overveldende. Ett lite eksperiment og enkle prioriteringer vil hjelpe.",
+          "summary": "Evne til å bryte ned et stort problem i klare trinn."
+        },
+        "d12_moral_compass": {
+          "balanced": "Du tar de etiske implikasjonene i betraktning, spesielt når de er tydelig navngitt.",
+          "development": "For dilemmaer, skriv ned: hvem vil det påvirke, hva vil skje senere og hva jeg ville forsvart høyt.",
+          "environment": "En organisasjon som tar tillit, ansvarlighet og transparente beslutninger på alvor.",
+          "high": "Et sterkt moralsk kompass. Du holder integritet, tillit og langsiktige effekter under press.",
+          "low": "Under press kan det være vanskeligere å åpne opp om et ubehagelig tema. Et forhåndsbestemt beslutningsprinsipp vil hjelpe.",
+          "summary": "Verdistabilitet i dilemmaer og pressede situasjoner."
+        },
+        "d1_cognitive": {
+          "balanced": "Du kan kombinere analyse med praktisk intuisjon. Du fungerer best når du har nok signaler, men ikke henger deg fast i detaljer.",
+          "development": "Før du tar en viktig beslutning, skriv ned 3 fakta, 1 risiko og 1 alternativ.",
+          "environment": "En rolle med en klar kontekst, evne til å analysere et problem og omsette det til en beslutning.",
+          "high": "Du setter naturlig likhetstegn mellom fakta, sammenhenger og påvirkninger. Du utmerker deg der det er nødvendig å skille støyen fra stoffet.",
+          "low": "Du stoler mer på intuisjon og helhetsinntrykk. En rask faktasjekk vil hjelpe med viktige avgjørelser.",
+          "summary": "Metode for å behandle informasjon og løse problemer."
+        },
+        "d2_social": {
+          "balanced": "Sosial orientering er balansert. Du kan jobbe i team så vel som selvstendig etter behov.",
+          "development": "Før møtet, navngi forventet resultat og etter det ett klart neste trinn.",
+          "environment": "Et team med tydelig kommunikasjon, regelmessige tilbakemeldinger og en rimelig grad av autonomi.",
+          "high": "Du kan beholde tillit, enighet og felles retning. Din styrke er å lese folk uten å miste objektivitet.",
+          "low": "Du foretrekker sannsynligvis selvstendig arbeid og mindre sosial koordinering.",
+          "summary": "Foretrukket måte å samhandle med mennesker og teamdynamikk på."
+        },
+        "d3_motivational": {
+          "balanced": "Du forvalter både indre mening og klare mål og belønninger. Det bidrar til å tydeliggjøre dagens prioritering.",
+          "development": "For hver større oppgave, skriv ned hvem den hjelper og hvordan du vet et godt resultat.",
+          "environment": "Prosjekter med synlig effekt, rettferdig ansvar og rom for forbedring.",
+          "high": "Du er sterkt tiltrukket av mening, innflytelse og økende ansvar. Du må forstå hvorfor, ikke bare hva.",
+          "low": "Motivasjon kan avhenge mer av en spesifikk belønning, stabilitet eller et klart spesifisert resultat.",
+          "summary": "Hva driver deg og hva anser du som givende."
+        },
+        "d4_energy": {
+          "balanced": "Du kan bytte mellom sprint og jevnt tempo. En rytme med klare prioriteringer fungerer bra.",
+          "development": "I 14 dager, sett en sprintrytme, pause, gjennomgang: hva tar energi og hva gir den tilbake.",
+          "environment": "Arbeid med realistiske prioriteringer, evne til å beskytte dypt arbeid og avtalte spurter.",
+          "high": "Du kan håndtere høyere tempo og dynamiske situasjoner. Nøkkelen er å planlegge for utvinning slik at ytelsen forblir bærekraftig.",
+          "low": "I stedet trenger du et mer stabilt tempo, mindre veksling og et beskyttet rom for konsentrasjon.",
+          "summary": "Tempo, intensitet og arbeidsstil."
+        },
+        "d5_values": {
+          "balanced": "Verdiene dine er balanserte og du kan tilpasse deg ulike kulturer hvis du vet hva som er viktig.",
+          "development": "Skriv ned 3 arbeidssituasjoner som er uoverkommelige for deg, og hvorfor.",
+          "environment": "En kultur med rettferdighet, åpenhet og rom for å snakke om virkningen av beslutninger.",
+          "high": "Verdier er et sterkt anker. Integritet, tillit og langsiktig effekt er ikke pynt for deg.",
+          "low": "Du kan lettere tolerere ulike miljøer, men det lønner seg å bevisst sette opp egne grenser.",
+          "summary": "Hva må arbeidet bringe for å gi mening."
+        },
+        "d6_ai_readiness": {
+          "balanced": "Du kan bruke nye verktøy når de gir mening. Praktisk læring på en oppgave i den virkelige verden fungerer best.",
+          "development": "Velg en repeterende oppgave og prøv å bruke AI på den tre ganger med en kort evaluering.",
+          "environment": "Et miljø hvor nye verktøy brukes rutinemessig, men med tydelig menneskelig dømmekraft.",
+          "high": "Teknologisk tilpasningsevne er et sterkt punkt. Du tester raskt ut nye verktøy og ser etter praktisk verdi.",
+          "low": "Å bytte verktøy kan koste mer energi. Sikker opplæring på små arbeidssaker vil hjelpe.",
+          "summary": "Hvor godt trives du i et raskt skiftende teknologimiljø?"
+        },
+        "d7_cognitive_reflection": {
+          "balanced": "Du kan supplere intuisjonen med kontroll. En enkel sjekkliste for beslutninger hjelper med større trinn.",
+          "development": "Før du tar en avgjørelse, spør deg selv: Hva er bevisene og hva ville overbevise meg om noe annet?",
+          "environment": "En rolle hvor det er tid til å vurdere beslutninger og feil brukes som læring, ikke straff.",
+          "high": "Du kan hemme den første konklusjonen og bekrefte bevisene. Dette øker kvaliteten på beslutninger med høyere effekt.",
+          "low": "Rask intuisjon kan dominere. For viktige ting, legg til en kort stopp-sjekk-sjekk.",
+          "summary": "Evnen til å stoppe den første intuisjonen og verifisere den med logikk."
+        },
+        "d8_digital_eq": {
+          "balanced": "Du administrerer praktisk talt digital kommunikasjon. Det hjelper å bevisst velge mellom en melding og en samtale.",
+          "development": "For en vanskelig melding, skriv først intensjonen, deretter fakta og til slutt den spesifikke forespørselen.",
+          "environment": "Et hybrid eller eksternt team med tydelig kommunikasjonshygiene og et trygt rom for spørsmål.",
+          "high": "Du leser tonen, underteksten og tilliten til teksten godt. Dette er sterkt i asynkront samarbeid og sensitive temaer.",
+          "low": "Det kan lettere oppstå misforståelser i teksten. En kortere melding, klar intensjon og validering av innvirkning vil hjelpe.",
+          "summary": "Følsomhet for følelser, tone og selvtillit i tekstkommunikasjon."
+        },
+        "d9_systems_thinking": {
+          "balanced": "Du kan følge bredere sammenhenger når du har et klart definert rammeverk for problemet.",
+          "development": "For ett problem, tegn et kart: årsak, virkning, tilbakemelding, skjulte kostnader.",
+          "environment": "Prosess-, produkt- eller driftsroller der hele systemer forbedres, ikke bare enkeltoppgaver.",
+          "high": "Sterk systemtenkning. Du ser relasjonene, de forsinkede effektene og stedene hvor problemet kommer tilbake.",
+          "low": "Det kan være nyttig å bevisst kartlegge årsaker, virkninger og avhengigheter i stedet for å adressere et isolert symptom.",
+          "summary": "Hvor godt du leser relasjoner, tilbakemeldinger og bivirkninger."
+        },
+        "i1_love": {
+          "balanced": "Interessen vekkes i spesifikke situasjoner. Det lønner seg å se på når energien stiger.",
+          "development": "I løpet av uken, skriv ned 3 øyeblikk når arbeidet tilførte eller tok bort energi.",
+          "environment": "Arbeid med et rom for fordypning, skapelse eller et problem som interesserer deg personlig.",
+          "high": "Du har et sterkt signal om intern interesse. Se etter roller der denne energien brukes ofte, ikke bare marginalt.",
+          "low": "Det er ennå ikke klart hva som virkelig tiltrekker deg til jobb. Det vil bidra til å kartlegge aktivitetene der tiden forsvinner.",
+          "summary": "Det som naturlig trekker deg inn og belaster deg."
+        },
+        "i2_good_at": {
+          "balanced": "Noen styrker vet du allerede, andre vil bli avslørt gjennom konkrete arbeidsbevis.",
+          "development": "Skriv ned 5 situasjoner der du hjalp noen og finn en felles evne.",
+          "environment": "En rolle hvor dine sterke ferdigheter brukes jevnlig og er synlige i resultatet.",
+          "high": "Du har en sterk oppfatning av dine evner og vet hvordan du konverterer dem til fordeler for andre.",
+          "low": "Du kan undervurdere det du er god på. Se etter gjentatte forespørsler om hjelp og resultater.",
+          "summary": "Hva er din gjenbrukbare kraft?"
+        },
+        "i3_world_needs": {
+          "balanced": "Mening og nytte er viktig, men de trenger ikke være den eneste kilden til motivasjon.",
+          "development": "For jobbtilbudet, sjekk hvem resultatet hjelper og hvordan det kan gjenkjennes.",
+          "environment": "Produkter, tjenester eller operasjoner hvor den reelle fordelen av arbeidet kan sees.",
+          "high": "Påvirkningen på spesifikke mennesker er en viktig kilde til mening og utholdenhet for deg.",
+          "low": "Arbeid kan være meningsfylt selv uten betydelig sosial påvirkning dersom rollen, teamet eller belønningen passer.",
+          "summary": "Hvor mye trenger du for å se fordelene for mennesker eller verden."
+        },
+        "i4_paid_for": {
+          "balanced": "Du tar den økonomiske verdien i betraktning, men det ville være greit å spesifisere det med konkrete bevis.",
+          "development": "For hver styrke, skriv en målbar fordel for teamet, kunden eller selskapet.",
+          "environment": "En rolle hvor det er tydelig hvordan arbeidet ditt skaper verdi og en rettferdig belønning.",
+          "high": "Du tenker nøye over verdien av arbeidet ditt for markedet. Dette er med på å velge en bærekraftig retning.",
+          "low": "Det kan være behov for å oversette evner mer til forretningsspråket eller kundeverdi.",
+          "summary": "Hvordan kobler du sammen mening, evner og økonomisk verdi."
+        }
+      }
     },
     "companies": {
       "hero": {
@@ -6954,7 +7166,63 @@
       "patience": "Patience",
       "motivation_default": "Vaše motivace směřuje k seberealizaci a objevování nových obzorů.",
       "resonance": "Rezonance",
-      "unlock_identity": "Odemkni svou identitu"
+      "unlock_identity": "Odemkni svou identitu",
+      "start_onboarding": "Fullfør onboarding",
+      "mentor_new": "Ny chat",
+      "mentor_send": "Sende",
+      "mentor_ready": "Shami er klar til å utvikle karrieren din.",
+      "mentor_typing": "Shami forbereder et svar ...",
+      "active_apps_count": "{{count}} av aktive forespørsler",
+      "active_deals": "Aktiv forhandling",
+      "all": "Alle",
+      "archetype_unlocked": "Arketypen er låst opp",
+      "blindspots_fallback": "Vi vil spesifisere blindsonene i henhold til JobFit Compass.",
+      "career_identity": "Karriereidentitet",
+      "chat_with_shami": "Chat med Shami",
+      "closest_themes": "Emner som er nærmest i verdi: {{themes}}.",
+      "compass_eyebrow": "Arbeidskompasset ditt",
+      "edit_profile": "Rediger profil",
+      "explore_job_market": "Utforsk arbeidsmarkedet",
+      "explore_market_short": "Utforsk markedet",
+      "explore_offers": "Utforsk tilbud →",
+      "finish_compass_hint": "Fullfør JobFit Compass og lås opp din karrierearketype.",
+      "growth_path_title": "Utviklingens vei",
+      "growth_plan": "Utviklingsplan",
+      "kpi_active_applications": "Aktive forespørsler",
+      "kpi_free_slots": "Gratis spilleautomater",
+      "kpi_offers": "Tilbud",
+      "mentor_advice_default": "Lytt til din indre stemme. Din profesjonelle vei begynner å ta form. Spør meg hva som helst.",
+      "mentor_input_ph": "Spør om karrieren din...",
+      "milestone_compass": "JobFit kompass",
+      "milestone_first_deal": "Første møte",
+      "milestone_offer": "Jobbtilbud",
+      "milestone_offer_cap": "Mål: vellykket plassering",
+      "milestone_onboarding": "Onboarding",
+      "milestone_onboarding_cap": "Grunnleggende profil fullført",
+      "motivational_quote": "Alle har potensiale. Vårt oppdrag er å vekke ham.",
+      "no_applications": "Ingen forespørsler ennå.",
+      "no_offers": "Ingen tilbud",
+      "open_full_chat": "Åpne full chat-speil",
+      "open_role_detail": "Åpne rolledetaljene",
+      "opportunity": "Anledning",
+      "quick_actions": "Raske handlinger",
+      "recommended_challenge": "Anbefalt utfordring",
+      "recommended_offers": "Anbefalte tilbud",
+      "run_unlock_profile": "Kjør og lås opp profilen din",
+      "section_environment": "Ideell miljø",
+      "section_motivation": "Sjamanens anbefaling",
+      "section_risks": "Områder med vekst",
+      "section_skills": "Karriereessens",
+      "section_values": "Verdijustering",
+      "send_first_app": "Send den første forespørselen",
+      "shami_guide": "Guide til Shami",
+      "shami_subtitle": "Din AI-karrierementor",
+      "start_compass": "Start JobFit Compass",
+      "unlock_identity_hint": "Gå gjennom JobFit Compass og se karrierearketypen og innrettingsindeksen.",
+      "view_compass": "Se JobFit Compass",
+      "watch_out": "Se opp for: {{items}}.",
+      "week_focus": "Ukens fokus",
+      "your_dashboard": "Dashbordet ditt"
     },
     "applications": {
       "active_handshakes": "Active handshakes",
@@ -7139,7 +7407,12 @@
     },
     "dialogue": {
       "environment_fit": "Environment fit",
-      "next_steps": "Next steps"
+      "next_steps": "Next steps",
+      "candidate_profile_signal": "Kandidatprofilsignal",
+      "full_report": "Full rapport",
+      "jobfit_shared_copy": "JobFit-kompasset ble delt med svaret og kan avgrense rekruttererens lesing av kandidaten.",
+      "shared_jobfit_signal": "Delt JobFit Compass-signal",
+      "summary": "Sammendrag"
     },
     "landing": {
       "eyebrow": "Skill-first hiring for candidates and companies",
@@ -7278,7 +7551,20 @@
       "mock_nav_roles": "Roles",
       "mock_nav_candidates": "Candidates",
       "mock_nav_decisions": "Decisions",
-      "workflow_label": "Workflow"
+      "workflow_label": "Workflow",
+      "cta_copy": "En pilot kan starte med én stilling og et lite team.",
+      "cta_title": "Forbered den første rullen uten et stort prosjekt.",
+      "faq1_a": "Ikke først og fremst. JobShaman håndterer jobboppdrag, førstesignal og beslutningstaking i teamet. ATS kan forbli et registreringssystem.",
+      "faq1_q": "Er det en ATS-erstatning?",
+      "faq2_a": "Nei. En CV kan hjelpe senere, men den første interaksjonen er avhengig av et spesifikt svar på rollen.",
+      "faq2_q": "Må kandidaten laste opp en CV?",
+      "faq3_a": "Du starter et selskap, fullfører profilen din og du kan forberede din første rolle eller pilotoppdrag.",
+      "faq3_q": "Hva skjer etter registrering?",
+      "improve_copy": "JobShaman er ikke en ATS-erstatning for alt. Det er arbeidslaget for å starte utvelgelsen: rollen, kandidatens første svar, teamvurderingen og neste trinn.",
+      "improve_eyebrow": "Hva vil gjøre det bedre",
+      "improve_title": "Mindre gjetting, mer handlingsdyktige signaler.",
+      "pricing_note": "Prisene er veiledende for V2-piloten. Den endelige tariffen kan justeres i henhold til volumet av roller, support og integrasjoner.",
+      "recommended": "Anbefalt"
     },
     "legal": {
       "privacy_title": "Personvernerklæring",
@@ -7598,7 +7884,14 @@
       "photo_upload_failed": "Bildeoppasting mislyktes.",
       "cv_upload_failed": "Dokumentoppasting mislyktes.",
       "certifications_label": "Sertifikater",
-      "certificates_label": "Sertifikat"
+      "certificates_label": "Sertifikat",
+      "education": "Utdanning",
+      "experience": "Erfaring",
+      "job_title": "Rolle",
+      "languages": "Språk",
+      "skills": "Ferdigheter",
+      "linkedin_label": "LinkedIn",
+      "portfolio_label": "Portfolio"
     },
     "ui": {
       "cookie_banner": {
@@ -7760,7 +8053,86 @@
       "guide_fallback": "Read the challenge carefully. Your first response should demonstrate that you understand the core problem — not just that you are interested.",
       "guide_loading": "Shami leser rollen, realitetslaget og profilen din...",
       "watch_out": "Vær oppmerksom på",
-      "first_move": "Første steg"
+      "first_move": "Første steg",
+      "locked_role_insight_copy": "Shami sammenligner tilbudet med profilen, CV og JobFit Compass: hva rollen egentlig tester, hvor er risikoen og hvilket første steg som gir mening.",
+      "locked_role_insight_title": "AI-annonseevaluering er i Premium.",
+      "guide_title_company": "Hva {{company}} ønsker å forstå om deg"
+    },
+    "onboarding": {
+      "ai_summary": "AI-sammendrag fra CV",
+      "answer_more": "Fyll ut minst to svar, uansett hva profilen er basert på.",
+      "back_to_cv": "Last opp en annen CV",
+      "cv_copy": "AI vil trekke ut erfaring, ferdigheter, utdanning og kontaktdetaljer fra den. Du sjekker alt før du lagrer.",
+      "cv_skip": "Hopp over og fortsett",
+      "cv_title": "Last eventuelt opp en CV.",
+      "cv_upload": "Last opp CV",
+      "eyebrow": "Kandidatintroduksjon",
+      "failed": "Onboarding kunne ikke fullføres.",
+      "finish": "Fullfør profilen",
+      "no_cv_summary": "Profil uten CV",
+      "no_cv_summary_copy": "Du kan legge til din CV senere i profilen din. Foreløpig bruker vi innføringssvarene.",
+      "profile_save_failed": "Kunne ikke lagre profilen.",
+      "review_identity": "Navn og kontakt",
+      "review_title": "Sjekk profilen.",
+      "signin_copy": "Da veileder vi deg gjennom onboarding, valgfri CV og profilsjekk.",
+      "signin_cta": "Fortsett med registrering",
+      "signin_title": "Først oppretter vi en konto.",
+      "story_cta": "Evaluer onboarding",
+      "story_title": "Først arbeidsretningen.",
+      "title": "Vi skal bygge en profil uten manuell utfylling.",
+      "fill_later": "Legg til senere",
+      "q_energy_label": "Hva gir deg energi på jobb og hva holder deg tilbake?",
+      "q_energy_ph": "Beskriv miljø, tempo, ansvar, team eller type oppgaver.",
+      "q_proof_label": "Hvilken erfaring eller resultat er du stolt av?",
+      "q_proof_ph": "Alt du trenger er en spesifikk situasjon, prosjekt eller problem som du har løst.",
+      "q_work_direction_label": "Hva slags jobb ser du etter nå?",
+      "q_work_direction_ph": "f.eks. produktarbeid, drift, teknisk rolle, arbeid med mennesker..."
+    },
+    "premium": {
+      "benefit_ai_roles": "AI annonseevaluering",
+      "benefit_jobfit": "JobFit Compass inkludert",
+      "benefit_slots": "25 aktive svarspor",
+      "candidate_title": "Lås opp JobFit Compass og flere svar.",
+      "jobfit_copy": "Testen låser opp arbeidsstil, styrker og mer nøyaktige anbefalinger. I Premium får du også flere svarautomater og AI-evaluering av tilbud.",
+      "jobfit_title": "JobFit Kompas er en del av Premium.",
+      "upgrade_cta": "Oppgrader til Premium"
+    },
+    "calendar": {
+      "connected": "Tilkoblet og synkronisert",
+      "day_in_month": "Dag {{day}}. i måneden",
+      "disconnected": "Koblet fra",
+      "dow_fri": "fre",
+      "dow_mon": "etter",
+      "dow_sat": "Lør",
+      "dow_sun": "Ingen",
+      "dow_thu": "torsdag",
+      "dow_tue": "tirs",
+      "dow_wed": "St",
+      "duration_15": "15 minutter (hurtig introduksjonssamtale)",
+      "duration_30": "30 minutter (Standard anmeldelse)",
+      "duration_45": "45 minutter (dybdeintervju)",
+      "duration_60": "60 minutter (teknisk panel)",
+      "duration_label": "Standard møtelengde",
+      "join": "Bli med",
+      "join_alert": "Jeg starter et intervju med {{name}} via Google Meet...",
+      "more_events": "{{count}} neste",
+      "no_events": "Ingen planlagte avtaler i kalenderen.",
+      "overview_eyebrow": "Møteoversikt",
+      "platform_label": "Intervjuplattform",
+      "platform_meet": "Google Meet (automatisk koblingsgenerering)",
+      "platform_phone": "Telefonsamtale",
+      "reminder_alert": "Omdirigering til talentpool med ventende datofilter...",
+      "reminder_cta": "Løs forespørsler",
+      "reminder_text": "Du har 2 nye kandidater som ber om en første intervjudato.",
+      "reminder_title": "Påminnelse om avtaleplanlegging",
+      "settings_title": "Møteinnstillinger",
+      "stage_assessment": "Testanmeldelse",
+      "stage_default": "Intervju",
+      "stage_initial": "Introduksjonssamtale",
+      "stage_offer": "Tilby",
+      "stage_panel": "Bedrift / Panel",
+      "sync_title": "Kalendersynkronisering",
+      "upcoming_title": "Kommende møter ({{count}})"
     }
   }
 }

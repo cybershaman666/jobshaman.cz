@@ -469,11 +469,15 @@ export const CandidateDashboardV2: React.FC<{
     skills: archetypeCopy.join(' '),
     motivation: vm.mentorAdvice || t('rebuild.dashboard.motivation_default', { defaultValue: 'Vaše motivace směřuje k seberealizaci a objevování nových obzorů.' }),
     environment: t('rebuild.dashboard.top_signals', { defaultValue: 'Nejsilnější kariérní signály: {{signals}}.', signals: vm.heroMetrics.slice(0, 3).map((m) => m.label).join(', ') }),
-    values: vm.challengeTags.length ? `Témata hodnotově nejbližší: ${vm.challengeTags.join(', ')}.` : vm.archetypeDescription,
-    risks: vm.blindSpots.length ? `Pozor na: ${vm.blindSpots.slice(0, 2).map((s) => s.label).join(', ')}.` : 'Slepé skvrny upřesníme po JobFit Kompasu.',
+    values: vm.challengeTags.length ? t('rebuild.dashboard.closest_themes', { defaultValue: 'Témata hodnotově nejbližší: {{themes}}.', themes: vm.challengeTags.join(', ') }) : vm.archetypeDescription,
+    risks: vm.blindSpots.length ? t('rebuild.dashboard.watch_out', { defaultValue: 'Pozor na: {{items}}.', items: vm.blindSpots.slice(0, 2).map((s) => s.label).join(', ') }) : t('rebuild.dashboard.blindspots_fallback', { defaultValue: 'Slepé skvrny upřesníme po JobFit Kompasu.' }),
   };
   const tabLabels: Record<string, string> = {
-    skills: 'Esence', motivation: 'Rada', environment: 'Prostředí', values: 'Hodnoty', risks: 'Rizika',
+    skills: t('rebuild.dashboard.tab_skills', { defaultValue: 'Esence' }),
+    motivation: t('rebuild.dashboard.tab_motivation', { defaultValue: 'Rada' }),
+    environment: t('rebuild.dashboard.tab_environment', { defaultValue: 'Prostředí' }),
+    values: t('rebuild.dashboard.tab_values', { defaultValue: 'Hodnoty' }),
+    risks: t('rebuild.dashboard.tab_risks', { defaultValue: 'Rizika' }),
   };
 
   const navItems = [
@@ -650,14 +654,14 @@ export const CandidateDashboardV2: React.FC<{
           <div className="mb-5 rounded-[24px] border border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-card-bg)] shadow-sm p-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             {/* Greeting */}
             <div className="min-w-0">
-              <div className={sectionTitleClass}>Tvůj pracovní kompas</div>
+              <div className={sectionTitleClass}>{t('rebuild.dashboard.compass_eyebrow', { defaultValue: 'Tvůj pracovní kompas' })}</div>
               <h1 className="mt-1.5 text-[22px] font-extrabold tracking-tight text-[color:var(--text-strong)] leading-tight">
-                {firstName ? `Ahoj, ${firstName} 👋` : 'Tvůj dashboard'}
+                {firstName ? t('rebuild.dashboard.greeting', { defaultValue: 'Ahoj, {{name}} 👋', name: firstName }) : t('rebuild.dashboard.your_dashboard', { defaultValue: 'Tvůj dashboard' })}
               </h1>
               <p className="mt-1 text-[12px] text-[color:var(--text-muted)] leading-snug max-w-[40ch]">
                 {vm.isJcfpmComplete
-                  ? `Archetyp: ${vm.archetypeTitle}`
-                  : 'Dokonči JobFit Kompas a odemkni svůj kariérní archetyp.'}
+                  ? t('rebuild.dashboard.archetype_label', { defaultValue: 'Archetyp: {{title}}', title: vm.archetypeTitle })
+                  : t('rebuild.dashboard.finish_compass_hint', { defaultValue: 'Dokonči JobFit Kompas a odemkni svůj kariérní archetyp.' })}
               </p>
             </div>
 
@@ -671,20 +675,20 @@ export const CandidateDashboardV2: React.FC<{
                 onClick={() => navigate('/candidate/jcfpm')}
               />
               <KpiChip
-                label="Aktivní žádosti"
+                label={t('rebuild.dashboard.kpi_active_applications', { defaultValue: 'Aktivní žádosti' })}
                 value={candidateApplications.length || 0}
                 icon={<MessageSquare size={16} />}
                 tone={candidateApplications.length > 0 ? 'teal' : 'default'}
                 onClick={() => navigate('/candidate/applications')}
               />
               <KpiChip
-                label="Volné sloty"
+                label={t('rebuild.dashboard.kpi_free_slots', { defaultValue: 'Volné sloty' })}
                 value={Math.max(0, (userProfile.subscription?.tier === 'premium' ? 25 : (userProfile.slots || 5)) - candidateApplications.length)}
                 icon={<Target size={16} />}
                 tone="default"
               />
               <KpiChip
-                label="Nabídky"
+                label={t('rebuild.dashboard.kpi_offers', { defaultValue: 'Nabídky' })}
                 value={roles.length}
                 icon={<Briefcase size={16} />}
                 tone="default"
@@ -704,7 +708,7 @@ export const CandidateDashboardV2: React.FC<{
                 {/* Header */}
                 <div className="flex items-center justify-between mb-5">
                   <div>
-                    <span className={sectionTitleClass}>Kariérní identita</span>
+                    <span className={sectionTitleClass}>{t('rebuild.dashboard.career_identity', { defaultValue: 'Kariérní identita' })}</span>
                     {vm.isJcfpmComplete && (
                       <h2 className="mt-1 text-[22px] font-extrabold leading-tight tracking-tight text-[color:var(--accent-gold)] drop-shadow-[0_0_12px_rgba(var(--accent-gold-rgb),0.2)]">
                         {vm.archetypeTitle}
@@ -723,14 +727,14 @@ export const CandidateDashboardV2: React.FC<{
                       <AnimatedEnsoRing />
                       <div className="relative z-10 flex flex-col items-center">
                         <span className="text-[52px] font-black tracking-tighter text-[color:var(--text-strong)] leading-none">{vm.resonanceScore}%</span>
-                        <span className="text-[11px] font-bold uppercase tracking-widest text-[color:var(--text-muted)] mt-1">Rezonance</span>
+                        <span className="text-[11px] font-bold uppercase tracking-widest text-[color:var(--text-muted)] mt-1">{t('rebuild.dashboard.resonance', { defaultValue: 'Rezonance' })}</span>
                       </div>
                     </div>
 
                     {/* Tab content */}
                     <div className="rounded-2xl bg-[color:var(--dashboard-soft-bg)] border border-[color:var(--dashboard-soft-border)] p-4 mb-4">
                       <p className="text-[11px] font-bold uppercase tracking-widest text-[color:var(--accent-gold)] mb-2">
-                        {activeArchetypeTab === 'skills' ? 'Kariérní esence' : activeArchetypeTab === 'motivation' ? 'Šamanovo doporučení' : activeArchetypeTab === 'environment' ? 'Ideální prostředí' : activeArchetypeTab === 'values' ? 'Hodnotové ladění' : 'Oblasti růstu'}
+                        {activeArchetypeTab === 'skills' ? t('rebuild.dashboard.section_skills', { defaultValue: 'Kariérní esence' }) : activeArchetypeTab === 'motivation' ? t('rebuild.dashboard.section_motivation', { defaultValue: 'Šamanovo doporučení' }) : activeArchetypeTab === 'environment' ? t('rebuild.dashboard.section_environment', { defaultValue: 'Ideální prostředí' }) : activeArchetypeTab === 'values' ? t('rebuild.dashboard.section_values', { defaultValue: 'Hodnotové ladění' }) : t('rebuild.dashboard.section_risks', { defaultValue: 'Oblasti růstu' })}
                       </p>
                       <p className="text-[13px] text-[color:var(--text-muted)] leading-relaxed">{tabCopy[activeArchetypeTab]}</p>
                     </div>
@@ -770,9 +774,9 @@ export const CandidateDashboardV2: React.FC<{
                       <div className="absolute inset-0 bg-[color:var(--accent-gold)]/10 rounded-full blur-2xl scale-150 animate-pulse" />
                       <Brain size={52} className="relative z-10 text-[color:var(--accent-gold)] animate-pulse" />
                     </div>
-                    <h3 className="text-lg font-bold text-[color:var(--accent-gold)]">Odemkni svou identitu</h3>
+                    <h3 className="text-lg font-bold text-[color:var(--accent-gold)]">{t('rebuild.dashboard.unlock_identity', { defaultValue: 'Odemkni svou identitu' })}</h3>
                     <p className="mt-2 text-xs text-[color:var(--text-muted)] max-w-[26ch] leading-relaxed">
-                      Projdi JobFit Kompasem a zobraz kariérní archetyp i index souladu.
+                      {t('rebuild.dashboard.unlock_identity_hint', { defaultValue: 'Projdi JobFit Kompasem a zobraz kariérní archetyp i index souladu.' })}
                     </p>
                     <button
                       type="button"
@@ -780,7 +784,7 @@ export const CandidateDashboardV2: React.FC<{
                       className="mt-6 inline-flex items-center gap-2 rounded-full bg-[color:var(--accent-gold)] text-black px-6 py-2.5 text-xs font-bold transition hover:scale-105"
                     >
                       <Brain size={14} />
-                      Spustit JobFit Kompas
+                      {t('rebuild.dashboard.start_compass', { defaultValue: 'Spustit JobFit Kompas' })}
                     </button>
                   </div>
                 )}
@@ -797,27 +801,27 @@ export const CandidateDashboardV2: React.FC<{
                     <div className="absolute inset-0 bg-[color:var(--accent)]/10 rounded-full blur-lg scale-150 animate-pulse" />
                     <img
                       src={vm.isJcfpmComplete ? '/shami-happy.png' : '/shami.png'}
-                      alt="Průvodce Shami"
+                      alt={t('rebuild.dashboard.shami_guide', { defaultValue: 'Průvodce Shami' })}
                       className="w-12 h-12 object-contain relative z-10"
                     />
                   </div>
                   <div>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[13px] font-extrabold text-[color:var(--text-strong)]">Průvodce Shami</span>
+                      <span className="text-[13px] font-extrabold text-[color:var(--text-strong)]">{t('rebuild.dashboard.shami_guide', { defaultValue: 'Průvodce Shami' })}</span>
                       <Sparkles size={13} className="text-[color:var(--accent-gold)]" />
                     </div>
-                    <span className="text-[10px] text-[color:var(--text-muted)]">Tvůj AI kariérní mentor</span>
+                    <span className="text-[10px] text-[color:var(--text-muted)]">{t('rebuild.dashboard.shami_subtitle', { defaultValue: 'Tvůj AI kariérní mentor' })}</span>
                   </div>
                 </div>
 
                 <div className="rounded-2xl bg-[color:var(--dashboard-soft-bg)] border border-[color:var(--dashboard-soft-border)] p-3.5 mb-4 text-[13px] text-[color:var(--text-muted)] leading-relaxed italic">
-                  „{vm.mentorAdvice || 'Naslouchej svému vnitřnímu hlasu. Tvá profesní cesta se začíná jasně rýsovat. Zeptej se mě na cokoliv.'}"
+                  „{vm.mentorAdvice || t('rebuild.dashboard.mentor_advice_default', { defaultValue: 'Naslouchej svému vnitřnímu hlasu. Tvá profesní cesta se začíná jasně rýsovat. Zeptej se mě na cokoliv.' })}"
                 </div>
 
                 <form onSubmit={handleMentorPromptSubmit} className="relative">
                   <input
                     type="text"
-                    placeholder="Zeptej se na svou kariéru..."
+                    placeholder={t('rebuild.dashboard.mentor_input_ph', { defaultValue: 'Zeptej se na svou kariéru...' })}
                     value={mentorPrompt}
                     onChange={(e) => setMentorPrompt(e.target.value)}
                     className="w-full h-10 rounded-full bg-[color:var(--dashboard-soft-bg)] border border-[color:var(--dashboard-soft-border)] px-4 pr-10 text-[12px] text-[color:var(--text-strong)] focus:outline-none focus:border-[color:var(--accent)] focus:ring-1 focus:ring-[color:var(--accent)] transition"
@@ -836,7 +840,7 @@ export const CandidateDashboardV2: React.FC<{
                   className="mt-3 w-full flex items-center justify-center gap-1.5 text-[11px] font-bold text-[color:var(--accent)] hover:underline"
                 >
                   <MessageSquare size={12} />
-                  Otevřít plné chatovací zrcadlo
+                  {t('rebuild.dashboard.open_full_chat', { defaultValue: 'Otevřít plné chatovací zrcadlo' })}
                 </button>
               </div>
 
@@ -846,13 +850,13 @@ export const CandidateDashboardV2: React.FC<{
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-[10px] font-black uppercase tracking-wider text-[#0f95ac]">
                       <Star size={10} className="inline mr-1" />
-                      Doporučená výzva
+                      {t('rebuild.dashboard.recommended_challenge', { defaultValue: 'Doporučená výzva' })}
                     </span>
                     <span className="rounded-full border border-[#b8e4ec] bg-white px-2.5 py-1 text-[10px] font-black text-[#0f95ac]">
                       {featuredScore}% fit
                     </span>
                   </div>
-                  <h4 className="text-[15px] font-black text-slate-900 leading-tight mb-1">{featuredRole?.title || 'Žádné nabídky'}</h4>
+                  <h4 className="text-[15px] font-black text-slate-900 leading-tight mb-1">{featuredRole?.title || t('rebuild.dashboard.no_offers', { defaultValue: 'Žádné nabídky' })}</h4>
                   <p className="text-[12px] text-slate-500 mb-3 truncate">
                     {[featuredRole?.companyName, featuredRole?.location].filter(Boolean).join(' · ')}
                   </p>
@@ -868,7 +872,7 @@ export const CandidateDashboardV2: React.FC<{
                     onClick={() => navigate(getRolePath(featuredRole))}
                     className="inline-flex items-center gap-1.5 text-[12px] font-black text-[#0f95ac] hover:text-[#0b7181] transition"
                   >
-                    Otevřít detail role <ArrowRight size={13} />
+                    {t('rebuild.dashboard.open_role_detail', { defaultValue: 'Otevřít detail role' })} <ArrowRight size={13} />
                   </button>
                 </div>
               )}
@@ -876,12 +880,12 @@ export const CandidateDashboardV2: React.FC<{
               {/* 2 quick stats */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-2xl border border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-card-bg)] p-4">
-                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-[color:var(--text-muted)]">Fokus týdne</span>
+                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-[color:var(--text-muted)]">{t('rebuild.dashboard.week_focus', { defaultValue: 'Fokus týdne' })}</span>
                   <p className="mt-1.5 text-[13px] font-bold text-[color:var(--text-strong)] truncate">{vm.recommendedGrowthTitle}</p>
                 </div>
                 <div className="rounded-2xl border border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-card-bg)] p-4">
-                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-[color:var(--text-muted)]">Příležitost</span>
-                  <p className="mt-1.5 text-[13px] font-bold text-[color:var(--accent)] truncate">{vm.challengeTags[0] || 'Prozkoumat trh'}</p>
+                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-[color:var(--text-muted)]">{t('rebuild.dashboard.opportunity', { defaultValue: 'Příležitost' })}</span>
+                  <p className="mt-1.5 text-[13px] font-bold text-[color:var(--accent)] truncate">{vm.challengeTags[0] || t('rebuild.dashboard.explore_market_short', { defaultValue: 'Prozkoumat trh' })}</p>
                 </div>
               </div>
             </div>
@@ -894,7 +898,7 @@ export const CandidateDashboardV2: React.FC<{
             {/* ── Cesta rozvoje (Growth Timeline) ── */}
             <div className="rounded-[24px] border border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-card-bg)] p-5 shadow-sm">
               <div className="flex items-center justify-between mb-4">
-                <span className={sectionTitleClass}>Cesta rozvoje</span>
+                <span className={sectionTitleClass}>{t('rebuild.dashboard.growth_path_title', { defaultValue: 'Cesta rozvoje' })}</span>
                 <span className="text-xs font-bold text-[color:var(--accent-green)]">{vm.growthProgress}%</span>
               </div>
 
@@ -910,24 +914,24 @@ export const CandidateDashboardV2: React.FC<{
               <div className="space-y-0">
                 <MilestoneDot
                   done
-                  label="Onboarding"
-                  caption="Základní profil vyplněn"
+                  label={t('rebuild.dashboard.milestone_onboarding', { defaultValue: 'Onboarding' })}
+                  caption={t('rebuild.dashboard.milestone_onboarding_cap', { defaultValue: 'Základní profil vyplněn' })}
                 />
                 <MilestoneDot
                   active={vm.isJcfpmComplete}
                   done={vm.isJcfpmComplete}
-                  label="JobFit Kompas"
-                  caption={vm.isJcfpmComplete ? 'Archetyp odemčen' : 'Spusť a odemkni svůj profil'}
+                  label={t('rebuild.dashboard.milestone_compass', { defaultValue: 'JobFit Kompas' })}
+                  caption={vm.isJcfpmComplete ? t('rebuild.dashboard.archetype_unlocked', { defaultValue: 'Archetyp odemčen' }) : t('rebuild.dashboard.run_unlock_profile', { defaultValue: 'Spusť a odemkni svůj profil' })}
                 />
                 <MilestoneDot
                   active={candidateApplications.length > 0}
                   done={candidateApplications.length >= 3}
-                  label="První jednání"
-                  caption={candidateApplications.length > 0 ? `${candidateApplications.length} aktivních žádostí` : 'Pošli první žádost'}
+                  label={t('rebuild.dashboard.milestone_first_deal', { defaultValue: 'První jednání' })}
+                  caption={candidateApplications.length > 0 ? t('rebuild.dashboard.active_apps_count', { defaultValue: '{{count}} aktivních žádostí', count: candidateApplications.length }) : t('rebuild.dashboard.send_first_app', { defaultValue: 'Pošli první žádost' })}
                 />
                 <MilestoneDot
-                  label="Nabídka práce"
-                  caption="Cíl: úspěšné umístění"
+                  label={t('rebuild.dashboard.milestone_offer', { defaultValue: 'Nabídka práce' })}
+                  caption={t('rebuild.dashboard.milestone_offer_cap', { defaultValue: 'Cíl: úspěšné umístění' })}
                 />
               </div>
             </div>
@@ -935,13 +939,13 @@ export const CandidateDashboardV2: React.FC<{
             {/* ── Aktivní jednání ── */}
             <div className="rounded-[24px] border border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-card-bg)] p-5 shadow-sm">
               <div className="flex items-center justify-between mb-4">
-                <span className={sectionTitleClass}>Aktivní jednání</span>
+                <span className={sectionTitleClass}>{t('rebuild.dashboard.active_deals', { defaultValue: 'Aktivní jednání' })}</span>
                 <button
                   type="button"
                   onClick={() => navigate('/candidate/applications')}
                   className="text-[10px] font-bold text-[color:var(--text-muted)] hover:text-[color:var(--text-strong)] flex items-center gap-1"
                 >
-                  Vše <ChevronRight size={12} />
+                  {t('rebuild.dashboard.all', { defaultValue: 'Vše' })} <ChevronRight size={12} />
                 </button>
               </div>
 
@@ -971,20 +975,20 @@ export const CandidateDashboardV2: React.FC<{
               ) : (
                 <div className="flex flex-col items-center justify-center py-8 text-center">
                   <MessageSquare size={28} className="text-[color:var(--dashboard-soft-border)] mb-3" />
-                  <p className="text-xs text-[color:var(--text-muted)] mb-3">Zatím žádné žádosti.</p>
+                  <p className="text-xs text-[color:var(--text-muted)] mb-3">{t('rebuild.dashboard.no_applications', { defaultValue: 'Zatím žádné žádosti.' })}</p>
                   <button
                     type="button"
                     onClick={() => navigate('/candidate/marketplace')}
                     className="text-[11px] font-bold text-[color:var(--accent)] hover:underline"
                   >
-                    Prozkoumat nabídky →
+                    {t('rebuild.dashboard.explore_offers', { defaultValue: 'Prozkoumat nabídky →' })}
                   </button>
                 </div>
               )}
 
               {candidateApplications.length === 0 && roles.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-[color:var(--dashboard-soft-border)]">
-                  <p className="text-[10px] text-[color:var(--text-muted)] mb-2 uppercase font-bold tracking-wider">Doporučené nabídky</p>
+                  <p className="text-[10px] text-[color:var(--text-muted)] mb-2 uppercase font-bold tracking-wider">{t('rebuild.dashboard.recommended_offers', { defaultValue: 'Doporučené nabídky' })}</p>
                   {evaluatedRoles.slice(0, 2).map((item, idx) => (
                     <button
                       key={item.role.id}
@@ -1007,7 +1011,7 @@ export const CandidateDashboardV2: React.FC<{
 
             {/* ── Rychlé akce ── */}
             <div className="rounded-[24px] border border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-card-bg)] p-5 shadow-sm flex flex-col">
-              <span className={cn(sectionTitleClass, 'mb-4')}>Rychlé akce</span>
+              <span className={cn(sectionTitleClass, 'mb-4')}>{t('rebuild.dashboard.quick_actions', { defaultValue: 'Rychlé akce' })}</span>
 
               <div className="flex flex-col gap-2.5 flex-1">
                 <button
@@ -1016,7 +1020,7 @@ export const CandidateDashboardV2: React.FC<{
                   className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl border border-[#c7e9f0]/70 bg-gradient-to-r from-[#f0fafc] to-[#f7fcfd] text-[13px] font-bold text-[#0f6a7a] hover:from-[#e4f5f9] hover:to-[#edf8fb] transition group"
                 >
                   <Briefcase size={16} className="text-[#0f95ac] shrink-0" />
-                  <span>Prozkoumat trh práce</span>
+                  <span>{t('rebuild.dashboard.explore_job_market', { defaultValue: 'Prozkoumat trh práce' })}</span>
                   <ArrowRight size={14} className="ml-auto text-[#0f95ac] group-hover:translate-x-0.5 transition-transform" />
                 </button>
 
@@ -1031,7 +1035,7 @@ export const CandidateDashboardV2: React.FC<{
                   )}
                 >
                   <Brain size={16} className="shrink-0" />
-                  <span>{vm.isJcfpmComplete ? 'Zobrazit JobFit Kompas' : 'Spustit JobFit Kompas'}</span>
+                  <span>{vm.isJcfpmComplete ? t('rebuild.dashboard.view_compass', { defaultValue: 'Zobrazit JobFit Kompas' }) : t('rebuild.dashboard.start_compass', { defaultValue: 'Spustit JobFit Kompas' })}</span>
                   <ArrowRight size={14} className="ml-auto group-hover:translate-x-0.5 transition-transform" />
                 </button>
 
@@ -1041,7 +1045,7 @@ export const CandidateDashboardV2: React.FC<{
                   className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl border border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-soft-bg)] text-[13px] font-bold text-[color:var(--text-strong)] hover:bg-[color:var(--dashboard-soft-border)] transition group"
                 >
                   <CircleUserRound size={16} className="text-[color:var(--text-muted)] shrink-0" />
-                  <span>Upravit profil</span>
+                  <span>{t('rebuild.dashboard.edit_profile', { defaultValue: 'Upravit profil' })}</span>
                   <ArrowRight size={14} className="ml-auto text-[color:var(--text-muted)] group-hover:translate-x-0.5 transition-transform" />
                 </button>
 
@@ -1051,7 +1055,7 @@ export const CandidateDashboardV2: React.FC<{
                   className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl border border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-soft-bg)] text-[13px] font-bold text-[color:var(--text-strong)] hover:bg-[color:var(--dashboard-soft-border)] transition group"
                 >
                   <BookOpen size={16} className="text-[color:var(--text-muted)] shrink-0" />
-                  <span>Plán rozvoje</span>
+                  <span>{t('rebuild.dashboard.growth_plan', { defaultValue: 'Plán rozvoje' })}</span>
                   <ArrowRight size={14} className="ml-auto text-[color:var(--text-muted)] group-hover:translate-x-0.5 transition-transform" />
                 </button>
 
@@ -1061,7 +1065,7 @@ export const CandidateDashboardV2: React.FC<{
                   className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl border border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-soft-bg)] text-[13px] font-bold text-[color:var(--text-strong)] hover:bg-[color:var(--dashboard-soft-border)] transition group"
                 >
                   <Sparkles size={16} className="text-[color:var(--accent-gold)] shrink-0" />
-                  <span>Chat se Shamim</span>
+                  <span>{t('rebuild.dashboard.chat_with_shami', { defaultValue: 'Chat se Shamim' })}</span>
                   <ArrowRight size={14} className="ml-auto text-[color:var(--text-muted)] group-hover:translate-x-0.5 transition-transform" />
                 </button>
               </div>
@@ -1069,7 +1073,7 @@ export const CandidateDashboardV2: React.FC<{
               {/* Motivační citát */}
               <div className="mt-4 pt-4 border-t border-[color:var(--dashboard-soft-border)]">
                 <p className="text-[11px] italic text-[color:var(--text-muted)] leading-relaxed text-center">
-                  „Každý má v sobě potenciál. Naším posláním je ho probudit."
+                  „{t('rebuild.dashboard.motivational_quote', { defaultValue: 'Každý má v sobě potenciál. Naším posláním je ho probudit.' })}"
                 </p>
                 <p className="text-[10px] font-bold text-[color:var(--accent-gold)] text-center mt-1">— Shami</p>
               </div>

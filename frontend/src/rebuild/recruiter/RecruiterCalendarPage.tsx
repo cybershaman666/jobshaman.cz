@@ -48,27 +48,27 @@ export const RecruiterCalendarPage: React.FC<RecruiterCalendarPageProps> = ({
     switch (stage) {
       case 'initial':
         return {
-          label: 'Úvodní hovor',
+          label: t('rebuild.calendar.stage_initial', { defaultValue: 'Úvodní hovor' }),
           bg: 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-900/40',
         };
       case 'assessment':
         return {
-          label: 'Review testu',
+          label: t('rebuild.calendar.stage_assessment', { defaultValue: 'Review testu' }),
           bg: 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-900/40',
         };
       case 'panel':
         return {
-          label: 'Firma / Panel',
+          label: t('rebuild.calendar.stage_panel', { defaultValue: 'Firma / Panel' }),
           bg: 'bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 border-purple-100 dark:border-purple-900/40',
         };
       case 'offer':
         return {
-          label: 'Nabídka',
+          label: t('rebuild.calendar.stage_offer', { defaultValue: 'Nabídka' }),
           bg: 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/40',
         };
       default:
         return {
-          label: 'Pohovor',
+          label: t('rebuild.calendar.stage_default', { defaultValue: 'Pohovor' }),
           bg: 'bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800',
         };
     }
@@ -118,19 +118,19 @@ export const RecruiterCalendarPage: React.FC<RecruiterCalendarPageProps> = ({
           </div>
           <div>
             <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">
-              Připomínka plánování schůzek
+              {t('rebuild.calendar.reminder_title', { defaultValue: 'Připomínka plánování schůzek' })}
             </h4>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Máte 2 nové kandidáty žádající o termín úvodního rozhovoru.
+              {t('rebuild.calendar.reminder_text', { defaultValue: 'Máte 2 nové kandidáty žádající o termín úvodního rozhovoru.' })}
             </p>
           </div>
         </div>
         <button
           type="button"
-          onClick={() => alert('Přesměrování na talent pool s filtrem nevyřešených termínů...')}
+          onClick={() => alert(t('rebuild.calendar.reminder_alert', { defaultValue: 'Přesměrování na talent pool s filtrem nevyřešených termínů...' }))}
           className="rounded-xl bg-amber-500 text-white px-4 py-2 text-xs font-bold hover:bg-amber-600 transition shadow-sm"
         >
-          Vyřešit žádosti
+          {t('rebuild.calendar.reminder_cta', { defaultValue: 'Vyřešit žádosti' })}
         </button>
       </div>
 
@@ -141,7 +141,7 @@ export const RecruiterCalendarPage: React.FC<RecruiterCalendarPageProps> = ({
           <div className="flex items-center justify-between mb-6">
             <div>
               <h3 className="text-sm font-black uppercase tracking-[0.2em] text-[color:var(--shell-text-muted)]">
-                Přehled schůzek
+                {t('rebuild.calendar.overview_eyebrow', { defaultValue: 'Přehled schůzek' })}
               </h3>
               <h2 className="text-lg font-black text-slate-900 dark:text-white capitalize mt-1">
                 {monthName}
@@ -167,13 +167,13 @@ export const RecruiterCalendarPage: React.FC<RecruiterCalendarPageProps> = ({
 
           {/* Calendar Grid Header */}
           <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-            <div>po</div>
-            <div>út</div>
-            <div>st</div>
-            <div>čt</div>
-            <div>pá</div>
-            <div className="text-slate-350 dark:text-slate-550">so</div>
-            <div className="text-slate-350 dark:text-slate-550">ne</div>
+            <div>{t('rebuild.calendar.dow_mon', { defaultValue: 'po' })}</div>
+            <div>{t('rebuild.calendar.dow_tue', { defaultValue: 'út' })}</div>
+            <div>{t('rebuild.calendar.dow_wed', { defaultValue: 'st' })}</div>
+            <div>{t('rebuild.calendar.dow_thu', { defaultValue: 'čt' })}</div>
+            <div>{t('rebuild.calendar.dow_fri', { defaultValue: 'pá' })}</div>
+            <div className="text-slate-350 dark:text-slate-550">{t('rebuild.calendar.dow_sat', { defaultValue: 'so' })}</div>
+            <div className="text-slate-350 dark:text-slate-550">{t('rebuild.calendar.dow_sun', { defaultValue: 'ne' })}</div>
           </div>
 
           {/* Calendar Grid Body */}
@@ -231,7 +231,7 @@ export const RecruiterCalendarPage: React.FC<RecruiterCalendarPageProps> = ({
                       })}
                       {dayEvents.length > 2 && (
                         <div className="text-[7px] font-black text-cyan-600 dark:text-cyan-400 self-center pl-1">
-                          +{dayEvents.length - 2} další
+                          +{t('rebuild.calendar.more_events', { defaultValue: '{{count}} další', count: dayEvents.length - 2 })}
                         </div>
                       )}
                     </div>
@@ -248,39 +248,39 @@ export const RecruiterCalendarPage: React.FC<RecruiterCalendarPageProps> = ({
           {/* Calendar settings */}
           <div className="rounded-[32px] border border-slate-100 dark:border-slate-800/80 bg-white dark:bg-slate-900/40 backdrop-blur-xl p-7 shadow-sm space-y-5">
             <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--shell-text-muted)] flex items-center gap-1.5">
-              <Settings size={14} /> Nastavení schůzek
+              <Settings size={14} /> {t('rebuild.calendar.settings_title', { defaultValue: 'Nastavení schůzek' })}
             </h3>
             
             <div className="space-y-4">
               <div>
                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                  Výchozí délka schůzky
+                  {t('rebuild.calendar.duration_label', { defaultValue: 'Výchozí délka schůzky' })}
                 </label>
                 <select
                   value={meetingDuration}
                   onChange={(e) => setMeetingDuration(e.target.value)}
                   className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 px-3.5 py-2.5 text-xs text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-cyan-500"
                 >
-                  <option value="15">15 minut (Rychlý intro call)</option>
-                  <option value="30">30 minut (Standardní review)</option>
-                  <option value="45">45 minut (Hloubkový pohovor)</option>
-                  <option value="60">60 minut (Technický panel)</option>
+                  <option value="15">{t('rebuild.calendar.duration_15', { defaultValue: '15 minut (Rychlý intro call)' })}</option>
+                  <option value="30">{t('rebuild.calendar.duration_30', { defaultValue: '30 minut (Standardní review)' })}</option>
+                  <option value="45">{t('rebuild.calendar.duration_45', { defaultValue: '45 minut (Hloubkový pohovor)' })}</option>
+                  <option value="60">{t('rebuild.calendar.duration_60', { defaultValue: '60 minut (Technický panel)' })}</option>
                 </select>
               </div>
 
               <div>
                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                  Platforma pro pohovory
+                  {t('rebuild.calendar.platform_label', { defaultValue: 'Platforma pro pohovory' })}
                 </label>
                 <select
                   value={meetingPlatform}
                   onChange={(e) => setMeetingPlatform(e.target.value)}
                   className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 px-3.5 py-2.5 text-xs text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-cyan-500"
                 >
-                  <option value="google_meet">Google Meet (Automatické generování odkazu)</option>
+                  <option value="google_meet">{t('rebuild.calendar.platform_meet', { defaultValue: 'Google Meet (Automatické generování odkazu)' })}</option>
                   <option value="zoom">Zoom</option>
                   <option value="teams">Microsoft Teams</option>
-                  <option value="phone">Telefonní hovor</option>
+                  <option value="phone">{t('rebuild.calendar.platform_phone', { defaultValue: 'Telefonní hovor' })}</option>
                 </select>
               </div>
             </div>
@@ -289,7 +289,7 @@ export const RecruiterCalendarPage: React.FC<RecruiterCalendarPageProps> = ({
           {/* Sync integrations */}
           <div className="rounded-[32px] border border-slate-100 dark:border-slate-800/80 bg-white dark:bg-slate-900/40 backdrop-blur-xl p-7 shadow-sm space-y-4">
             <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--shell-text-muted)] flex items-center gap-1.5">
-              <RefreshCw size={14} /> Synchronizace kalendáře
+              <RefreshCw size={14} /> {t('rebuild.calendar.sync_title', { defaultValue: 'Synchronizace kalendáře' })}
             </h3>
 
             <div className="space-y-3 pt-1">
@@ -301,7 +301,7 @@ export const RecruiterCalendarPage: React.FC<RecruiterCalendarPageProps> = ({
                   </div>
                   <div>
                     <div className="text-xs font-bold text-slate-800 dark:text-slate-250">Google Calendar</div>
-                    <div className="text-[10px] text-emerald-500 font-medium">Připojeno a synchronizováno</div>
+                    <div className="text-[10px] text-emerald-500 font-medium">{t('rebuild.calendar.connected', { defaultValue: 'Připojeno a synchronizováno' })}</div>
                   </div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -323,7 +323,7 @@ export const RecruiterCalendarPage: React.FC<RecruiterCalendarPageProps> = ({
                   </div>
                   <div>
                     <div className="text-xs font-bold text-slate-800 dark:text-slate-250">Outlook / Exchange</div>
-                    <div className="text-[10px] text-slate-400 font-medium">Odpojeno</div>
+                    <div className="text-[10px] text-slate-400 font-medium">{t('rebuild.calendar.disconnected', { defaultValue: 'Odpojeno' })}</div>
                   </div>
                 </div>
                 <label className="relative inline-flex inline-flex items-center cursor-pointer">
@@ -344,11 +344,11 @@ export const RecruiterCalendarPage: React.FC<RecruiterCalendarPageProps> = ({
       {/* Upcoming events list */}
       <div className="rounded-[32px] border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/40 backdrop-blur-xl p-7 shadow-sm">
         <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--shell-text-muted)] mb-5">
-          Nadcházející schůzky ({upcomingEvents.length})
+          {t('rebuild.calendar.upcoming_title', { defaultValue: 'Nadcházející schůzky ({{count}})', count: upcomingEvents.length })}
         </h3>
         {upcomingEvents.length === 0 ? (
           <div className="text-center py-10 text-xs text-slate-400 italic">
-            Žádné naplánované schůzky v kalendáři.
+            {t('rebuild.calendar.no_events', { defaultValue: 'Žádné naplánované schůzky v kalendáři.' })}
           </div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -368,7 +368,7 @@ export const RecruiterCalendarPage: React.FC<RecruiterCalendarPageProps> = ({
                         <Clock size={11} />
                         <span>{ev.time}</span>
                         <span className="h-1 w-1 rounded-full bg-slate-300 dark:bg-slate-700 mx-1" />
-                        <span>Den {ev.day}. v měsíci</span>
+                        <span>{t('rebuild.calendar.day_in_month', { defaultValue: 'Den {{day}}. v měsíci', day: ev.day })}</span>
                       </div>
                     </div>
                     <span className={`rounded-lg px-2 py-0.5 text-[8px] font-black uppercase tracking-wider border shrink-0 ${style.bg}`}>
@@ -388,10 +388,10 @@ export const RecruiterCalendarPage: React.FC<RecruiterCalendarPageProps> = ({
                     </span>
                     <button
                       type="button"
-                      onClick={() => alert(`Spouštím pohovor s ${ev.title} přes Google Meet...`)}
+                      onClick={() => alert(t('rebuild.calendar.join_alert', { defaultValue: 'Spouštím pohovor s {{name}} přes Google Meet...', name: ev.title }))}
                       className="text-cyan-500 hover:text-cyan-600 flex items-center gap-0.5 hover:underline"
                     >
-                      Připojit se <ExternalLink size={10} />
+                      {t('rebuild.calendar.join', { defaultValue: 'Připojit se' })} <ExternalLink size={10} />
                     </button>
                   </div>
                 </div>

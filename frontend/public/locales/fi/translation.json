@@ -65,6 +65,14 @@
       "saved_cv_ready": "Tallennettu CV on valmis",
       "upload_instead": "Lataa toinen tiedosto",
       "use_saved_cv": "Käytä profiiliin tallennettua CV:tä"
+    },
+    "chatMentor": {
+      "inputPlaceholder": "Kysy Shamilta tai kirjoita seuraava vaihe…",
+      "brandHint": "Powered by JobShaman AI",
+      "welcomeTitle": "Shami AI - Uraoppaasi",
+      "slogan": "Shami näkee yhteydet profiilissa, löytää seuraavan askeleen – ilman HR-kastiketta.",
+      "avatarAlt": "Shami avatar",
+      "shamiName": "Shami"
     }
   },
   "home": {
@@ -5798,7 +5806,11 @@
       "video": "Video",
       "photo": "Photo",
       "no_banner_media": "No slideshow media yet. The main cover will be used by itself.",
-      "primary_video_url": "Primary video URL"
+      "primary_video_url": "Primary video URL",
+      "cybershaman_advises": "Shami suosittelee seuraavaa vaihetta",
+      "cybershaman_tip": "Shamin vinkki",
+      "nav_calendar": "Kalenteri",
+      "subtitle_calendar": "Aikataulutetut haastattelut, saatavuusasetukset ja kalenterin synkronointi."
     },
     "editor": {
       "step_essence": "Roolin ydin",
@@ -5903,7 +5915,11 @@
       "hide_preview": "Hide preview",
       "show_preview": "Show preview",
       "preview": "Preview",
-      "preview_empty": "Formatted preview will appear here."
+      "preview_empty": "Formatted preview will appear here.",
+      "employment_part_time_short": "Osittainen",
+      "employment_gig_short": "Kertakäyttöinen",
+      "employment_full_time_short": "Kattava",
+      "employment_contract_short": "Sopimus"
     },
     "role": {
       "full_journey": "Full Jobshaman journey",
@@ -5927,7 +5943,11 @@
       "border_disabled": "{{country}} disabled",
       "summary_curated": "JHI {{score}}/100, estimated net value {{value}} {{currency}} monthly and direct branded journey entry.",
       "summary_imported": "JHI {{score}}/100, realistic outbound preparation considering {{fit}} fit and real costs.",
-      "domestic": "domestic"
+      "domestic": "domestic",
+      "border": "rajaa",
+      "open_listing": "Avaa alkuperäinen mainos",
+      "market_domestic": "Kotimainen",
+      "market_cross_border": "Rajat ylittävä"
     },
     "marketplace": {
       "pulse_title": "What's new",
@@ -6179,7 +6199,56 @@
       "hero_level_expert": "Asiantuntija",
       "you": "ty",
       "load_more_count": "Zobrazit dalších {{count}} nabídek",
-      "load_next_from_db": "Načíst dalších {{count}} z databáze"
+      "load_next_from_db": "Načíst dalších {{count}} z databáze",
+      "ai_applied": "AI-suodattimet: {{chips}}",
+      "ai_applied_text": "Haku: {{query}}",
+      "ai_search_button": "Etsi tekoälyllä",
+      "ai_search_label": "Etsi tekoälyllä",
+      "ai_search_placeholder": "Hae roolin, taidon, yrityksen mukaan... tai luonnollisesti: \"Reactin etätyöpaikat Prahassa yli 60 000\"",
+      "all_active": "Kaikki aktiiviset mahdollisuudet",
+      "badge_best_fit": "Suosittelemme",
+      "best_opportunities": "Parhaat mahdollisuutesi",
+      "commute_from_home": "{{count}} min päässä kotoa",
+      "commute_minutes": "{{count}} min",
+      "companies_interested": "Yritykset, jotka haluavat tutustua sinuun",
+      "companies_interested_sub": "Yritykset, jotka näkevät profiilissasi potentiaalia",
+      "company_match_line": "Profiilisi vastaa {{percent}}% siitä, mitä etsimme.",
+      "company_match_sub": "Olemme iloisia voidessamme tavata sinut kädenpuristuksessa.",
+      "difficulty": "Vaikeus",
+      "difficulty_any": "Mikä tahansa",
+      "difficulty_high": "Korkea",
+      "difficulty_label": "{{level}} vaikeusaste",
+      "difficulty_low": "Matala",
+      "difficulty_medium": "Keskikokoinen",
+      "discover_by_category": "Tutustu luokittain",
+      "field": "Ala",
+      "hot_opportunity": "Kuuma tilaisuus",
+      "learn_more": "Lue lisää",
+      "location": "paikkakunnat",
+      "location_all": "Kaikki paikat",
+      "net_suffix": "puhdas",
+      "no_results": "Ei hakuasi vastaavia tarjouksia. Yritä muokata suodattimia tai kyselyä.",
+      "open_handshake": "Avaa Handshake",
+      "percent_match": "{{percent}} % vastaavuus",
+      "position_count": "{{count}} paikkaa",
+      "reset": "Peruuttaa",
+      "salary": "Palkat",
+      "salary_any": "Mikä tahansa palkka",
+      "scroll_more": "Siirry eteenpäin",
+      "search_in_marketplace": "Hae torilta…",
+      "show_more_offers": "Katso lisää tarjouksia",
+      "similar_sub": "Roolit ja yritykset samassa fokuksessa",
+      "similar_to_interest": "Samanlainen kuin olet kiinnostunut",
+      "slots_few": "{{count}} vapaata paikkaa",
+      "slots_many": "{{count}} vapaata paikkaa",
+      "slots_one": "{{count}} vapaa paikka",
+      "sort": "Lajittelu",
+      "sort_distance": "Lähin",
+      "sort_relevance": "Asianmukaisin",
+      "sort_salary": "Korkein palkka",
+      "why_match": "Miksi tämä sopii?",
+      "shifts_3": "3 vuoroa",
+      "try_it": "Kokeile sitä"
     },
     "status": {
       "in_review": "Arvioinnissa",
@@ -6423,7 +6492,19 @@
       "skills_help_match": "Help us understand which skills you want to use in this role.",
       "selected": "Selected Skills",
       "supported_providers": "Supported Providers",
-      "tip": "Tip"
+      "tip": "Tip",
+      "add": "lisätä",
+      "problem_frame_helper": "Vastaa erityisesti ja mainitse oletukset ja riskit.",
+      "problem_frame_title": "Kehotteen ymmärtäminen",
+      "risk_helper": "Hyvä vastaus nimeää myös sen, mitä et vielä tiedä.",
+      "risk_prompt": "Mikä voi mennä pieleen ja mitä sinun on tarkistettava?",
+      "risk_title": "Riskit & Tuntemattomat",
+      "schedule_helper": "Kolikkopeli on pyyntö, yritys vahvistaa tarkistuksen jälkeen.",
+      "schedule_title": "Aikatauluta keskustelu",
+      "work_sample_comment_placeholder": "Lyhyt konteksti arvioijalle",
+      "work_sample_helper": "Kuvaa vaiheet, todisteet ja päätöksen kriteerit.",
+      "work_sample_title": "Käytännön vaiheet",
+      "work_sample_url_placeholder": "https://..."
     },
     "insights": {
       "title": "Oivallukset",
@@ -6611,7 +6692,138 @@
       "response_quality_title": "Mittauksen laatu",
       "coverage": "Kattavuus",
       "response_quality_flagged": "Tulos on tallennettu, mutta jotkin vastausmallit heikentävät tulkinnan varmuutta.",
-      "response_quality_clean": "Vastaukset ovat riittävän erottelevia perusprofiilin tulkintaan."
+      "response_quality_clean": "Vastaukset ovat riittävän erottelevia perusprofiilin tulkintaan.",
+      "drag_assign_cause": "Vedä tai määritä syy tähän",
+      "report": {
+        "d10_ambiguity_interpretation": {
+          "balanced": "Voit käsitellä epäselvyyttä, jos sinulla on mahdollisuus asteittain varmistaa seuraavat vaiheet.",
+          "development": "Jos tehtävä on epäselvä, kirjoita ylös: mitä tiedän, mitä en tiedä, mitä tarkistan 48 tunnin sisällä.",
+          "environment": "Ympäristö, jossa on vaihtelevia toimeksiantoja, mutta hyvä tuki prioriteeteissa ja päätöksenteko-oikeuksissa.",
+          "high": "Näet suunnan ja mahdollisuudet epävarmuudessa. Voit aloittaa, vaikka tehtävä ei olisi vielä täydellinen.",
+          "low": "Epäselvä syöttö voi haitata energiaa. Se auttaa määrittämään seuraavan vähimmäissignaalin ja ensimmäisen turvallisen askeleen.",
+          "summary": "Miten tulkitset epäselviä tilanteita: riskit vs. mahdollisuudet."
+        },
+        "d11_problem_decomposition": {
+          "balanced": "Voit purkaa ongelman, kun sinulla on selkeä tavoite ja riittävä konteksti.",
+          "development": "Erittele jokainen suuri ongelma estäjäksi, ensimmäiseksi askeleeksi ja viikon mitattavissa olevaan tulokseen.",
+          "environment": "Rooli, jossa strategia muunnetaan prioriteeteiksi, kokeiluiksi ja käytännön toimituksiksi.",
+          "high": "Voit nopeasti luoda vaiherakenteen. Vahva strategiaan, toimitukseen, operatiivisiin muutoksiin ja monimutkaisiin projekteihin.",
+          "low": "Suuri ongelma voi tuntua ylivoimaiselta. Yksi pieni kokeilu ja yksinkertaiset prioriteetit auttavat.",
+          "summary": "Kyky jakaa suuri ongelma selkeisiin vaiheisiin."
+        },
+        "d12_moral_compass": {
+          "balanced": "Otat eettiset vaikutukset huomioon, varsinkin kun ne on nimetty selkeästi.",
+          "development": "Ongelmien varalta kirjoita ylös: ketä se vaikuttaa, mitä tapahtuu myöhemmin ja mitä puolustaisin ääneen.",
+          "environment": "Organisaatio, joka ottaa luottamuksen, vastuullisuuden ja läpinäkyvän päätöksenteon vakavasti.",
+          "high": "Vahva moraalinen kompassi. Pidät rehellisyyden, luottamuksen ja pitkän aikavälin vaikutukset paineen alla.",
+          "low": "Paineen alla voi olla vaikeampaa avautua epämiellyttävästä aiheesta. Ennalta määrätty päätöksentekoperiaate auttaa.",
+          "summary": "Arvojen vakaus dilemmoissa ja painetilanteissa."
+        },
+        "d1_cognitive": {
+          "balanced": "Voit yhdistää analyysin käytännön intuitioon. Toimit parhaiten, kun sinulla on tarpeeksi signaaleja, mutta älä juutu yksityiskohtiin.",
+          "development": "Ennen kuin teet tärkeän päätöksen, kirjoita muistiin 3 tosiasiaa, 1 riski ja 1 vaihtoehto.",
+          "environment": "Rooli, jolla on selkeä konteksti, kyky analysoida ongelma ja muuttaa se päätökseksi.",
+          "high": "Yhdistät luonnollisesti tosiasiat, yhteydet ja vaikutukset. Loistat siellä, missä on tarpeen erottaa melu aineesta.",
+          "low": "Luotat enemmän intuitioon ja kokonaisvaikutelmaan. Nopea faktojen tarkistus auttaa tärkeissä päätöksissä.",
+          "summary": "Menetelmä tietojen käsittelyyn ja ongelmien ratkaisemiseen."
+        },
+        "d2_social": {
+          "balanced": "Sosiaalinen suuntautuminen on tasapainoista. Pystyt työskentelemään niin tiimissä kuin itsenäisesti tarpeen mukaan.",
+          "development": "Nimeä ennen kokousta odotettu tulos ja sen jälkeen selkeä seuraava askel.",
+          "environment": "Tiimi, jolla on selkeää viestintää, säännöllistä palautetta ja kohtuullista itsenäisyyttä.",
+          "high": "Pystyt säilyttämään luottamuksen, yhteisymmärryksen ja yhteisen suunnan. Vahvuutesi on ihmisten lukeminen objektiivisuutta menettämättä.",
+          "low": "Pidät luultavasti parempana itsenäistä työtä ja vähemmän sosiaalista koordinaatiota.",
+          "summary": "Suosituin tapa olla vuorovaikutuksessa ihmisten kanssa ja tiimidynamiikka."
+        },
+        "d3_motivational": {
+          "balanced": "Hallitset sekä sisäistä merkitystä että selkeitä tavoitteita ja palkintoja. Se auttaa selventämään nykyistä prioriteettia.",
+          "development": "Kirjoita jokaisen suuren tehtävän kohdalla ylös, ketä se auttaa ja mistä tiedät hyvän tuloksen.",
+          "environment": "Projekteja, joilla on näkyvä vaikutus, reilu vastuu ja parantamisen varaa.",
+          "high": "Sinua vetää vahvasti merkitys, vaikutus ja kasvava vastuu. Sinun on ymmärrettävä miksi, ei vain mitä.",
+          "low": "Motivaatio voi riippua enemmän tietystä palkkiosta, vakaudesta tai selkeästi määritellystä tuloksesta.",
+          "summary": "Mikä ajaa sinua ja mitä pidät palkitsevana."
+        },
+        "d4_energy": {
+          "balanced": "Voit vaihtaa sprintin ja tasaisen tahdin välillä. Rytmi, jolla on selkeät prioriteetit, toimii hyvin.",
+          "development": "Aseta 14 päivän ajan sprinttirytmi, tauko, tarkista: mikä vie energiaa ja mikä antaa sen takaisin.",
+          "environment": "Työskentele realistisilla prioriteeteilla, kyky suojata syvätyötä ja sovittuja sprinttejä.",
+          "high": "Pystyt käsittelemään korkeampaa tempoa ja dynaamisia tilanteita. Tärkeintä on suunnitella palautuminen niin, että suorituskyky pysyy kestävänä.",
+          "low": "Sen sijaan tarvitset vakaamman vauhdin, vähemmän vaihtoja ja suojatun tilan keskittymiselle.",
+          "summary": "Työn tahti, intensiteetti ja tyyli."
+        },
+        "d5_values": {
+          "balanced": "Arvosi ovat tasapainossa ja voit sopeutua erilaisiin kulttuureihin, jos tiedät mikä on tärkeää.",
+          "development": "Kirjoita ylös 3 työtilannetta, jotka ovat sinulle ylitsepääsemättömiä ja miksi.",
+          "environment": "Kulttuuri, jossa on oikeudenmukaisuutta, läpinäkyvyyttä ja tilaa puhua päätösten vaikutuksista.",
+          "high": "Arvot ovat vahva ankkuri. Rehellisyys, luottamus ja pitkäaikainen vaikutus eivät ole sinulle koristeita.",
+          "low": "Voit sietää helpommin erilaisia ​​ympäristöjä, mutta omat rajat kannattaa tietoisesti nimetä.",
+          "summary": "Mitä työn pitää tuoda mieleen."
+        },
+        "d6_ai_readiness": {
+          "balanced": "Voit käyttää uusia työkaluja, kun ne ovat järkeviä. Käytännön oppiminen todellisessa tehtävässä toimii parhaiten.",
+          "development": "Valitse yksi toistuva tehtävä ja yritä käyttää tekoälyä siinä kolme kertaa lyhyellä arvioinnilla.",
+          "environment": "Ympäristö, jossa uusia työkaluja käytetään rutiininomaisesti, mutta selkeällä inhimillisellä harkinnolla.",
+          "high": "Tekninen sopeutumiskyky on vahva puoli. Testaat nopeasti uusia työkaluja ja etsit käytännön arvoa.",
+          "low": "Työkalujen vaihtaminen voi maksaa enemmän energiaa. Turvallinen koulutus pienissä työtapauksissa auttaa.",
+          "summary": "Kuinka hyvin pärjäät nopeasti muuttuvassa teknologiaympäristössä?"
+        },
+        "d7_cognitive_reflection": {
+          "balanced": "Voit täydentää intuitiota ohjauksella. Yksinkertainen päätöksenteon tarkistuslista auttaa suuremmissa vaiheissa.",
+          "development": "Ennen kuin teet päätöksen, kysy itseltäsi: Mikä on todiste ja mikä vakuuttaisi minut toisin?",
+          "environment": "Roolia, jossa on aikaa tarkastella päätöksiä ja virheitä, käytetään oppimisena, ei rangaistuksena.",
+          "high": "Voit estää ensimmäisen johtopäätöksen ja tarkistaa todisteet. Tämä parantaa vaikutusvaltaisten päätösten laatua.",
+          "low": "Nopea intuitio voi hallita. Tärkeitä asioita varten lisää lyhyt stop-check-check.",
+          "summary": "Kyky pysäyttää ensimmäinen intuitio ja varmistaa se logiikan avulla."
+        },
+        "d8_digital_eq": {
+          "balanced": "Hallitset käytännössä digitaalista viestintää. Se auttaa tietoisesti valitsemaan viestin ja puhelun välillä.",
+          "development": "Jos viesti on vaikea, kirjoita ensin tarkoitus, sitten tosiasiat ja lopuksi erityinen pyyntö.",
+          "environment": "Hybridi- tai etätiimi, jossa on selkeä viestintähygienia ja turvallinen tila kysymyksille.",
+          "high": "Luit hyvin tekstin sävyn, alatekstin ja itseluottamuksen. Tämä on vahvaa asynkronisessa yhteistyössä ja herkissä aiheissa.",
+          "low": "Tekstissä voi syntyä helpommin väärinkäsityksiä. Lyhyempi viesti, selkeä tarkoitus ja vaikutuksen vahvistaminen auttavat.",
+          "summary": "Herkkyys tunteille, sävy ja itseluottamus tekstiviestinnässä."
+        },
+        "d9_systems_thinking": {
+          "balanced": "Voit seurata laajempia yhteyksiä, kun sinulla on selkeästi määritelty ongelman viitekehys.",
+          "development": "Piirrä yhdelle ongelmalle kartta: syy, seuraus, palaute, piilokustannukset.",
+          "environment": "Prosessi-, tuote- tai operatiiviset roolit, joissa parannetaan kokonaisia ​​järjestelmiä, ei vain yksittäisiä tehtäviä.",
+          "high": "Vahva järjestelmäajattelu. Näet suhteet, viivästyneet vaikutukset ja paikat, joissa ongelma palaa.",
+          "low": "Voi olla hyödyllistä kartoittaa tietoisesti syyt, seuraukset ja riippuvuudet yksittäisen oireen puuttumisen sijaan.",
+          "summary": "Kuinka hyvin luet suhteita, palautetta ja sivuvaikutuksia."
+        },
+        "i1_love": {
+          "balanced": "Kiinnostus herää tietyissä tilanteissa. Kannattaa katsoa, ​​kun energia nousee.",
+          "development": "Kirjoita viikon aikana muistiin 3 hetkeä, jolloin työ lisäsi tai vei energiaa.",
+          "environment": "Työskentele syventymisen, luomisen tai sinua henkilökohtaisesti kiinnostavan ongelman parissa.",
+          "high": "Sinulla on vahva signaali sisäisestä kiinnostuksestasi. Etsi rooleja, joissa tätä energiaa käytetään usein, ei vain marginaalisesti.",
+          "low": "Vielä ei ole selvää, mikä todella houkuttelee sinua työskentelemään. Se auttaa kartoittamaan toimintoja, joihin aika katoaa.",
+          "summary": "Mikä luonnollisesti vetää puoleensa ja lataa."
+        },
+        "i2_good_at": {
+          "balanced": "Osa vahvuuksista on jo tiedossa, osa paljastuu konkreettisen työn kautta.",
+          "development": "Kirjoita muistiin 5 tilannetta, joissa olet auttanut jotakuta ja löydä yhteinen kyky.",
+          "environment": "Rooli, jossa vahvaa osaamistasi käytetään säännöllisesti ja ne näkyvät tuloksessa.",
+          "high": "Sinulla on vahva käsitys kyvyistäsi ja osaat muuttaa ne hyödyksi muille.",
+          "low": "Saatat aliarvioida sitä, missä olet hyvä. Etsi toistuvia apua ja tuloksia koskevia pyyntöjä.",
+          "summary": "Mikä on uudelleenkäytettävä tehosi?"
+        },
+        "i3_world_needs": {
+          "balanced": "Merkitys ja hyödyllisyys ovat tärkeitä, mutta niiden ei tarvitse olla ainoa motivaation lähde.",
+          "development": "Tarkista työtarjouksen osalta, ketä tulos auttaa ja miten se voidaan tunnistaa.",
+          "environment": "Tuotteet, palvelut tai toiminnot, joissa työn todellinen hyöty näkyy.",
+          "high": "Vaikutus tiettyihin ihmisiin on sinulle tärkeä merkityksen ja kestävyyden lähde.",
+          "low": "Työ voi olla mielekästä myös ilman merkittävää sosiaalista vaikutusta, jos rooli, tiimi tai palkinto sopii.",
+          "summary": "Kuinka paljon sinun tarvitsee nähdäksesi hyödyt ihmisille tai maailmalle."
+        },
+        "i4_paid_for": {
+          "balanced": "Otat huomioon taloudellisen arvon, mutta se olisi hyvä täsmentää konkreettisilla todisteilla.",
+          "development": "Kirjoita jokaiselle vahvuudelle yksi mitattavissa oleva hyöty tiimille, asiakkaalle tai yritykselle.",
+          "environment": "Rooli, jossa on selvää, miten työsi luo arvoa ja oikeudenmukaista palkkiota.",
+          "high": "Mieti tarkkaan työsi arvoa markkinoille. Tämä auttaa valitsemaan kestävän suunnan.",
+          "low": "Voi olla tarvetta kääntää valmiuksia enemmän liiketoiminnan tai asiakkaan arvon kielelle.",
+          "summary": "Miten yhdistät merkityksen, kyvyt ja taloudellisen arvon?"
+        }
+      }
     },
     "companies": {
       "hero": {
@@ -6967,7 +7179,63 @@
       "patience": "Patience",
       "motivation_default": "Vaše motivace směřuje k seberealizaci a objevování nových obzorů.",
       "resonance": "Rezonance",
-      "unlock_identity": "Odemkni svou identitu"
+      "unlock_identity": "Odemkni svou identitu",
+      "start_onboarding": "Täydellinen perehdytys",
+      "mentor_new": "Uusi chat",
+      "mentor_send": "Lähetä",
+      "mentor_ready": "Shami on valmis kehittämään uraasi.",
+      "mentor_typing": "Shami valmistelee vastausta…",
+      "active_apps_count": "{{count}} aktiivisista pyynnöistä",
+      "active_deals": "Aktiivinen neuvottelu",
+      "all": "Kaikki",
+      "archetype_unlocked": "Arkkityyppi avattu",
+      "blindspots_fallback": "Määritämme kuolleet kulmat JobFit Compassin mukaan.",
+      "career_identity": "Ura-identiteetti",
+      "chat_with_shami": "Keskustele Shamin kanssa",
+      "closest_themes": "Arvoltaan lähinnä olevat aiheet: {{themes}}.",
+      "compass_eyebrow": "Työkompassi",
+      "edit_profile": "Muokkaa profiilia",
+      "explore_job_market": "Tutustu työmarkkinoihin",
+      "explore_market_short": "Tutustu markkinoihin",
+      "explore_offers": "Tutustu tarjouksiin →",
+      "finish_compass_hint": "Täytä JobFit Compass ja avaa urasi arkkityyppi.",
+      "growth_path_title": "Kehityksen polku",
+      "growth_plan": "Kehityssuunnitelma",
+      "kpi_active_applications": "Aktiiviset pyynnöt",
+      "kpi_free_slots": "Ilmaiset kolikkopelit",
+      "kpi_offers": "Tarjoukset",
+      "mentor_advice_default": "Kuuntele sisäistä ääntäsi. Ammattipolkusi alkaa muotoutua. Kysy minulta mitä tahansa.",
+      "mentor_input_ph": "Kysy urastasi...",
+      "milestone_compass": "JobFit kompassi",
+      "milestone_first_deal": "Ensimmäinen tapaaminen",
+      "milestone_offer": "Työtarjous",
+      "milestone_offer_cap": "Tavoite: onnistunut sijoitus",
+      "milestone_onboarding": "Käyttöönotto",
+      "milestone_onboarding_cap": "Perusprofiili valmis",
+      "motivational_quote": "Jokaisella on potentiaalia. Tehtävämme on herättää hänet.",
+      "no_applications": "Ei pyyntöjä vielä.",
+      "no_offers": "Ei tarjouksia",
+      "open_full_chat": "Avaa täysi keskustelupeili",
+      "open_role_detail": "Avaa roolin tiedot",
+      "opportunity": "Mahdollisuus",
+      "quick_actions": "Nopeita toimia",
+      "recommended_challenge": "Suositeltu haaste",
+      "recommended_offers": "Suositellut tarjoukset",
+      "run_unlock_profile": "Suorita ja avaa profiilisi",
+      "section_environment": "Ihanteellinen ympäristö",
+      "section_motivation": "Shamaanin suositus",
+      "section_risks": "Kasvualueet",
+      "section_skills": "Uran ydin",
+      "section_values": "Arvon viritys",
+      "send_first_app": "Lähetä ensimmäinen pyyntö",
+      "shami_guide": "Opas Shamille",
+      "shami_subtitle": "AI-uramentorisi",
+      "start_compass": "Käynnistä JobFit Compass",
+      "unlock_identity_hint": "Käy läpi JobFit Compass ja tarkastele uran arkkityyppiä ja kohdistusindeksiä.",
+      "view_compass": "Katso JobFit Compass",
+      "watch_out": "Varo: {{items}}.",
+      "week_focus": "Viikon painopiste",
+      "your_dashboard": "Kojelautasi"
     },
     "applications": {
       "active_handshakes": "Active handshakes",
@@ -7152,7 +7420,12 @@
     },
     "dialogue": {
       "environment_fit": "Environment fit",
-      "next_steps": "Next steps"
+      "next_steps": "Next steps",
+      "candidate_profile_signal": "Ehdokasprofiilin signaali",
+      "full_report": "Täysi raportti",
+      "jobfit_shared_copy": "JobFit-kompassi jaettiin vastauksen kanssa, ja se voi tarkentaa rekrytoijan lukemaa hakijasta.",
+      "shared_jobfit_signal": "JobFit Kompas jaettu signaali",
+      "summary": "Yhteenveto"
     },
     "landing": {
       "eyebrow": "Skill-first hiring for candidates and companies",
@@ -7291,7 +7564,20 @@
       "mock_nav_roles": "Roles",
       "mock_nav_candidates": "Candidates",
       "mock_nav_decisions": "Decisions",
-      "workflow_label": "Workflow"
+      "workflow_label": "Workflow",
+      "cta_copy": "Pilotti voi aloittaa yhdellä paikalla ja pienellä joukkueella.",
+      "cta_title": "Valmista ensimmäinen rulla ilman suurta projektia.",
+      "faq1_a": "Ei ensisijaisesti. JobShaman hoitaa työtehtävän, ensimmäisen signaalin ja tiimin päätöksenteon. ATS voi pysyä tietuejärjestelmänä.",
+      "faq1_q": "Onko se ATS-korvaus?",
+      "faq2_a": "Ei. CV voi auttaa myöhemmin, mutta ensimmäinen vuorovaikutus perustuu tiettyyn rooliin liittyvään vastaukseen.",
+      "faq2_q": "Pitääkö hakijan ladata CV?",
+      "faq3_a": "Perustat yrityksen, täytät profiilisi ja voit valmistella ensimmäisen roolisi tai pilottitehtäväsi.",
+      "faq3_q": "Mitä tapahtuu rekisteröinnin jälkeen?",
+      "improve_copy": "JobShaman ei ole ATS-korvaus kaikkeen. Se on työkerros, joka aloittaa valinnan: rooli, hakijan ensimmäinen vastaus, tiimin arviointi ja seuraava vaihe.",
+      "improve_eyebrow": "Mikä tekee siitä paremman",
+      "improve_title": "Vähemmän arvailua, enemmän toimivia signaaleja.",
+      "pricing_note": "Hinnat ovat ohjeellisia V2-pilotille. Lopullista tariffia voidaan muokata roolien, tuen ja integraatioiden määrän mukaan.",
+      "recommended": "Suositeltava"
     },
     "legal": {
       "privacy_title": "Tietosuojaseloste",
@@ -7611,7 +7897,14 @@
       "photo_upload_failed": "Kuvan lataus epäonnistui.",
       "cv_upload_failed": "Asiakirjan lataus epäonnistui.",
       "certifications_label": "Sertifikaatit",
-      "certificates_label": "Todistus"
+      "certificates_label": "Todistus",
+      "education": "Koulutus",
+      "experience": "Kokemus",
+      "job_title": "Rooli",
+      "languages": "Kielet",
+      "skills": "Taidot",
+      "linkedin_label": "LinkedIn",
+      "portfolio_label": "Portfolio"
     },
     "ui": {
       "cookie_banner": {
@@ -7773,7 +8066,86 @@
       "guide_fallback": "Read the challenge carefully. Your first response should demonstrate that you understand the core problem — not just that you are interested.",
       "guide_loading": "Shami lukee roolia, todellisuuskerrosta ja profiiliasi...",
       "watch_out": "Huomioi",
-      "first_move": "Ensimmäinen askel"
+      "first_move": "Ensimmäinen askel",
+      "locked_role_insight_copy": "Shami vertaa tarjousta profiiliin, CV:hen ja JobFit Compassiin: mitä rooli todella testaa, missä on riski ja mikä ensimmäinen askel on järkevä.",
+      "locked_role_insight_title": "Tekoälymainosten arviointi on Premiumissa.",
+      "guide_title_company": "Mitä {{company}} haluaa ymmärtää sinusta"
+    },
+    "onboarding": {
+      "ai_summary": "AI yhteenveto CV:stä",
+      "answer_more": "Täytä vähintään kaksi vastausta riippumatta siitä, mihin profiili perustuu.",
+      "back_to_cv": "Lataa toinen CV",
+      "cv_copy": "Tekoäly poimii siitä kokemuksen, taidot, koulutuksen ja yhteystiedot. Tarkistat kaiken ennen tallentamista.",
+      "cv_skip": "Ohita ja jatka",
+      "cv_title": "Vaihtoehtoisesti lataa CV.",
+      "cv_upload": "Lataa CV",
+      "eyebrow": "Ehdokas koulutukseen",
+      "failed": "Käyttöönotto epäonnistui.",
+      "finish": "Täytä profiili",
+      "no_cv_summary": "Profiili ilman CV:tä",
+      "no_cv_summary_copy": "Voit lisätä CV:si myöhemmin profiiliisi. Käytämme toistaiseksi aloitusvastauksia.",
+      "profile_save_failed": "Profiilin tallennus epäonnistui.",
+      "review_identity": "Nimi ja yhteystiedot",
+      "review_title": "Tarkista profiili.",
+      "signin_copy": "Sitten opastamme sinut perehdyttämisen, valinnaisen CV:n ja profiilin tarkistuksen läpi.",
+      "signin_cta": "Jatka rekisteröintiä",
+      "signin_title": "Ensin luomme tilin.",
+      "story_cta": "Arvioi perehdytys",
+      "story_title": "Ensinnäkin työn suunta.",
+      "title": "Rakennamme profiilin ilman manuaalista täyttöä.",
+      "fill_later": "Lisää myöhemmin",
+      "q_energy_label": "Mikä antaa sinulle energiaa työssä ja mikä pidättelee sinua?",
+      "q_energy_ph": "Kuvaile ympäristöä, tahtia, vastuuta, tiimiä tai tehtävien tyyppiä.",
+      "q_proof_label": "Mistä kokemuksesta tai tuloksesta olet ylpeä?",
+      "q_proof_ph": "Tarvitset vain tietyn tilanteen, projektin tai ongelman, jonka olet ratkaissut.",
+      "q_work_direction_label": "Millaista työtä haet nyt?",
+      "q_work_direction_ph": "Esim. tuotetyö, toiminta, tekninen rooli, työskentely ihmisten kanssa..."
+    },
+    "premium": {
+      "benefit_ai_roles": "AI-mainoksen arviointi",
+      "benefit_jobfit": "Mukana JobFit-kompassi",
+      "benefit_slots": "25 aktiivista vastauspaikkaa",
+      "candidate_title": "Avaa JobFit Compass ja lisää vastauksia.",
+      "jobfit_copy": "Testi avaa työtyyliä, vahvuuksia ja tarkempia suosituksia. Premiumissa saat myös enemmän vastauspaikkoja ja tarjousten tekoälyarviointia.",
+      "jobfit_title": "JobFit Kompas on osa Premiumia.",
+      "upgrade_cta": "Päivitä Premiumiin"
+    },
+    "calendar": {
+      "connected": "Yhdistetty ja synkronoitu",
+      "day_in_month": "Päivä {{day}}. kuukaudessa",
+      "disconnected": "Yhteys katkaistu",
+      "dow_fri": "pe",
+      "dow_mon": "jälkeen",
+      "dow_sat": "la",
+      "dow_sun": "Ei",
+      "dow_thu": "torstai",
+      "dow_tue": "ti",
+      "dow_wed": "St",
+      "duration_15": "15 minuuttia (pika esittelypuhelu)",
+      "duration_30": "30 minuuttia (vakioarvostelu)",
+      "duration_45": "45 minuuttia (syvähaastattelu)",
+      "duration_60": "60 minuuttia (tekninen paneeli)",
+      "duration_label": "Kokouksen oletuspituus",
+      "join": "Liity mukaan",
+      "join_alert": "Aloitan haastattelun henkilön {{name}} kanssa Google Meetin kautta...",
+      "more_events": "{{count}} seuraava",
+      "no_events": "Kalenterissa ei ole sovittuja aikoja.",
+      "overview_eyebrow": "Kokouksen yleiskatsaus",
+      "platform_label": "Haastattelualusta",
+      "platform_meet": "Google Meet (automaattinen linkkien luominen)",
+      "platform_phone": "Puhelinsoitto",
+      "reminder_alert": "Uudelleenohjaus lahjakkuuspooliin odottavien päivämäärien suodattimella...",
+      "reminder_cta": "Ratkaise pyynnöt",
+      "reminder_text": "Sinulla on 2 uutta hakijaa, jotka pyytävät ensimmäistä haastattelupäivää.",
+      "reminder_title": "Ajanvarausmuistutus",
+      "settings_title": "Kokousasetukset",
+      "stage_assessment": "Testiarvostelu",
+      "stage_default": "Haastatella",
+      "stage_initial": "Esittelypuhelu",
+      "stage_offer": "Tarjous",
+      "stage_panel": "Yritys / Paneeli",
+      "sync_title": "Kalenterin synkronointi",
+      "upcoming_title": "Tulevat kokoukset ({{count}})"
     }
   }
 }

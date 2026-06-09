@@ -5335,7 +5335,59 @@
       "auth_required_desc": "Profile, archetype, JHI, and recommendations are personal. In logged-out mode, we do not share or display them from local cache.",
       "motivation_default": "Vaše motivace směřuje k seberealizaci a objevování nových obzorů.",
       "resonance": "Rezonance",
-      "unlock_identity": "Odemkni svou identitu"
+      "unlock_identity": "Odemkni svou identitu",
+      "start_onboarding": "Dokončit onboarding",
+      "active_apps_count": "{{count}} aktivních žádostí",
+      "active_deals": "Aktivní jednání",
+      "all": "Vše",
+      "archetype_unlocked": "Archetyp odemčen",
+      "blindspots_fallback": "Slepé skvrny upřesníme po JobFit Kompasu.",
+      "career_identity": "Kariérní identita",
+      "chat_with_shami": "Chat se Shamim",
+      "closest_themes": "Témata hodnotově nejbližší: {{themes}}.",
+      "compass_eyebrow": "Tvůj pracovní kompas",
+      "edit_profile": "Upravit profil",
+      "explore_job_market": "Prozkoumat trh práce",
+      "explore_market_short": "Prozkoumat trh",
+      "explore_offers": "Prozkoumat nabídky →",
+      "finish_compass_hint": "Dokonči JobFit Kompas a odemkni svůj kariérní archetyp.",
+      "growth_path_title": "Cesta rozvoje",
+      "growth_plan": "Plán rozvoje",
+      "kpi_active_applications": "Aktivní žádosti",
+      "kpi_free_slots": "Volné sloty",
+      "kpi_offers": "Nabídky",
+      "mentor_advice_default": "Naslouchej svému vnitřnímu hlasu. Tvá profesní cesta se začíná jasně rýsovat. Zeptej se mě na cokoliv.",
+      "mentor_input_ph": "Zeptej se na svou kariéru...",
+      "milestone_compass": "JobFit Kompas",
+      "milestone_first_deal": "První jednání",
+      "milestone_offer": "Nabídka práce",
+      "milestone_offer_cap": "Cíl: úspěšné umístění",
+      "milestone_onboarding": "Onboarding",
+      "milestone_onboarding_cap": "Základní profil vyplněn",
+      "motivational_quote": "Každý má v sobě potenciál. Naším posláním je ho probudit.",
+      "no_applications": "Zatím žádné žádosti.",
+      "no_offers": "Žádné nabídky",
+      "open_full_chat": "Otevřít plné chatovací zrcadlo",
+      "open_role_detail": "Otevřít detail role",
+      "opportunity": "Příležitost",
+      "quick_actions": "Rychlé akce",
+      "recommended_challenge": "Doporučená výzva",
+      "recommended_offers": "Doporučené nabídky",
+      "run_unlock_profile": "Spusť a odemkni svůj profil",
+      "section_environment": "Ideální prostředí",
+      "section_motivation": "Šamanovo doporučení",
+      "section_risks": "Oblasti růstu",
+      "section_skills": "Kariérní esence",
+      "section_values": "Hodnotové ladění",
+      "send_first_app": "Pošli první žádost",
+      "shami_guide": "Průvodce Shami",
+      "shami_subtitle": "Tvůj AI kariérní mentor",
+      "start_compass": "Spustit JobFit Kompas",
+      "unlock_identity_hint": "Projdi JobFit Kompasem a zobraz kariérní archetyp i index souladu.",
+      "view_compass": "Zobrazit JobFit Kompas",
+      "watch_out": "Pozor na: {{items}}.",
+      "week_focus": "Fokus týdne",
+      "your_dashboard": "Tvůj dashboard"
     },
     "nav": {
       "marketplace": "Katalog",
@@ -5889,7 +5941,11 @@
       "video": "Video",
       "photo": "Photo",
       "no_banner_media": "No slideshow media yet. The main cover will be used by itself.",
-      "primary_video_url": "Primary video URL"
+      "primary_video_url": "Primary video URL",
+      "cybershaman_advises": "Shami doporučuje další krok",
+      "cybershaman_tip": "Shamiho tip",
+      "nav_calendar": "Kalendář",
+      "subtitle_calendar": "Scheduled interviews, availability preferences, and calendar sync."
     },
     "editor": {
       "step_essence": "Podstata role",
@@ -6024,7 +6080,8 @@
       "border_disabled": "{{country}} disabled",
       "summary_curated": "JHI {{score}}/100, estimated net value {{value}} {{currency}} monthly and direct branded journey entry.",
       "summary_imported": "JHI {{score}}/100, realistic outbound preparation considering {{fit}} fit and real costs.",
-      "domestic": "domestic"
+      "domestic": "domestic",
+      "border": "border"
     },
     "marketplace": {
       "pulse_title": "Co je nového",
@@ -6346,7 +6403,9 @@
       "hint_first_step": "Jak vypadá první signál",
       "hint_journey": "Jak probíhá výběrové řízení",
       "hint_context": "Kontext firmy",
-      "guide_fallback": "Přečti si výzvu pozorně. Tvá první odpověď by měla ukázat, že chápeš jádro problému – nestačí jen zájem."
+      "guide_fallback": "Přečti si výzvu pozorně. Tvá první odpověď by měla ukázat, že chápeš jádro problému – nestačí jen zájem.",
+      "locked_role_insight_copy": "Shami porovná nabídku s profilem, CV a JobFit Kompasem: co role opravdu testuje, kde je riziko a jaký první krok dává smysl.",
+      "locked_role_insight_title": "AI hodnocení inzerátu je v Premium."
     },
     "prep": {
       "title": "Detail inzerátu",
@@ -6532,7 +6591,19 @@
       "skills_help_match": "Pomoz nám pochopit, které dovednosti chceš v této roli nejvíce využívat.",
       "selected": "Vybrané dovednosti",
       "supported_providers": "Podporované služby",
-      "tip": "Tip"
+      "tip": "Tip",
+      "add": "Add",
+      "problem_frame_helper": "Answer specifically, stating assumptions and risks.",
+      "problem_frame_title": "Understanding the Prompt",
+      "risk_helper": "A good answer also names what you don't know yet.",
+      "risk_prompt": "What could go wrong and what would you need to verify?",
+      "risk_title": "Risks & Unknowns",
+      "schedule_helper": "The slot is a request, the company will confirm after review.",
+      "schedule_title": "Schedule Discussion",
+      "work_sample_comment_placeholder": "Short context for the reviewer",
+      "work_sample_helper": "Describe steps, evidence, and decision criteria.",
+      "work_sample_title": "Practical Steps",
+      "work_sample_url_placeholder": "https://..."
     },
     "insights": {
       "title": "Candidate intelligence",
@@ -6714,7 +6785,138 @@
       "response_quality_title": "Kvalita měření",
       "coverage": "Pokrytí",
       "response_quality_flagged": "Výsledek je uložen, ale některé odpovědní vzorce snižují jistotu interpretace.",
-      "response_quality_clean": "Odpovědi mají dostatečné rozlišení pro základní interpretaci profilu."
+      "response_quality_clean": "Odpovědi mají dostatečné rozlišení pro základní interpretaci profilu.",
+      "drag_assign_cause": "Sem přetáhni nebo přiřaď příčinu",
+      "report": {
+        "d10_ambiguity_interpretation": {
+          "balanced": "Nejasnost zvládáš, pokud máš možnost postupně ověřovat další kroky.",
+          "development": "U nejasného úkolu si napiš: co vím, co nevím, co ověřím do 48 hodin.",
+          "environment": "Prostředí s proměnlivými zadáními, ale dobrou oporou v prioritách a rozhodovacích právech.",
+          "high": "V nejistotě vidíš směr a příležitosti. Umíš začít, i když zadání ještě není dokonalé.",
+          "low": "Nejasné zadání může brzdit energii. Pomůže definovat minimální další signál a první bezpečný krok.",
+          "summary": "Jak čteš nejasné situace: rizika vs. příležitosti."
+        },
+        "d11_problem_decomposition": {
+          "balanced": "Dokážeš problém rozložit, když máš jasný cíl a dost kontextu.",
+          "development": "Každý větší problém rozděl na blokátor, první krok a měřitelný výstup týdne.",
+          "environment": "Role, kde se strategie převádí do priorit, experimentů a praktického doručení.",
+          "high": "Umíš rychle vytvořit strukturu kroků. Silné pro strategii, delivery, provozní změny i komplexní projekty.",
+          "low": "Velký problém může působit zahlcujícím dojmem. Pomůže jeden malý experiment a jednoduché priority.",
+          "summary": "Schopnost rozsekat velký problém na jasné kroky."
+        },
+        "d12_moral_compass": {
+          "balanced": "Etické dopady bereš v úvahu, zejména když jsou jasně pojmenované.",
+          "development": "U dilemat si napiš: koho to ovlivní, co se stane později a co bych obhájil/a nahlas.",
+          "environment": "Organizace, která bere vážně důvěru, odpovědnost a transparentní rozhodování.",
+          "high": "Silný morální kompas. V tlaku držíš integritu, důvěru a dlouhodobé dopady.",
+          "low": "V tlaku může být těžší otevřít nepohodlné téma. Pomůže předem daný princip rozhodování.",
+          "summary": "Stabilita hodnot v dilematech a tlakových situacích."
+        },
+        "d1_cognitive": {
+          "balanced": "Umíš kombinovat analýzu s praktickou intuicí. Nejlépe funguješ, když máš dost signálů, ale nezasekneš se v detailu.",
+          "development": "Před důležitým rozhodnutím si sepiš 3 fakta, 1 riziko a 1 alternativu.",
+          "environment": "Role s jasným kontextem, možností analyzovat problém a převádět ho do rozhodnutí.",
+          "high": "Přirozeně si rovnáš fakta, souvislosti a dopady. Vynikáš tam, kde je potřeba oddělit šum od podstaty.",
+          "low": "Více se opíráš o intuici a celkový dojem. U důležitých rozhodnutí pomůže krátká kontrola faktů.",
+          "summary": "Způsob zpracování informací a řešení problémů."
+        },
+        "d2_social": {
+          "balanced": "Sociální orientace je vyvážená. Dokážeš fungovat v týmu i samostatně podle potřeby.",
+          "development": "Před schůzkou si pojmenuj očekávaný výsledek a po ní jeden jasný další krok.",
+          "environment": "Tým se srozumitelnou komunikací, pravidelnou zpětnou vazbou a rozumnou mírou autonomie.",
+          "high": "Umíš držet důvěru, domluvu a společný směr. Tvoje síla je číst lidi bez ztráty věcnosti.",
+          "low": "Pravděpodobně preferuješ samostatnou práci a menší množství sociální koordinace.",
+          "summary": "Preferovaný způsob interakce s lidmi a týmové dynamiky."
+        },
+        "d3_motivational": {
+          "balanced": "Zvládáš jak vnitřní smysl, tak jasné cíle a odměny. Pomáhá ujasnit si aktuální prioritu.",
+          "development": "U každého většího úkolu si napiš, komu pomáhá a podle čeho poznáš dobrý výsledek.",
+          "environment": "Projekty s viditelným dopadem, férovou odpovědností a prostorem něco zlepšovat.",
+          "high": "Silně tě táhne smysl, dopad a růst odpovědnosti. Potřebuješ chápat proč, ne jen co.",
+          "low": "Motivace může víc stát na konkrétní odměně, stabilitě nebo jasně zadaném výsledku.",
+          "summary": "Co tě pohání a co považuješ za odměnu."
+        },
+        "d4_energy": {
+          "balanced": "Umíš přepínat mezi sprintem a stabilním tempem. Dobře funguje rytmus s jasnými prioritami.",
+          "development": "Na 14 dní si nastav rytmus sprint, pauza, review: co bere energii a co ji vrací.",
+          "environment": "Práce s realistickými prioritami, možností chránit hlubokou práci a domluvenými sprinty.",
+          "high": "Zvládáš vyšší tempo a dynamické situace. Klíčové je plánovat regeneraci, aby výkon zůstal udržitelný.",
+          "low": "Spíš potřebuješ stabilnější tempo, méně přepínání a chráněný prostor pro soustředění.",
+          "summary": "Tempo, intenzita a styl práce."
+        },
+        "d5_values": {
+          "balanced": "Hodnoty máš vyvážené a umíš se přizpůsobit různým kulturám, pokud víš, co je důležité.",
+          "development": "Sepiš si 3 pracovní situace, které jsou pro tebe nepřekročitelné, a proč.",
+          "environment": "Kultura s férovostí, transparentností a prostorem mluvit o dopadech rozhodnutí.",
+          "high": "Hodnoty jsou silná kotva. Integrita, důvěra a dlouhodobý dopad pro tebe nejsou dekorace.",
+          "low": "Můžeš snáze tolerovat různá prostředí, ale vyplatí se vědomě pojmenovat vlastní hranice.",
+          "summary": "Co musí práce přinášet, aby dávala smysl."
+        },
+        "d6_ai_readiness": {
+          "balanced": "Nové nástroje umíš použít, když dávají smysl. Nejlépe funguje praktické učení na reálném úkolu.",
+          "development": "Vyber jeden opakovaný úkol a zkus na něm AI použít třikrát s krátkým vyhodnocením.",
+          "environment": "Prostředí, kde se nové nástroje používají běžně, ale s jasným lidským úsudkem.",
+          "high": "Technologická adaptabilita je silná stránka. Rychle testuješ nové nástroje a hledáš praktickou hodnotu.",
+          "low": "Změna nástrojů může stát víc energie. Pomůže bezpečný trénink na malých pracovních případech.",
+          "summary": "Jak dobře prosperuješ v rychle se měnícím technologickém prostředí."
+        },
+        "d7_cognitive_reflection": {
+          "balanced": "Intuici umíš doplnit kontrolou. Pomáhá jednoduchý rozhodovací checklist u větších kroků.",
+          "development": "Před rozhodnutím si polož otázku: Jaký je důkaz a co by mě přesvědčilo o opaku?",
+          "environment": "Role, kde je čas na review rozhodnutí a chyby se používají jako učení, ne jako trest.",
+          "high": "Umíš brzdit první závěr a ověřovat důkazy. To zvyšuje kvalitu rozhodnutí s vyšším dopadem.",
+          "low": "Rychlá intuice může dominovat. U důležitých věcí přidej krátké zastav-se-ověř.",
+          "summary": "Schopnost zastavit první intuici a ověřit ji logikou."
+        },
+        "d8_digital_eq": {
+          "balanced": "Digitální komunikaci zvládáš prakticky. Pomáhá vědomě volit mezi zprávou a hovorem.",
+          "development": "U náročné zprávy napiš nejdřív záměr, potom fakta a nakonec konkrétní prosbu.",
+          "environment": "Hybridní nebo remote tým s jasnou komunikační hygienou a bezpečným prostorem pro otázky.",
+          "high": "V textu dobře čteš tón, podtext i důvěru. To je silné v asynchronní spolupráci a citlivých tématech.",
+          "low": "V textu může snáz vzniknout nedorozumění. Pomůže kratší zpráva, jasný záměr a ověření dopadu.",
+          "summary": "Citlivost na emoce, tón a důvěru v textové komunikaci."
+        },
+        "d9_systems_thinking": {
+          "balanced": "Umíš sledovat širší souvislosti, když máš jasně vymezený rámec problému.",
+          "development": "U jednoho problému nakresli mapu: příčina, dopad, zpětná vazba, skrytý náklad.",
+          "environment": "Procesní, produktové nebo provozní role, kde se zlepšují celé systémy, ne jen jednotlivé úkoly.",
+          "high": "Silné systémové myšlení. Vidíš vztahy, zpožděné dopady a místa, kde se problém vrací.",
+          "low": "Může být užitečné vědomě mapovat příčiny, následky a závislosti místo řešení izolovaného symptomu.",
+          "summary": "Jak dobře čteš vztahy, zpětné vazby a vedlejší efekty."
+        },
+        "i1_love": {
+          "balanced": "Zájem se probouzí v konkrétních situacích. Vyplatí se sledovat, kdy energie roste.",
+          "development": "Týden si zapisuj 3 momenty, kdy práce energii přidala nebo vzala.",
+          "environment": "Práce s prostorem pro ponor, tvorbu nebo problém, který tě osobně zajímá.",
+          "high": "Máš silný signál vnitřního zájmu. Hledej role, kde se tato energie používá často, ne jen okrajově.",
+          "low": "Zatím není jasné, co tě pracovně opravdu vtahuje. Pomůže mapovat aktivity, u kterých mizí čas.",
+          "summary": "Co tě přirozeně vtahuje a nabíjí."
+        },
+        "i2_good_at": {
+          "balanced": "Některé silné stránky už znáš, další se ukážou přes konkrétní pracovní důkazy.",
+          "development": "Sepiš 5 situací, kdy jsi někomu pomohl/a, a najdi společnou schopnost.",
+          "environment": "Role, kde se tvoje silné schopnosti používají pravidelně a jsou viditelné ve výsledku.",
+          "high": "Silně vnímáš své schopnosti a umíš je převést do přínosu pro ostatní.",
+          "low": "Můžeš podceňovat, v čem jsi dobrý/á. Hledej opakované žádosti o pomoc a výsledky.",
+          "summary": "V čem máš opakovaně použitelnou sílu."
+        },
+        "i3_world_needs": {
+          "balanced": "Smysl a užitek jsou důležité, ale nemusí být jediným zdrojem motivace.",
+          "development": "U nabídky práce si ověř, komu výsledek pomáhá a jak se to pozná.",
+          "environment": "Produkty, služby nebo provozy, kde je vidět reálný užitek práce.",
+          "high": "Dopad na konkrétní lidi je pro tebe důležitý zdroj smyslu a výdrže.",
+          "low": "Práce může dávat smysl i bez výrazného společenského dopadu, pokud sedí role, tým nebo odměna.",
+          "summary": "Jak moc potřebuješ vidět užitek pro lidi nebo svět."
+        },
+        "i4_paid_for": {
+          "balanced": "Ekonomickou hodnotu bereš v úvahu, ale bude dobré ji zpřesnit konkrétními důkazy.",
+          "development": "Ke každé silné stránce napiš jeden měřitelný přínos pro tým, zákazníka nebo firmu.",
+          "environment": "Role, kde je jasné, jak tvoje práce vytváří hodnotu a férovou odměnu.",
+          "high": "Dobře přemýšlíš o hodnotě své práce pro trh. To pomáhá volit udržitelné směřování.",
+          "low": "Může být potřeba víc přeložit schopnosti do řeči hodnoty pro firmu nebo zákazníka.",
+          "summary": "Jak propojuješ smysl, schopnosti a ekonomickou hodnotu."
+        }
+      }
     },
     "companies": {
       "hero": {
@@ -7140,7 +7342,12 @@
     },
     "dialogue": {
       "environment_fit": "Prostředí",
-      "next_steps": "Další kroky"
+      "next_steps": "Další kroky",
+      "candidate_profile_signal": "Signál profilu kandidáta",
+      "full_report": "Plná zpráva",
+      "jobfit_shared_copy": "JobFit Kompas byl sdílen s odpovědí a může zpřesnit recruiterovo čtení kandidáta.",
+      "shared_jobfit_signal": "Sdílený signál JobFit Kompasu",
+      "summary": "Souhrn"
     },
     "landing": {
       "eyebrow": "Skill-first hiring pro uchazeče i firmy",
@@ -7279,7 +7486,20 @@
       "mock_nav_roles": "Roles",
       "mock_nav_candidates": "Candidates",
       "mock_nav_decisions": "Decisions",
-      "workflow_label": "Workflow"
+      "workflow_label": "Workflow",
+      "cta_copy": "Pilot může začít jednou pozicí a malým týmem.",
+      "cta_title": "Připravte první roli bez velkého projektu.",
+      "faq1_a": "Ne primárně. JobShaman řeší pracovní zadání, první signál a týmové rozhodování. ATS může zůstat systém evidence.",
+      "faq1_q": "Je to náhrada ATS?",
+      "faq2_a": "Ne. CV může pomoct později, ale první interakce stojí na konkrétní odpovědi k roli.",
+      "faq2_q": "Musí kandidát nahrát CV?",
+      "faq3_a": "Založíte firmu, doplníte profil a můžete připravit první roli nebo pilotní zadání.",
+      "faq3_q": "Co se stane po registraci?",
+      "improve_copy": "JobShaman není ATS náhrada pro všechno. Je to pracovní vrstva pro začátek výběru: role, první odpověď kandidáta, týmové posouzení a další krok.",
+      "improve_eyebrow": "Co to zlepší",
+      "improve_title": "Méně dohadů, víc použitelných signálů.",
+      "pricing_note": "Ceny jsou orientační pro V2 pilot. Finální tarif se může upravit podle objemu rolí, podpory a integrací.",
+      "recommended": "Doporučeno"
     },
     "legal": {
       "privacy_title": "Ochrana osobních údajů",
@@ -7601,7 +7821,12 @@
       "certifications_label": "Certifikace",
       "certificates_label": "Osvědčení",
       "linkedin_label": "LinkedIn",
-      "portfolio_label": "Portfolio"
+      "portfolio_label": "Portfolio",
+      "education": "Vzdělání",
+      "experience": "Zkušenosti",
+      "job_title": "Role",
+      "languages": "Jazyky",
+      "skills": "Dovednosti"
     },
     "ui": {
       "cookie_banner": {
@@ -7739,6 +7964,82 @@
     },
     "loading": {
       "workspace": "Initializing workspace..."
+    },
+    "onboarding": {
+      "ai_summary": "AI shrnutí z CV",
+      "answer_more": "Vyplň prosím alespoň dvě odpovědi, ať má profil z čeho vycházet.",
+      "back_to_cv": "Nahrát jiné CV",
+      "cv_copy": "AI z něj vytáhne zkušenosti, dovednosti, vzdělání a kontaktní údaje. Před uložením vše zkontroluješ.",
+      "cv_skip": "Přeskočit a pokračovat",
+      "cv_title": "Volitelně nahraj CV.",
+      "cv_upload": "Nahrát CV",
+      "eyebrow": "Kandidátský onboarding",
+      "failed": "Onboarding se nepodařilo dokončit.",
+      "finish": "Dokončit profil",
+      "no_cv_summary": "Profil bez CV",
+      "no_cv_summary_copy": "CV můžeš doplnit později v profilu. Zatím použijeme odpovědi z onboardingu.",
+      "profile_save_failed": "Profil se nepodařilo uložit.",
+      "review_identity": "Jméno a kontakt",
+      "review_title": "Zkontroluj profil.",
+      "signin_copy": "Pak tě provedeme onboardingem, volitelným CV a kontrolou profilu.",
+      "signin_cta": "Pokračovat registrací",
+      "signin_title": "Nejdřív vytvoříme účet.",
+      "story_cta": "Vyhodnotit onboarding",
+      "story_title": "Nejdřív pracovní směr.",
+      "title": "Postavíme profil bez ručního vyplňování.",
+      "fill_later": "Doplnit později",
+      "q_energy_label": "Co ti v práci dodává energii a co tě naopak brzdí?",
+      "q_energy_ph": "Popiš prostředí, tempo, odpovědnost, tým nebo typ úkolů.",
+      "q_proof_label": "Na jakou zkušenost nebo výsledek jsi pyšný/á?",
+      "q_proof_ph": "Stačí konkrétní situace, projekt nebo problém, který jsi vyřešil/a.",
+      "q_work_direction_label": "Jaký typ práce teď hledáš?",
+      "q_work_direction_ph": "Např. produktová práce, operations, technická role, práce s lidmi..."
+    },
+    "premium": {
+      "benefit_ai_roles": "AI hodnocení inzerátů",
+      "benefit_jobfit": "JobFit Kompas v ceně",
+      "benefit_slots": "25 aktivních odpovědních slotů",
+      "candidate_title": "Odemkni JobFit Kompas a více odpovědí.",
+      "jobfit_copy": "Test odemkne pracovní styl, silné stránky a přesnější doporučení. V Premium získáš také více odpovědních slotů a AI hodnocení nabídek.",
+      "jobfit_title": "JobFit Kompas je součást Premium.",
+      "upgrade_cta": "Upgradovat na Premium"
+    },
+    "calendar": {
+      "connected": "Připojeno a synchronizováno",
+      "day_in_month": "Den {{day}}. v měsíci",
+      "disconnected": "Odpojeno",
+      "dow_fri": "pá",
+      "dow_mon": "po",
+      "dow_sat": "so",
+      "dow_sun": "ne",
+      "dow_thu": "čt",
+      "dow_tue": "út",
+      "dow_wed": "st",
+      "duration_15": "15 minut (Rychlý intro call)",
+      "duration_30": "30 minut (Standardní review)",
+      "duration_45": "45 minut (Hloubkový pohovor)",
+      "duration_60": "60 minut (Technický panel)",
+      "duration_label": "Výchozí délka schůzky",
+      "join": "Připojit se",
+      "join_alert": "Spouštím pohovor s {{name}} přes Google Meet...",
+      "more_events": "{{count}} další",
+      "no_events": "Žádné naplánované schůzky v kalendáři.",
+      "overview_eyebrow": "Přehled schůzek",
+      "platform_label": "Platforma pro pohovory",
+      "platform_meet": "Google Meet (Automatické generování odkazu)",
+      "platform_phone": "Telefonní hovor",
+      "reminder_alert": "Přesměrování na talent pool s filtrem nevyřešených termínů...",
+      "reminder_cta": "Vyřešit žádosti",
+      "reminder_text": "Máte 2 nové kandidáty žádající o termín úvodního rozhovoru.",
+      "reminder_title": "Připomínka plánování schůzek",
+      "settings_title": "Nastavení schůzek",
+      "stage_assessment": "Review testu",
+      "stage_default": "Pohovor",
+      "stage_initial": "Úvodní hovor",
+      "stage_offer": "Nabídka",
+      "stage_panel": "Firma / Panel",
+      "sync_title": "Synchronizace kalendáře",
+      "upcoming_title": "Nadcházející schůzky ({{count}})"
     }
   }
 }
