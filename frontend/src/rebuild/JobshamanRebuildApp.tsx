@@ -1178,7 +1178,7 @@ const JobshamanRebuildApp: React.FC = () => {
       searchValue={extra?.searchValue}
       onSearchChange={extra?.onSearchChange}
       actionRegion={extra?.actionRegion}
-      candidateSidebar={candidateSidebarSummary}
+      
       t={t}
     >
       {content}
