@@ -5257,6 +5257,44 @@
       "ai_guide": "Ask Shami",
       "shami_profile_hint": "Pomůže doplnit profil a vybrat další krok."
     },
+    "onboarding": {
+      "answer_more": "Vänligen svara på minst två frågor så att din profil har tillräckligt med material.",
+      "failed": "Onboarding kunde inte slutföras.",
+      "profile_save_failed": "Profilen kunde inte sparas.",
+      "signin_title": "Först skapar vi ditt konto.",
+      "signin_copy": "Sedan guidar vi dig genom onboarding, valfri CV-uppladdning och profilgranskning.",
+      "signin_cta": "Fortsätt registreringen",
+      "eyebrow": "Kandidat-onboarding",
+      "title": "Vi bygger din profil utan manuell ifyllnad.",
+      "story_title": "Först din arbetsriktning.",
+      "story_cta": "Utvärdera onboarding",
+      "cv_title": "Ladda upp ditt CV valfritt.",
+      "cv_copy": "AI kommer att extrahera erfarenhet, färdigheter, utbildning och kontaktuppgifter. Du granskar innan det sparas.",
+      "cv_upload": "Ladda upp CV",
+      "cv_skip": "Hoppa över och fortsätt",
+      "review_title": "Granska din profil.",
+      "review_identity": "Namn och kontakt",
+      "ai_summary": "AI-sammanfattning från CV",
+      "no_cv_summary": "Profil utan CV",
+      "no_cv_summary_copy": "Du kan lägga till ett CV senare i din profil. För nu använder vi dina svar från onboarding.",
+      "finish": "Slutför profil",
+      "back_to_cv": "Ladda upp ett annat CV",
+      "review_missing": "Fyll i senare",
+      "question": {
+        "work_direction": {
+          "label": "Vilken typ av jobb söker du just nu?",
+          "placeholder": "Till exempel produktarbete, drift, teknisk roll, arbete med människor..."
+        },
+        "energy": {
+          "label": "Vad ger dig energi på jobbet och vad saktar ner dig?",
+          "placeholder": "Beskriv miljö, tempo, ansvar, team- eller uppgiftstyper."
+        },
+        "proof": {
+          "label": "Vilken erfarenhet eller vilket resultat är du stolt över?",
+          "placeholder": "Dela en specifik situation, ett projekt eller ett problem du löste."
+        }
+      }
+    },
     "search_placeholder": "Search roles, firms and candidate signals",
     "profile_label": "Profile",
     "sign_out": "Sign out",

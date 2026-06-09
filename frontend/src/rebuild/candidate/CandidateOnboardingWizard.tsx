@@ -9,24 +9,6 @@ import { primaryButtonClass, secondaryButtonClass, shellPageClass } from '../ui/
 type WizardStep = 'story' | 'cv' | 'review';
 type ReviewSection = 'identity' | 'headline' | 'skills' | 'workHistory' | 'education' | 'languages' | 'summary';
 
-const questions = [
-  {
-    id: 'work_direction',
-    label: 'Jaký typ práce teď hledáš?',
-    placeholder: 'Např. produktová práce, operations, technická role, práce s lidmi...',
-  },
-  {
-    id: 'energy',
-    label: 'Co ti v práci dodává energii a co tě naopak brzdí?',
-    placeholder: 'Popiš prostředí, tempo, odpovědnost, tým nebo typ úkolů.',
-  },
-  {
-    id: 'proof',
-    label: 'Na jakou zkušenost nebo výsledek jsi pyšný/á?',
-    placeholder: 'Stačí konkrétní situace, projekt nebo problém, který jsi vyřešil/a.',
-  },
-] as const;
-
 const listText = (items?: string[]) => (items || []).filter(Boolean).join(', ');
 
 const defaultSelectedSections: Record<ReviewSection, boolean> = {
@@ -64,6 +46,23 @@ export const CandidateOnboardingWizard: React.FC<{
 }) => {
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const onboarding = (userProfile.preferences?.candidate_onboarding_v2 || {}) as Record<string, any>;
+  const questions = React.useMemo(() => ([
+    {
+      id: 'work_direction',
+      label: t('rebuild.onboarding.question.work_direction.label', { defaultValue: 'Jaký typ práce teď hledáš?' }),
+      placeholder: t('rebuild.onboarding.question.work_direction.placeholder', { defaultValue: 'Např. produktová práce, operations, technická role, práce s lidmi...' }),
+    },
+    {
+      id: 'energy',
+      label: t('rebuild.onboarding.question.energy.label', { defaultValue: 'Co ti v práci dodává energii a co tě naopak brzdí?' }),
+      placeholder: t('rebuild.onboarding.question.energy.placeholder', { defaultValue: 'Popiš prostředí, tempo, odpovědnost, tým nebo typ úkolů.' }),
+    },
+    {
+      id: 'proof',
+      label: t('rebuild.onboarding.question.proof.label', { defaultValue: 'Na jakou zkušenost nebo výsledek jsi pyšný/á?' }),
+      placeholder: t('rebuild.onboarding.question.proof.placeholder', { defaultValue: 'Stačí konkrétní situace, projekt nebo problém, který jsi vyřešil/a.' }),
+    },
+  ] as const), [t]);
   const initialStep: WizardStep =
     onboarding.profile_review_completed_at
       ? 'review'
@@ -290,36 +289,42 @@ export const CandidateOnboardingWizard: React.FC<{
                   label={t('rebuild.onboarding.review_identity', { defaultValue: 'Jméno a kontakt' })}
                   value={[parsed.name || userProfile.name, parsed.phone || userProfile.phone].filter(Boolean).join(' · ')}
                   onChange={(checked) => setSelectedSections((current) => ({ ...current, identity: checked }))}
+                  t={t}
                 />
                 <ReviewSectionToggle
                   checked={selectedSections.headline}
                   label={t('rebuild.profile.job_title', { defaultValue: 'Role' })}
                   value={parsed.jobTitle || userProfile.jobTitle}
                   onChange={(checked) => setSelectedSections((current) => ({ ...current, headline: checked }))}
+                  t={t}
                 />
                 <ReviewSectionToggle
                   checked={selectedSections.skills}
                   label={t('rebuild.profile.skills', { defaultValue: 'Dovednosti' })}
                   value={listText(parsed.skills || userProfile.skills)}
                   onChange={(checked) => setSelectedSections((current) => ({ ...current, skills: checked }))}
+                  t={t}
                 />
                 <ReviewSectionToggle
                   checked={selectedSections.workHistory}
                   label={t('rebuild.profile.experience', { defaultValue: 'Zkušenosti' })}
                   value={(parsed.workHistory || userProfile.workHistory || []).map((item: any) => [item.role, item.company].filter(Boolean).join(' @ ')).filter(Boolean).slice(0, 3).join(', ')}
                   onChange={(checked) => setSelectedSections((current) => ({ ...current, workHistory: checked }))}
+                  t={t}
                 />
                 <ReviewSectionToggle
                   checked={selectedSections.education}
                   label={t('rebuild.profile.education', { defaultValue: 'Vzdělání' })}
                   value={(parsed.education || userProfile.education || []).map((item: any) => [item.degree, item.school].filter(Boolean).join(' · ')).filter(Boolean).slice(0, 3).join(', ')}
                   onChange={(checked) => setSelectedSections((current) => ({ ...current, education: checked }))}
+                  t={t}
                 />
                 <ReviewSectionToggle
                   checked={selectedSections.languages}
                   label={t('rebuild.profile.languages', { defaultValue: 'Jazyky' })}
                   value={(parsed.languages || userProfile.languages || []).map((item: any) => item.label || item.name).filter(Boolean).slice(0, 5).join(', ')}
                   onChange={(checked) => setSelectedSections((current) => ({ ...current, languages: checked }))}
+                  t={t}
                 />
               </div>
               <label className="mt-4 block rounded-lg border border-slate-200 bg-slate-50 p-4">
@@ -351,12 +356,12 @@ export const CandidateOnboardingWizard: React.FC<{
   );
 };
 
-const ReviewSectionToggle: React.FC<{ label: string; value?: string | null; checked: boolean; onChange: (checked: boolean) => void }> = ({ label, value, checked, onChange }) => (
+const ReviewSectionToggle: React.FC<{ label: string; value?: string | null; checked: boolean; onChange: (checked: boolean) => void; t: (key: string, options?: { defaultValue?: string } & Record<string, any>) => string }> = ({ label, value, checked, onChange, t }) => (
   <label className="flex gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
     <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="mt-1 h-4 w-4 shrink-0 accent-[#0f95ac]" />
     <span>
       <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">{label}</span>
-      <span className="mt-1 block min-h-5 break-words text-sm font-semibold text-slate-900">{value || 'Doplnit později'}</span>
+      <span className="mt-1 block min-h-5 break-words text-sm font-semibold text-slate-900">{value || t('rebuild.onboarding.review_missing', { defaultValue: 'Doplnit později' })}</span>
     </span>
   </label>
 );

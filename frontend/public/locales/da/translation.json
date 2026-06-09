@@ -5249,6 +5249,44 @@
       "ai_guide": "Ask Shami",
       "shami_profile_hint": "Pomůže doplnit profil a vybrat další krok."
     },
+    "onboarding": {
+      "answer_more": "Svar venligst på mindst to spørgsmål, så din profil har nok materiale.",
+      "failed": "Onboarding kunne ikke fuldføres.",
+      "profile_save_failed": "Profilen kunne ikke gemmes.",
+      "signin_title": "Først opretter vi din konto.",
+      "signin_copy": "Så guider vi dig gennem onboarding, valgfri CV-upload og profilgennemgang.",
+      "signin_cta": "Fortsæt registreringen",
+      "eyebrow": "Kandidat-onboarding",
+      "title": "Vi bygger din profil uden manuelt udfyldning.",
+      "story_title": "Først din arbejdsretning.",
+      "story_cta": "Vurdér onboarding",
+      "cv_title": "Upload dit CV valgfrit.",
+      "cv_copy": "AI vil udtrække erfaring, færdigheder, uddannelse og kontaktoplysninger. Du gennemgår det, før det gemmes.",
+      "cv_upload": "Upload CV",
+      "cv_skip": "Spring over og fortsæt",
+      "review_title": "Gennemse din profil.",
+      "review_identity": "Navn og kontakt",
+      "ai_summary": "AI-sammenfatning fra CV",
+      "no_cv_summary": "Profil uden CV",
+      "no_cv_summary_copy": "Du kan tilføje CV senere i din profil. For nu bruger vi dine onboarding-svar.",
+      "finish": "Fuldfør profil",
+      "back_to_cv": "Upload et andet CV",
+      "review_missing": "Udfyld senere",
+      "question": {
+        "work_direction": {
+          "label": "Hvilken type arbejde søger du lige nu?",
+          "placeholder": "For eksempel produktarbejde, drift, teknisk rolle, arbejde med mennesker..."
+        },
+        "energy": {
+          "label": "Hvad giver dig energi på arbejdet, og hvad hæmmer dig?",
+          "placeholder": "Beskriv miljø, tempo, ansvar, team- eller opgavetyper."
+        },
+        "proof": {
+          "label": "Hvilken erfaring eller hvilket resultat er du stolt af?",
+          "placeholder": "Del en konkret situation, et projekt eller et problem, du løste."
+        }
+      }
+    },
     "search_placeholder": "Search roles, firms and candidate signals",
     "profile_label": "Profile",
     "sign_out": "Sign out",

@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from 'react-i18next';
 
 export interface ChatThread {
   id: string;
@@ -12,18 +13,29 @@ interface CandidateChatSidebarProps {
   onSelectChat?: (id: string) => void;
 }
 
-const MOCK_CHATS: ChatThread[] = [
-  { id: "1", title: "Shami AI - Kariérní průvodce", lastMessageSnippet: "Ptejte se mě na práci nebo dovednosti!" },
-  { id: "2", title: "Shami Tipy a kroky", lastMessageSnippet: "Sestavil jsem pro vás plán rozvoje." },
-  { id: "3", title: "Starší konverzace", lastMessageSnippet: "Zeptejte se na další možnosti kariéry." }
-];
-
 export const CandidateChatSidebar: React.FC<CandidateChatSidebarProps> = ({
   userId,
   selectedChatId,
   onSelectChat
 }) => {
-  const chats = MOCK_CHATS; // později nahradit reálnými daty
+  const { t } = useTranslation();
+  const chats: ChatThread[] = [
+    {
+      id: "1",
+      title: t('rebuild.chat_sidebar.shami_title', { defaultValue: 'Shami AI – Career guide' }),
+      lastMessageSnippet: t('rebuild.chat_sidebar.shami_snippet', { defaultValue: 'Ask me about work or skills!' }),
+    },
+    {
+      id: "2",
+      title: t('rebuild.chat_sidebar.tips_title', { defaultValue: 'Shami Tips & next steps' }),
+      lastMessageSnippet: t('rebuild.chat_sidebar.tips_snippet', { defaultValue: 'I prepared a growth plan for you.' }),
+    },
+    {
+      id: "3",
+      title: t('rebuild.chat_sidebar.history_title', { defaultValue: 'Earlier conversation' }),
+      lastMessageSnippet: t('rebuild.chat_sidebar.history_snippet', { defaultValue: 'Ask about additional career possibilities.' }),
+    },
+  ];
 
   return (
     <aside className="h-full w-full max-w-xs p-4 pr-2 flex flex-col">

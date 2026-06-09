@@ -5246,16 +5246,64 @@
       "work": "Arbeid",
       "applications": "Søknader",
       "learning": "Læring",
-      "ai_guide_subtitle": "Your AI recruitment guide",
+      "ai_guide_subtitle": "Din AI-rekrutteringsguide",
       "help": "Hjelp",
       "sign_out": "Logg ut",
       "sign_in": "Logg inn",
-      "chat_with_shaman": "Ask Shami",
+      "chat_with_shaman": "Chat med Shami",
       "company": "Bedrift",
       "company_profile": "Bedriftsprofil",
       "self_knowledge": "Self-knowledge",
       "ai_guide": "Ask Shami",
-      "shami_profile_hint": "Pomůže doplnit profil a vybrat další krok."
+      "shami_profile_hint": "Hjelper deg å fylle ut profilen og velge neste steg."
+    },
+    "onboarding": {
+      "answer_more": "Fyll inn minst to svar slik at profilen har nok materiale.",
+      "failed": "Onboarding kunne ikke fullføres.",
+      "profile_save_failed": "Kunne ikke lagre profilen.",
+      "signin_title": "La oss lage kontoen din først.",
+      "signin_copy": "Deretter tar vi deg gjennom onboarding, valgfri CV-opplasting og profilgjennomgang.",
+      "signin_cta": "Fortsett med registrering",
+      "eyebrow": "Kandidat-onboarding",
+      "title": "Vi bygger profilen din uten manuell utfylling.",
+      "story_title": "Først jobbretningen din.",
+      "story_cta": "Vurder onboarding",
+      "cv_title": "Last opp CV-valgfritt.",
+      "cv_copy": "AI vil hente ut erfaring, ferdigheter, utdanning og kontaktinformasjon. Du får sjekke før lagring.",
+      "cv_upload": "Last opp CV",
+      "cv_skip": "Hopp over og fortsett",
+      "review_title": "Gå gjennom profilen din.",
+      "review_identity": "Navn og kontakt",
+      "ai_summary": "AI-sammendrag fra CV",
+      "no_cv_summary": "Profil uten CV",
+      "no_cv_summary_copy": "Du kan legge til CV senere i profilen din. Vi bruker onboarding-svarene dine foreløpig.",
+      "finish": "Fullfør profilen",
+      "back_to_cv": "Last opp en annen CV",
+      "review_missing": "Fyll inn senere",
+      "question": {
+        "work_direction": {
+          "label": "Hvilken type arbeid ser du etter nå?",
+          "placeholder": "For eksempel produktarbeid, drift, teknisk rolle, arbeid med mennesker..."
+        },
+        "energy": {
+          "label": "Hva gir deg energi på jobb, og hva holder deg tilbake?",
+          "placeholder": "Beskriv miljø, tempo, ansvar, team eller oppgavetyper."
+        },
+        "proof": {
+          "label": "Hvilken erfaring eller resultat er du stolt av?",
+          "placeholder": "Fortell om en konkret situasjon, prosjekt eller problem du løste."
+        }
+      }
+    },
+    "chat_sidebar": {
+      "heading": "Chattliste",
+      "shami_title": "Shami AI – Karriereguide",
+      "shami_snippet": "Spør meg om jobb eller ferdigheter!",
+      "tips_title": "Shami Tips og neste steg",
+      "tips_snippet": "Jeg har laget en utviklingsplan for deg.",
+      "history_title": "Tidligere samtale",
+      "history_snippet": "Spør om flere karrieremuligheter.",
+      "note": "Merk: Flersamtalesupport er under utvikling."
     },
     "search_placeholder": "Search roles, firms and candidate signals",
     "profile_label": "Profile",
@@ -6815,6 +6863,10 @@
       "mentor_suggestion_2": "Hva slags jobb bør jeg slutte å jage bare for pengenes skyld?",
       "mentor_suggestion_3": "Hva bør jeg gjøre i løpet av de neste 24 timene?",
       "mentor_error": "Shami svarte ikke akkurat nå.",
+      "mentor_ready": "Shami er klar. Skriv spørsmålet ditt...",
+      "mentor_send": "Send",
+      "mentor_new": "Ny chat",
+      "mentor_typing": "Shami skriver...",
       "auth_info_title": "Hva som lastes etter innlogging",
       "auth_info_profile": "Profil & CV-dokumenter",
       "auth_info_jhi": "Selvinnsikt, JHI & vekstkart",

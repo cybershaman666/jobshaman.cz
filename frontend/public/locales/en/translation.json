@@ -5359,7 +5359,55 @@
       "company_profile": "Company Profile",
       "self_knowledge": "Self-knowledge",
       "ai_guide": "Ask Shami",
-      "shami_profile_hint": "Pomůže doplnit profil a vybrat další krok."
+      "shami_profile_hint": "Helps fill out your profile and choose the next step."
+    },
+    "onboarding": {
+      "answer_more": "Please answer at least two questions so your profile has enough material.",
+      "failed": "Onboarding could not be completed.",
+      "profile_save_failed": "Profile could not be saved.",
+      "signin_title": "First, let's create your account.",
+      "signin_copy": "Then we’ll guide you through onboarding, optional CV upload, and profile review.",
+      "signin_cta": "Continue registration",
+      "eyebrow": "Candidate onboarding",
+      "title": "We’ll build your profile without manual filling.",
+      "story_title": "First, your work direction.",
+      "story_cta": "Evaluate onboarding",
+      "cv_title": "Upload your CV optionally.",
+      "cv_copy": "AI will extract experience, skills, education, and contact details. You will review before saving.",
+      "cv_upload": "Upload CV",
+      "cv_skip": "Skip and continue",
+      "review_title": "Review your profile.",
+      "review_identity": "Name and contact",
+      "ai_summary": "AI summary from CV",
+      "no_cv_summary": "Profile without CV",
+      "no_cv_summary_copy": "You can add a CV later in your profile. For now we’ll use your onboarding answers.",
+      "finish": "Complete profile",
+      "back_to_cv": "Upload a different CV",
+      "review_missing": "Fill in later",
+      "question": {
+        "work_direction": {
+          "label": "What type of work are you looking for now?",
+          "placeholder": "For example product work, operations, technical role, work with people..."
+        },
+        "energy": {
+          "label": "What gives you energy at work and what slows you down?",
+          "placeholder": "Describe environment, pace, responsibility, team or task types."
+        },
+        "proof": {
+          "label": "What experience or result are you proud of?",
+          "placeholder": "Share a specific situation, project, or problem you solved."
+        }
+      }
+    },
+    "chat_sidebar": {
+      "heading": "Chat list",
+      "shami_title": "Shami AI – Career guide",
+      "shami_snippet": "Ask me about work or skills!",
+      "tips_title": "Shami Tips & next steps",
+      "tips_snippet": "I prepared a growth plan for you.",
+      "history_title": "Earlier conversation",
+      "history_snippet": "Ask about additional career possibilities.",
+      "note": "Note: Multi-thread support is coming soon."
     },
     "search_placeholder": "Search roles, firms and candidate signals",
     "profile_label": "Profile",

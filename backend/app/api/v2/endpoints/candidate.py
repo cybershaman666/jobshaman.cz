@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 from app.core.security import AccessControlService
 from app.domains.identity.service import IdentityDomainService
+from app.domains.karma.service import ShamanKarmaService
 from app.services.subscription_access import fetch_latest_subscription_by, is_active_subscription
 
 router = APIRouter()
@@ -154,6 +155,15 @@ class RitualCompletionRequest(BaseModel):
     steps: List[RitualStep]
     language: Optional[str] = "cs"
 
+class CompanyReferralRequest(BaseModel):
+    companyName: str
+    websiteUrl: Optional[str] = None
+    contactEmail: Optional[str] = None
+    note: Optional[str] = None
+
+class KarmaRedemptionRequest(BaseModel):
+    rewardType: str
+
 
 def _current_user_has_premium(current_user: dict) -> bool:
     user_id = str(current_user.get("id") or "")
@@ -232,6 +242,56 @@ async def update_my_profile(
         "status": "success",
         "data": data,
     }
+
+@router.get("/karma/me")
+async def get_my_karma(current_user: dict = Depends(AccessControlService.get_current_user)):
+    domain_user = await IdentityDomainService.get_or_create_user_mirror(
+        supabase_id=current_user["id"],
+        email=current_user["email"],
+        role=current_user["role"],
+    )
+    return {"status": "success", "data": await ShamanKarmaService.get_account_summary(domain_user["id"])}
+
+@router.post("/referrals/company")
+async def create_company_referral(
+    payload: CompanyReferralRequest,
+    current_user: dict = Depends(AccessControlService.get_current_user),
+):
+    domain_user = await IdentityDomainService.get_or_create_user_mirror(
+        supabase_id=current_user["id"],
+        email=current_user["email"],
+        role=current_user["role"],
+    )
+    try:
+        referral = await ShamanKarmaService.create_company_referral(domain_user["id"], payload.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"status": "success", "data": referral}
+
+@router.get("/referrals/company")
+async def list_company_referrals(current_user: dict = Depends(AccessControlService.get_current_user)):
+    domain_user = await IdentityDomainService.get_or_create_user_mirror(
+        supabase_id=current_user["id"],
+        email=current_user["email"],
+        role=current_user["role"],
+    )
+    return {"status": "success", "data": await ShamanKarmaService.list_company_referrals(domain_user["id"])}
+
+@router.post("/karma/redeem")
+async def redeem_karma(
+    payload: KarmaRedemptionRequest,
+    current_user: dict = Depends(AccessControlService.get_current_user),
+):
+    domain_user = await IdentityDomainService.get_or_create_user_mirror(
+        supabase_id=current_user["id"],
+        email=current_user["email"],
+        role=current_user["role"],
+    )
+    try:
+        redemption = await ShamanKarmaService.redeem(domain_user["id"], payload.rewardType)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {"status": "success", "data": redemption}
 
 @router.get("/cv")
 async def list_my_cv_documents(current_user: dict = Depends(AccessControlService.get_current_user)):

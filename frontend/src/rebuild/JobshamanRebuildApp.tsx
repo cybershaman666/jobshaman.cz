@@ -44,6 +44,7 @@ import { uploadAndParseCv } from '../services/v2CvService';
 import { uploadV2Asset } from '../services/v2AssetService';
 import { trackJobInteraction } from '../services/jobInteractionService';
 import { getStaticCoordinates } from '../services/geocodingService';
+import { fetchKarmaSummary, redeemKarmaReward, submitCompanyReferral, type KarmaAccountSummary } from '../services/karmaService';
 import type {
   ApplicationMessageAttachment,
   CandidateDialogueCapacity,
@@ -107,6 +108,7 @@ import {
 import { AppBackdrop } from './ui/RebuildChrome';
 import { DashboardLayoutV2 } from './ui/DashboardLayoutV2';
 import { type RoleClusterId } from './candidate/MarketplaceV2';
+import type { CandidateSidebarSummary } from './ui/SidebarV2';
 import { initializeAnalytics } from '../services/cookieConsentService';
 import { CookieBanner } from './ui/CookieBanner';
 import {
@@ -257,6 +259,12 @@ const JobshamanRebuildApp: React.FC = () => {
   const [candidateApplicationMessageBusy, setCandidateApplicationMessageBusy] = React.useState(false);
   const [candidateApplicationWithdrawBusy, setCandidateApplicationWithdrawBusy] = React.useState(false);
   const [journeySubmitting, setJourneySubmitting] = React.useState(false);
+  const [karmaSummary, setKarmaSummary] = React.useState<KarmaAccountSummary | null>(null);
+  const [_karmaLoading, setKarmaLoading] = React.useState(false);
+  const [karmaSlotRedeeming, setKarmaSlotRedeeming] = React.useState(false);
+  const [referralModalOpen, setReferralModalOpen] = React.useState(false);
+  const [referralSubmitting, setReferralSubmitting] = React.useState(false);
+  const [referralDraft, setReferralDraft] = React.useState({ companyName: '', websiteUrl: '', contactEmail: '', note: '' });
   const [brandSaving, setBrandSaving] = React.useState(false);
   const [recruiterActivationBusy, setRecruiterActivationBusy] = React.useState(false);
   const [companyLookupBusy, setCompanyLookupBusy] = React.useState(false);
@@ -652,6 +660,47 @@ const JobshamanRebuildApp: React.FC = () => {
     };
   }, [userProfile.id, userProfile.isLoggedIn]);
 
+  const refreshKarmaSummary = React.useCallback(async () => {
+    const summary = await fetchKarmaSummary();
+    setKarmaSummary(summary);
+  }, []);
+
+  const handleSubmitReferral = React.useCallback(async () => {
+    if (!referralDraft.companyName.trim()) return;
+    setReferralSubmitting(true);
+    try {
+      await submitCompanyReferral({
+        companyName: referralDraft.companyName.trim(),
+        websiteUrl: referralDraft.websiteUrl.trim() || undefined,
+        contactEmail: referralDraft.contactEmail.trim() || undefined,
+        note: referralDraft.note.trim() || undefined,
+      });
+      setReferralDraft({ companyName: '', websiteUrl: '', contactEmail: '', note: '' });
+      setReferralModalOpen(false);
+      await refreshKarmaSummary();
+    } catch (error) {
+      console.error('Failed to submit company referral', error);
+    } finally {
+      setReferralSubmitting(false);
+    }
+  }, [referralDraft, refreshKarmaSummary]);
+
+  const handleRedeemSlot = React.useCallback(async () => {
+    if ((karmaSummary?.balance ?? 0) < (karmaSummary?.nextSlotCost ?? 250)) return;
+    setKarmaSlotRedeeming(true);
+    try {
+      await redeemKarmaReward('candidate_slot');
+      await Promise.all([
+        refreshKarmaSummary(),
+        fetchMyDialoguesWithCapacity(80).then((result) => setCandidateDialogueCapacity(result.candidateCapacity)),
+      ]);
+    } catch (error) {
+      console.error('Failed to redeem candidate slot', error);
+    } finally {
+      setKarmaSlotRedeeming(false);
+    }
+  }, [karmaSummary, refreshKarmaSummary]);
+
   React.useEffect(() => {
     if (candidateApplications.length === 0) {
       setSelectedCandidateApplicationId('');
@@ -795,6 +844,30 @@ const JobshamanRebuildApp: React.FC = () => {
     preferences.searchRadiusKm,
     preferences.taxProfile.countryCode,
   ]);
+
+  React.useEffect(() => {
+    if (!userProfile.isLoggedIn) {
+      setKarmaSummary(null);
+      return;
+    }
+    let active = true;
+    setKarmaLoading(true);
+    void fetchKarmaSummary()
+      .then((summary) => {
+        if (!active) return;
+        setKarmaSummary(summary);
+      })
+      .catch((error) => {
+        console.error('Failed to load Karma summary', error);
+        if (active) setKarmaSummary(null);
+      })
+      .finally(() => {
+        if (active) setKarmaLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [userProfile.id, userProfile.isLoggedIn]);
 
   React.useEffect(() => {
     if (!(route.kind === 'candidate-role' || route.kind === 'candidate-imported' || route.kind === 'candidate-journey')) return;
@@ -1060,7 +1133,35 @@ const JobshamanRebuildApp: React.FC = () => {
           : route.kind === 'candidate-role' || route.kind === 'candidate-imported'
             ? t('rebuild.candidate.role_analysis_desc', { defaultValue: 'Detailed role analysis and your personalized match.' })
             : t('rebuild.candidate.mission', { defaultValue: 'Každý má potenciál. Shami pomůže najít práci, kde dává smysl ho ukázat.' });
-  const renderCandidateWorkspace = (content: React.ReactNode) => (
+  const candidateSidebarSummary = React.useMemo<CandidateSidebarSummary | undefined>(() => {
+    if (!userProfile.isLoggedIn) return undefined;
+    const profileScore = Math.max(5, Math.min(100, [
+      userProfile.name,
+      userProfile.jobTitle,
+      userProfile.bio,
+      preferences.address,
+      Array.isArray(userProfile.skills) ? userProfile.skills.length > 2 : false,
+    ].filter(Boolean).length * 20));
+    const limit = candidateDialogueCapacity?.limit ?? 5;
+    const active = candidateDialogueCapacity?.active ?? 0;
+    const bonusSlotsAvailable = karmaSummary?.bonusSlotsAvailable ?? 0;
+    const slotsRemaining = candidateDialogueCapacity?.remaining ?? Math.max(0, limit - active);
+    return {
+      slotsRemaining,
+      slotsLimit: limit,
+      karmaBalance: karmaSummary?.balance ?? 0,
+      nextSlotCost: karmaSummary?.nextSlotCost ?? 250,
+      bonusSlotsAvailable,
+      profileScore,
+      onOpenReferral: () => setReferralModalOpen(true),
+      onRedeemSlot: () => {
+        void handleRedeemSlot();
+      },
+      redeemingSlot: karmaSlotRedeeming,
+    };
+  }, [candidateDialogueCapacity, handleRedeemSlot, karmaSlotRedeeming, karmaSummary, preferences.address, userProfile.bio, userProfile.isLoggedIn, userProfile.jobTitle, userProfile.name, userProfile.skills]);
+
+  const renderCandidateWorkspace = (content: React.ReactNode, extra?: { actionRegion?: React.ReactNode; title?: string; subtitle?: string; searchValue?: string; onSearchChange?: (val: string) => void; }) => (
     <DashboardLayoutV2
       userRole="candidate"
       navItems={candidateWorkspaceNavItems}
@@ -1072,8 +1173,12 @@ const JobshamanRebuildApp: React.FC = () => {
       onCompanySwitch={handleCompanySwitch}
       currentLanguage={i18n.language}
       onLanguageChange={(lang) => i18n.changeLanguage(lang)}
-      title={candidateWorkspaceTitle}
-      subtitle={candidateWorkspaceSubtitle}
+      title={extra?.title || candidateWorkspaceTitle}
+      subtitle={extra?.subtitle || candidateWorkspaceSubtitle}
+      searchValue={extra?.searchValue}
+      onSearchChange={extra?.onSearchChange}
+      actionRegion={extra?.actionRegion}
+      candidateSidebar={candidateSidebarSummary}
       t={t}
     >
       {content}
@@ -1977,6 +2082,44 @@ const JobshamanRebuildApp: React.FC = () => {
           </div>
         )}
 
+        {referralModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 backdrop-blur-sm">
+            <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-[#0f95ac]">
+                    {t('rebuild.sidebar.refer_company', { defaultValue: 'Doporuč nám firmu' })}
+                  </div>
+                  <h2 className="mt-2 text-xl font-black text-slate-950 dark:text-slate-100">
+                    {t('rebuild.sidebar.referral_modal_title', { defaultValue: 'Přidej firmu do karmické ekonomiky' })}
+                  </h2>
+                  <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                    {t('rebuild.sidebar.referral_modal_copy', { defaultValue: 'Karma přijde až po ověření firmy. Tady je jen začátek doporučení.' })}
+                  </p>
+                </div>
+                <button type="button" onClick={() => setReferralModalOpen(false)} className="rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200">
+                  <span className="text-xl leading-none">×</span>
+                </button>
+              </div>
+              <div className="mt-5 grid gap-3">
+                <input value={referralDraft.companyName} onChange={(e) => setReferralDraft((current) => ({ ...current, companyName: e.target.value }))} placeholder={t('rebuild.sidebar.company_name', { defaultValue: 'Firma' })} className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-[#12afcb] dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
+                <input value={referralDraft.websiteUrl} onChange={(e) => setReferralDraft((current) => ({ ...current, websiteUrl: e.target.value }))} placeholder={t('rebuild.sidebar.website', { defaultValue: 'Web nebo doména' })} className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-[#12afcb] dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
+                <input value={referralDraft.contactEmail} onChange={(e) => setReferralDraft((current) => ({ ...current, contactEmail: e.target.value }))} placeholder={t('rebuild.sidebar.contact_email', { defaultValue: 'Kontaktní e-mail' })} className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-[#12afcb] dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
+                <textarea value={referralDraft.note} onChange={(e) => setReferralDraft((current) => ({ ...current, note: e.target.value }))} placeholder={t('rebuild.sidebar.note', { defaultValue: 'Co je na firmě zajímavé?' })} className="min-h-28 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#12afcb] dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
+              </div>
+              <div className="mt-5 flex items-center justify-between gap-3">
+                <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                  {t('rebuild.sidebar.reward_after_verification', { defaultValue: '100 Karma po ověření' })}
+                </div>
+                <button type="button" onClick={() => void handleSubmitReferral()} disabled={referralSubmitting || !referralDraft.companyName.trim()} className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#0f95ac] px-5 text-sm font-black text-white transition hover:bg-[#087f95] disabled:cursor-not-allowed disabled:bg-slate-300">
+                  {referralSubmitting ? <Loader2 size={16} className="animate-spin" /> : null}
+                  {referralSubmitting ? t('rebuild.actions.saving', { defaultValue: 'Ukládám' }) : t('rebuild.actions.submit', { defaultValue: 'Odeslat' })}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <React.Suspense fallback={
           <div className="flex min-h-[60vh] w-full items-center justify-center">
             <div className="flex flex-col items-center gap-4">
@@ -1992,35 +2135,41 @@ const JobshamanRebuildApp: React.FC = () => {
         }>
 
         {route.kind === 'marketplace' ? (
-          <MarketplaceV2
-            roles={roleLibrary}
-            sections={marketplaceSections}
-            loading={marketplaceLoading}
-            hasMore={marketplaceHasMore}
-            totalCount={marketplaceTotalCount}
-            userProfile={userProfile}
-            preferences={preferences}
-            filters={marketplaceFilters}
-            searchValue={marketplaceQuery}
-            onSearchChange={setMarketplaceQuery}
-            onFiltersChange={setMarketplaceFilters}
-            onResetFilters={() => {
-              setMarketplaceQuery('');
-              setMarketplaceFilters(buildDefaultMarketplaceFilters(preferences));
-            }}
-            savedRoleIds={savedJobIds}
-            candidateApplications={candidateApplications}
-            onSignOut={handleSignOutToCompanyEntry}
-            onCompanySwitch={handleCompanySwitch}
-            onLoadMore={handleMarketplaceLoadMore}
-            onLoadMoreCategory={handleMarketplaceCategoryLoadMore}
-            onToggleSavedRole={handleToggleSavedRole}
-            loadingCategoryId={marketplaceCategoryLoading}
-            currentLanguage={i18n.language}
-            onLanguageChange={(lang) => i18n.changeLanguage(lang)}
-            navigate={navigate}
-            t={t}
-          />
+          renderCandidateWorkspace(
+            <MarketplaceV2
+              roles={roleLibrary}
+              sections={marketplaceSections}
+              loading={marketplaceLoading}
+              hasMore={marketplaceHasMore}
+              totalCount={marketplaceTotalCount}
+              userProfile={userProfile}
+              preferences={preferences}
+              filters={marketplaceFilters}
+              searchValue={marketplaceQuery}
+              onSearchChange={setMarketplaceQuery}
+              onFiltersChange={setMarketplaceFilters}
+              onResetFilters={() => {
+                setMarketplaceQuery('');
+                setMarketplaceFilters(buildDefaultMarketplaceFilters(preferences));
+              }}
+              savedRoleIds={savedJobIds}
+              candidateApplications={candidateApplications}
+              onSignOut={handleSignOutToCompanyEntry}
+              onCompanySwitch={handleCompanySwitch}
+              onLoadMore={handleMarketplaceLoadMore}
+              onLoadMoreCategory={handleMarketplaceCategoryLoadMore}
+              onToggleSavedRole={handleToggleSavedRole}
+              loadingCategoryId={marketplaceCategoryLoading}
+              currentLanguage={i18n.language}
+              onLanguageChange={(lang) => i18n.changeLanguage(lang)}
+              navigate={navigate}
+              t={t}
+            />,
+            {
+              title: t('rebuild.marketplace.header_title', { defaultValue: 'Marketplace práce' }),
+              subtitle: t('rebuild.marketplace.header_subtitle', { defaultValue: 'Procházej nabídky, uprav filtry a otevírej jen ty role, které dávají smysl.' }),
+            },
+          )
         ) : null}
 
         {route.kind === 'public' && route.page === 'home' ? (

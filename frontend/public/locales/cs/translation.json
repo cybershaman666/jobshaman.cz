@@ -5361,6 +5361,54 @@
       "ai_guide": "Zeptej se Shamiho",
       "shami_profile_hint": "Pomůže doplnit profil a vybrat další krok."
     },
+    "onboarding": {
+      "answer_more": "Vyplň prosím alespoň dvě odpovědi, ať má profil z čeho vycházet.",
+      "failed": "Onboarding se nepodařilo dokončit.",
+      "profile_save_failed": "Profil se nepodařilo uložit.",
+      "signin_title": "Nejdřív vytvoříme účet.",
+      "signin_copy": "Pak tě provedeme onboardingem, volitelným CV a kontrolou profilu.",
+      "signin_cta": "Pokračovat registrací",
+      "eyebrow": "Kandidátský onboarding",
+      "title": "Postavíme profil bez ručního vyplňování.",
+      "story_title": "Nejdřív pracovní směr.",
+      "story_cta": "Vyhodnotit onboarding",
+      "cv_title": "Volitelně nahraj CV.",
+      "cv_copy": "AI z něj vytáhne zkušenosti, dovednosti, vzdělání a kontaktní údaje. Před uložením vše zkontroluješ.",
+      "cv_upload": "Nahrát CV",
+      "cv_skip": "Přeskočit a pokračovat",
+      "review_title": "Zkontroluj profil.",
+      "review_identity": "Jméno a kontakt",
+      "ai_summary": "AI shrnutí z CV",
+      "no_cv_summary": "Profil bez CV",
+      "no_cv_summary_copy": "CV můžeš doplnit později v profilu. Zatím použijeme odpovědi z onboardingu.",
+      "finish": "Dokončit profil",
+      "back_to_cv": "Nahrát jiné CV",
+      "review_missing": "Doplnit později",
+      "question": {
+        "work_direction": {
+          "label": "Jaký typ práce teď hledáš?",
+          "placeholder": "Např. produktová práce, operations, technická role, práce s lidmi..."
+        },
+        "energy": {
+          "label": "Co ti v práci dodává energii a co tě naopak brzdí?",
+          "placeholder": "Popiš prostředí, tempo, odpovědnost, tým nebo typ úkolů."
+        },
+        "proof": {
+          "label": "Na jakou zkušenost nebo výsledek jsi pyšný/á?",
+          "placeholder": "Stačí konkrétní situace, projekt nebo problém, který jsi vyřešil/a."
+        }
+      }
+    },
+    "chat_sidebar": {
+      "heading": "Seznam chatů",
+      "shami_title": "Shami AI – Kariérní průvodce",
+      "shami_snippet": "Ptejte se mě na práci nebo dovednosti!",
+      "tips_title": "Shami Tipy a kroky",
+      "tips_snippet": "Sestavil jsem pro vás plán rozvoje.",
+      "history_title": "Starší konverzace",
+      "history_snippet": "Zeptejte se na další možnosti kariéry.",
+      "note": "Poznámka: Podpora více chatů je ve vývoji."
+    },
     "search_placeholder": "Hledej role, firmy a kandidátské signály",
     "profile_label": "Profil",
     "sign_out": "Odhlásit se",
@@ -6228,7 +6276,16 @@
       "hero_level_expert": "Expert",
       "you": "ty",
       "load_more_count": "Zobrazit dalších {{count}} nabídek",
-      "load_next_from_db": "Načíst dalších {{count}} z databáze"
+      "load_next_from_db": "Načíst dalších {{count}} z databáze",
+      "sort_by_match": "Podle match %",
+      "sort_by_salary": "Podle platu",
+      "sort_by_distance": "Podle vzdálenosti",
+      "sort_by_recent": "Nejnovější",
+      "showing_results": "Zobrazuji {{from}}-{{to}} z {{total}}",
+      "prev": "Předchozí",
+      "next": "Další",
+      "no_table_results": "Žádné nabídky k zobrazení",
+      "search_placeholder": "Hledej v marketplace..."
     },
     "status": {
       "in_review": "V recenzí",

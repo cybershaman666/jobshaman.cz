@@ -7,6 +7,7 @@ from app.domains.identity.models import CandidateJcfpmSnapshot, CandidateProfile
 from app.domains.reality.models import CompanyUser, Job
 from app.domains.reality.service import RealityDomainService
 from app.domains.identity.service import IdentityDomainService
+from app.domains.karma.service import ShamanKarmaService
 from app.domains.recommendation.learning import LifecycleBackprop
 from typing import List, Optional, Dict, Any
 import uuid
@@ -244,6 +245,13 @@ class HandshakeDomainService:
                 "type": "handshake",
                 "link": f"/candidate/journey/{handshake.job_id}"
             })
+            await ShamanKarmaService.award_once(
+                user_id,
+                "handshake_completed",
+                "handshake",
+                str(handshake.id),
+                {"job_id": handshake.job_id, "status": handshake.status},
+            )
             
             return await HandshakeDomainService._hydrate_handshake_response(session, handshake)
 
@@ -337,6 +345,14 @@ class HandshakeDomainService:
                     from_status=previous_status,
                     to_status=status
                 )
+                if status in {"completed", "mutual_handshake"}:
+                    await ShamanKarmaService.award_once(
+                        str(handshake.user_id),
+                        "handshake_completed",
+                        "handshake",
+                        str(handshake.id),
+                        {"job_id": handshake.job_id, "status": status},
+                    )
                 
                 # Notify candidate about status change
                 status_labels = {
@@ -410,6 +426,14 @@ class HandshakeDomainService:
             await session.commit()
             await session.refresh(handshake)
         if candidate_user_id:
+            if next_status == "mutual_handshake":
+                await ShamanKarmaService.award_once(
+                    candidate_user_id,
+                    "handshake_completed",
+                    "handshake",
+                    handshake_id,
+                    {"job_id": job_id, "status": next_status},
+                )
             await IdentityDomainService.create_notification(candidate_user_id, {
                 "title": "Firma rozhodla o handshaku",
                 "content": "Firma posunula tvůj handshake do dalšího stavu.",
@@ -434,6 +458,8 @@ class HandshakeDomainService:
             capacity = _safe_dict(job.get("capacity_policy")) or _safe_dict(_safe_dict(job.get("payload_json")).get("capacity_policy"))
             candidate_limit = int(capacity.get("candidate_active_limit") or 5)
             company_limit = int(capacity.get("max_active_handshakes") or capacity.get("company_slots_total") or 25)
+            bonus_slots = await ShamanKarmaService.get_available_bonus_slots(user_id, session)
+            candidate_limit_with_bonus = candidate_limit + bonus_slots
             candidate_result = await session.execute(
                 select(SlotReservation).where(
                     SlotReservation.scope == "candidate",
@@ -459,7 +485,7 @@ class HandshakeDomainService:
             existing = existing_result.scalars().first()
             candidate_used = len(candidate_result.scalars().all())
             company_used = len(company_result.scalars().all())
-            candidate_remaining = max(0, candidate_limit - candidate_used)
+            candidate_remaining = max(0, candidate_limit_with_bonus - candidate_used)
             company_remaining = max(0, company_limit - company_used)
             reason = None
             if not existing and candidate_remaining <= 0:
@@ -474,7 +500,9 @@ class HandshakeDomainService:
                 "existing_handshake_id": str(existing.id) if existing else None,
                 "candidate": {
                     "active": candidate_used,
-                    "limit": candidate_limit,
+                    "limit": candidate_limit_with_bonus,
+                    "base_limit": candidate_limit,
+                    "bonus_slots": bonus_slots,
                     "remaining": candidate_remaining,
                 },
                 "company_challenge": {
@@ -831,6 +859,8 @@ class HandshakeDomainService:
             capacity = _safe_dict(payload.get("capacity_policy"))
         candidate_limit = int(capacity.get("candidate_active_limit") or 5)
         company_limit = int(capacity.get("max_active_handshakes") or capacity.get("company_slots_total") or 25)
+        bonus_slots = await ShamanKarmaService.get_available_bonus_slots(str(user_id), session)
+        candidate_limit_with_bonus = candidate_limit + bonus_slots
 
         candidate_count = await session.execute(
             select(SlotReservation).where(
@@ -839,7 +869,8 @@ class HandshakeDomainService:
                 SlotReservation.status == "reserved",
             )
         )
-        if len(candidate_count.scalars().all()) >= candidate_limit:
+        candidate_active_count = len(candidate_count.scalars().all())
+        if candidate_active_count >= candidate_limit_with_bonus:
             raise ValueError("Candidate has no available handshake slots.")
 
         company_count = await session.execute(
@@ -853,13 +884,22 @@ class HandshakeDomainService:
         if len(company_count.scalars().all()) >= company_limit:
             raise ValueError("Company challenge has no available handshake slots.")
 
+        consumed_bonus_slot_id = None
+        if candidate_active_count >= candidate_limit:
+            consumed_bonus_slot_id = await ShamanKarmaService.consume_bonus_slot(str(user_id), session, handshake_id)
+
         session.add(SlotReservation(
             scope="candidate",
             owner_id=user_id,
             opportunity_id=opportunity_id,
             handshake_id=handshake_id,
             status="reserved",
-            slot_metadata={"limit": candidate_limit},
+            slot_metadata={
+                "limit": candidate_limit_with_bonus,
+                "base_limit": candidate_limit,
+                "bonus_slots": bonus_slots,
+                "bonus_slot_redemption_id": consumed_bonus_slot_id,
+            },
         ))
         session.add(SlotReservation(
             scope="company_challenge",
@@ -874,7 +914,13 @@ class HandshakeDomainService:
             actor_user_id=user_id,
             actor_type="system",
             event_type="slots_reserved",
-            payload={"candidate_limit": candidate_limit, "company_limit": company_limit},
+            payload={
+                "candidate_limit": candidate_limit_with_bonus,
+                "candidate_base_limit": candidate_limit,
+                "candidate_bonus_slots": bonus_slots,
+                "company_limit": company_limit,
+                "bonus_slot_redemption_id": consumed_bonus_slot_id,
+            },
         ))
 
     @staticmethod
@@ -887,6 +933,10 @@ class HandshakeDomainService:
         )
         now = datetime.utcnow()
         for reservation in result.scalars().all():
+            if status == "released" and reservation.scope == "candidate":
+                redemption_id = _safe_dict(reservation.slot_metadata).get("bonus_slot_redemption_id")
+                if redemption_id:
+                    await ShamanKarmaService.release_bonus_slot(session, str(redemption_id))
             reservation.status = status
             if status == "consumed":
                 reservation.consumed_at = now
