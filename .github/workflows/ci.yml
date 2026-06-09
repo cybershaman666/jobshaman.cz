@@ -47,3 +47,4 @@ jobs:
           SUPABASE_URL: "https://placeholder.supabase.co"
           SUPABASE_KEY: "placeholder"
           SUPABASE_JWT_SECRET: "placeholder-jwt-secret-32-chars-min"
+          JWT_SECRET: "placeholder-jwt-secret-32-chars-min"
