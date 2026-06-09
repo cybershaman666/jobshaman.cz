@@ -5444,6 +5444,44 @@
       "ai_guide": "Ask Shami",
       "shami_profile_hint": "Pomůže doplnit profil a vybrat další krok."
     },
+    "onboarding": {
+      "answer_more": "Bitte beantworte mindestens zwei Fragen, damit dein Profil genug Material hat.",
+      "failed": "Onboarding konnte nicht abgeschlossen werden.",
+      "profile_save_failed": "Profil konnte nicht gespeichert werden.",
+      "signin_title": "Zuerst erstellen wir dein Konto.",
+      "signin_copy": "Danach führen wir dich durch Onboarding, optionales Lebenslauf-Upload und Profilprüfung.",
+      "signin_cta": "Registrierung fortsetzen",
+      "eyebrow": "Kandidaten-Onboarding",
+      "title": "Wir bauen dein Profil ohne manuelles Ausfüllen.",
+      "story_title": "Zuerst deine berufliche Ausrichtung.",
+      "story_cta": "Onboarding bewerten",
+      "cv_title": "Lade optional deinen Lebenslauf hoch.",
+      "cv_copy": "KI extrahiert Erfahrung, Fähigkeiten, Ausbildung und Kontaktdaten. Du überprüfst alles vor dem Speichern.",
+      "cv_upload": "Lebenslauf hochladen",
+      "cv_skip": "Überspringen und fortfahren",
+      "review_title": "Überprüfe dein Profil.",
+      "review_identity": "Name und Kontakt",
+      "ai_summary": "KI-Zusammenfassung aus Lebenslauf",
+      "no_cv_summary": "Profil ohne Lebenslauf",
+      "no_cv_summary_copy": "Du kannst später im Profil einen Lebenslauf hinzufügen. Für jetzt nutzen wir deine Onboarding-Antworten.",
+      "finish": "Profil vervollständigen",
+      "back_to_cv": "Anderen Lebenslauf hochladen",
+      "review_missing": "Später ausfüllen",
+      "question": {
+        "work_direction": {
+          "label": "Welche Art von Arbeit suchst du gerade?",
+          "placeholder": "Zum Beispiel Produktarbeit, Operations, technische Rolle, Arbeit mit Menschen..."
+        },
+        "energy": {
+          "label": "Was gibt dir Energie bei der Arbeit und was bremst dich?",
+          "placeholder": "Beschreibe Umfeld, Tempo, Verantwortung, Team- oder Aufgabentypen."
+        },
+        "proof": {
+          "label": "Auf welche Erfahrung oder welches Ergebnis bist du stolz?",
+          "placeholder": "Teile eine konkrete Situation, ein Projekt oder ein Problem, das du gelöst hast."
+        }
+      }
+    },
     "search_placeholder": "Rollen, Firmen und Kandidatensignale suchen",
     "profile_label": "Profil",
     "sign_out": "Abmelden",

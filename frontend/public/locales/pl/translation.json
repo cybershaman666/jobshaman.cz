@@ -6511,6 +6511,44 @@
       "ai_guide": "Zapytaj Shami",
       "shami_profile_hint": "Pomůže doplnit profil a vybrat další krok."
     },
+    "onboarding": {
+      "answer_more": "Proszę odpowiedzieć na przynajmniej dwa pytania, aby twój profil miał wystarczająco dużo materiału.",
+      "failed": "Nie udało się ukończyć onboardingu.",
+      "profile_save_failed": "Nie udało się zapisać profilu.",
+      "signin_title": "Najpierw załóż konto.",
+      "signin_copy": "Następnie poprowadzimy Cię przez onboarding, opcjonalne przesłanie CV i przegląd profilu.",
+      "signin_cta": "Kontynuuj rejestrację",
+      "eyebrow": "Onboarding kandydata",
+      "title": "Zbudujemy Twój profil bez ręcznego wypełniania.",
+      "story_title": "Najpierw Twoja ścieżka zawodowa.",
+      "story_cta": "Oceń onboarding",
+      "cv_title": "Prześlij CV opcjonalnie.",
+      "cv_copy": "Sztuczna inteligencja wyciągnie doświadczenie, umiejętności, wykształcenie i dane kontaktowe. Przejrzysz je przed zapisaniem.",
+      "cv_upload": "Prześlij CV",
+      "cv_skip": "Pomiń i kontynuuj",
+      "review_title": "Przejrzyj swój profil.",
+      "review_identity": "Imię i kontakt",
+      "ai_summary": "Podsumowanie AI z CV",
+      "no_cv_summary": "Profil bez CV",
+      "no_cv_summary_copy": "Możesz dodać CV później w swoim profilu. Na razie użyjemy Twoich odpowiedzi z onboardingu.",
+      "finish": "Ukończ profil",
+      "back_to_cv": "Prześlij inne CV",
+      "review_missing": "Wypełnić później",
+      "question": {
+        "work_direction": {
+          "label": "Jakiego rodzaju pracy teraz szukasz?",
+          "placeholder": "Na przykład praca produktowa, operacyjna, techniczna, praca z ludźmi..."
+        },
+        "energy": {
+          "label": "Co daje Ci energię w pracy, a co Cię hamuje?",
+          "placeholder": "Opisz środowisko, tempo, odpowiedzialność, typy zespołu lub zadań."
+        },
+        "proof": {
+          "label": "Z jakiego doświadczenia lub wyniku jesteś dumny?",
+          "placeholder": "Opisz konkretną sytuację, projekt lub problem, który rozwiązałeś."
+        }
+      }
+    },
     "search_placeholder": "Search roles, firms and candidate signals",
     "profile_label": "Profile",
     "sign_out": "Sign out",

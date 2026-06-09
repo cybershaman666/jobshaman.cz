@@ -5387,6 +5387,44 @@
       "ai_guide": "Zeptej se Shamiho",
       "shami_profile_hint": "Pomůže doplnit profil a vybrat další krok."
     },
+    "onboarding": {
+      "answer_more": "Prosím odpovedz na aspoň dve otázky, aby mal tvoj profil dostatok materiálu.",
+      "failed": "Onboarding sa nepodarilo dokončiť.",
+      "profile_save_failed": "Profil sa nepodarilo uložiť.",
+      "signin_title": "Najprv si vytvoríme účet.",
+      "signin_copy": "Potom ťa prevedieme onboardingom, voliteľným nahratím životopisu a kontrolou profilu.",
+      "signin_cta": "Pokračovať v registrácii",
+      "eyebrow": "Onboarding kandidáta",
+      "title": "Vytvoríme tvoj profil bez manuálneho vypĺňania.",
+      "story_title": "Najskôr tvoj smer práce.",
+      "story_cta": "Vyhodnotiť onboarding",
+      "cv_title": "Nahraj svoj životopis voliteľne.",
+      "cv_copy": "AI vyextrahuje skúsenosti, zručnosti, vzdelanie a kontaktné údaje. Skontroluješ to pred uložením.",
+      "cv_upload": "Nahrať životopis",
+      "cv_skip": "Preskočiť a pokračovať",
+      "review_title": "Skontroluj svoj profil.",
+      "review_identity": "Meno a kontakt",
+      "ai_summary": "Súhrn AI z životopisu",
+      "no_cv_summary": "Profil bez životopisu",
+      "no_cv_summary_copy": "Životopis môžeš pridať neskôr vo svojom profile. Zatiaľ použijeme tvoje odpovede z onboardingu.",
+      "finish": "Dokončiť profil",
+      "back_to_cv": "Nahrať iný životopis",
+      "review_missing": "Doplniť neskôr",
+      "question": {
+        "work_direction": {
+          "label": "Aký typ práce teraz hľadáš?",
+          "placeholder": "Napríklad produktovú prácu, operations, technickú rolu, prácu s ľuďmi..."
+        },
+        "energy": {
+          "label": "Čo ti prináša energiu v práci a čo ťa spomaľuje?",
+          "placeholder": "Opíš prostredie, tempo, zodpovednosť, typ tímu alebo úloh."
+        },
+        "proof": {
+          "label": "Na akú skúsenosť alebo výsledok si hrdý?",
+          "placeholder": "Zdieľ konkrétnu situáciu, projekt alebo problém, ktorý si vyriešil."
+        }
+      }
+    },
     "search_placeholder": "Hľadať roly, firmy a kandidátske signály",
     "profile_label": "Profil",
     "sign_out": "Odhlásiť sa",

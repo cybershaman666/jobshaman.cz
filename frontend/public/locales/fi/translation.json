@@ -5267,16 +5267,64 @@
       "work": "Työ",
       "applications": "Hakemukset",
       "learning": "Oppiminen",
-      "ai_guide_subtitle": "Your AI recruitment guide",
+      "ai_guide_subtitle": "AI-rekrytointiohjaajasi",
       "help": "Apua",
       "sign_out": "Kirjaudu ulos",
       "sign_in": "Kirjaudu sisään",
-      "chat_with_shaman": "Ask Shami",
+      "chat_with_shaman": "Chattaa Shamin kanssa",
       "company": "Yritys",
       "company_profile": "Yritysprofiili",
       "self_knowledge": "Self-knowledge",
       "ai_guide": "Ask Shami",
-      "shami_profile_hint": "Pomůže doplnit profil a vybrat další krok."
+      "shami_profile_hint": "Auttaa täydentämään profiilin ja valitsemaan seuraavan askeleen."
+    },
+    "onboarding": {
+      "answer_more": "Vastaa vähintään kahteen kysymykseen, jotta profiilissa on tarpeeksi pohjaa.",
+      "failed": "Onboardingin suorittaminen epäonnistui.",
+      "profile_save_failed": "Profiilia ei voitu tallentaa.",
+      "signin_title": "Luo ensin tilisi.",
+      "signin_copy": "Sitten ohjaamme sinut läpi onboardingin, valinnaisen CV-latauksen ja profiilin tarkistuksen.",
+      "signin_cta": "Jatka rekisteröitymistä",
+      "eyebrow": "Ehdokas-onboarding",
+      "title": "Rakennamme profiilisi ilman manuaalista täyttöä.",
+      "story_title": "Aloitetaan urasuunta.",
+      "story_cta": "Arvioi onboarding",
+      "cv_title": "Lataa CV vapaaehtoisesti.",
+      "cv_copy": "AI poimii siitä kokemuksen, taidot, koulutuksen ja yhteystiedot. Tarkistat kaiken ennen tallennusta.",
+      "cv_upload": "Lataa CV",
+      "cv_skip": "Ohita ja jatka",
+      "review_title": "Tarkista profiilisi.",
+      "review_identity": "Nimi ja yhteystiedot",
+      "ai_summary": "AI-yhteenveto CV:stä",
+      "no_cv_summary": "Profiili ilman CV:tä",
+      "no_cv_summary_copy": "Voit lisätä CV:n myöhemmin profiiliisi. Käytämme tähän mennessä onboarding-vastauksia.",
+      "finish": "Viimeistele profiili",
+      "back_to_cv": "Lataa toinen CV",
+      "review_missing": "Täydennä myöhemmin",
+      "question": {
+        "work_direction": {
+          "label": "Minkälaista työtä etsit nyt?",
+          "placeholder": "Esimerkiksi tuotehallintaa, operaatioita, teknistä roolia tai ihmisläheistä työtä..."
+        },
+        "energy": {
+          "label": "Mikä antaa sinulle energiaa työssä ja mikä hidastaa?",
+          "placeholder": "Kuvaile ympäristöä, tahtia, vastuuta, tiimiä tai tehtävän tyyppiä."
+        },
+        "proof": {
+          "label": "Mistä kokemuksesta tai saavutuksesta olet ylpeä?",
+          "placeholder": "Kuvaile konkreettista tilannetta, projektia tai ongelmaa, jonka ratkaisit."
+        }
+      }
+    },
+    "chat_sidebar": {
+      "heading": "Chat-luettelo",
+      "shami_title": "Shami AI – Uravalmentaja",
+      "shami_snippet": "Kysy minulta työstä tai taidoista!",
+      "tips_title": "Shami Vinkit ja seuraavat askeleet",
+      "tips_snippet": "Laadin sinulle kehityssuunnitelman.",
+      "history_title": "Aikaisempi keskustelu",
+      "history_snippet": "Kysy lisää uramahdollisuuksista.",
+      "note": "Huomautus: Monikeskustelutuki on tulossa." 
     },
     "search_placeholder": "Search roles, firms and candidate signals",
     "profile_label": "Profile",
@@ -7040,6 +7088,10 @@
       "mentor_suggestion_2": "Millaista työtä minun pitäisi lakata jahtaamasta vain rahan takia?",
       "mentor_suggestion_3": "Mitä minun pitäisi tehdä seuraavan 24 tunnin aikana?",
       "mentor_error": "Cybershamaani ei vastannut juuri nyt.",
+      "mentor_ready": "Shami on valmis. Kirjoita kysymyksesi...",
+      "mentor_send": "Lähetä",
+      "mentor_new": "Uusi chat",
+      "mentor_typing": "Shami kirjoittaa...",
       "auth_info_title": "Mitä latautuu kirjautumisen jälkeen",
       "auth_info_profile": "Profiili ja CV-asiakirjat",
       "auth_info_jhi": "Itsetuntemus, JHI ja kasvukartta",

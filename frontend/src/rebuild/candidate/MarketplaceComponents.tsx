@@ -26,6 +26,27 @@ const formatRoleSalary = (role: Role, t: any) => {
   return `${from}${to} ${role.currency}`;
 };
 
+const PLACEHOLDER_IMAGES = [
+  'https://images.unsplash.com/photo-1552664730-d307ca884978?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1565043666747-1e4e66cd137d?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1531482615713-2afd69097998?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=1000&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1000&auto=format&fit=crop&q=80',
+];
+
+const getPlaceholderImage = (role: Role): string => {
+  const key = String(role.heroImage || role.companyName || role.title || role.id || '');
+  let hash = 0;
+  for (let i = 0; i < key.length; i += 1) {
+    // simple hash
+    hash = ((hash << 5) - hash) + key.charCodeAt(i);
+    hash |= 0;
+  }
+  const idx = Math.abs(hash) % PLACEHOLDER_IMAGES.length;
+  return PLACEHOLDER_IMAGES[idx];
+};
+
 export const QuickActionButtons: React.FC<{
   activeAction?: string;
   onAction?: (actionId: string) => void;
@@ -125,7 +146,7 @@ export const FeaturedRoleCard: React.FC<{
 
         <div className="relative h-64 lg:h-auto lg:w-[40%] overflow-hidden">
           <img
-            src={role.heroImage || "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=1000&auto=format&fit=crop"}
+            src={role.heroImage || role.companyCoverImage || getPlaceholderImage(role)}
             className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
             alt=""
           />
