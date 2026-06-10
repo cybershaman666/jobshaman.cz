@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '../cn';
 import { BrandMark, ThemeToggle } from './RebuildChrome';
-import { LogOut, HelpCircle, Sparkles, LogIn, ArrowUpRight, Gift, Zap } from 'lucide-react';
+import { LogOut, HelpCircle, LogIn, Gift, Zap, Star } from 'lucide-react';
 import { UserProfile } from '../../types';
 import { useRebuildTheme } from './rebuildTheme';
 
@@ -24,6 +24,21 @@ export interface CandidateSidebarSummary {
   onOpenReferral?: () => void;
   onRedeemSlot?: () => void;
 }
+
+const KarmaBar: React.FC<{ balance: number; maxKarma: number; className?: string }> = ({ balance, maxKarma, className }) => {
+  const pct = Math.min(100, Math.max(0, (balance / maxKarma) * 100));
+  return (
+    <div className={cn('flex items-center gap-2', className)}>
+      <div className="flex-1 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-[#12afcb] to-[#0f95ac] transition-all duration-500"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 shrink-0">{balance}/{maxKarma}</span>
+    </div>
+  );
+};
 
 export const SidebarV2: React.FC<{
   userRole: 'candidate' | 'recruiter';
@@ -54,17 +69,17 @@ export const SidebarV2: React.FC<{
     )}>
       <div className="flex h-full min-h-0 flex-col">
         <div className={cn(
-          'flex items-center justify-between px-3.5 pb-4 pt-5',
+          'flex items-center justify-center px-3.5 pb-3 pt-5',
         )}>
-          <button type="button" onClick={() => onNavigate(navItems[0]?.id, navItems[0]?.path)} className="text-left outline-none">
-            <BrandMark subtitle={userRole === 'recruiter' ? undefined : undefined} compact />
+          <button type="button" onClick={() => onNavigate(navItems[0]?.id, navItems[0]?.path)} className="text-center outline-none">
+            <BrandMark subtitle={userRole === 'recruiter' ? undefined : undefined} compact={false} />
           </button>
           
           {/* Close button for mobile */}
           <button 
             type="button" 
             onClick={onClose}
-            className="flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-black/5 lg:hidden"
+            className="absolute right-3 top-5 flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-black/5 lg:hidden"
             aria-label="Close menu"
           >
             <span className={cn('text-xl', userRole === 'candidate' && !candidateLight ? 'text-white' : 'text-slate-600')}>×</span>
@@ -185,6 +200,7 @@ export const SidebarV2: React.FC<{
           )}
           {userRole === 'candidate' ? (
             <div className="space-y-2.5">
+              {/* Slots card */}
               <div className={cn(
                 'rounded-[18px] border p-3.5',
                 candidateLight ? 'border-slate-100 bg-white shadow-[0_16px_38px_-32px_rgba(15,23,42,0.3)]' : 'border-white/10 bg-white/[0.04]',
@@ -196,19 +212,25 @@ export const SidebarV2: React.FC<{
                   <span className="text-[30px] font-black leading-none">{candidateSidebar?.slotsRemaining ?? 0}</span>
                   <span className="pb-1 text-[12px] font-bold text-slate-400">/ {candidateSidebar?.slotsLimit ?? 5}</span>
                 </div>
-                <div className="mt-3 flex gap-1.5">
-                  {Array.from({ length: 5 }).map((_, index) => (
-                    <span
-                      key={index}
-                      className={cn(
-                        'h-2.5 flex-1 rounded-full',
-                        index < Math.min(5, candidateSidebar?.slotsRemaining ?? 0)
-                          ? 'bg-[#0f95ac]'
-                          : candidateLight ? 'bg-slate-200' : 'bg-white/12',
-                      )}
-                    />
-                  ))}
+                <div className="mt-3 flex gap-1.5" title={t('rebuild.sidebar.slots_used', { defaultValue: 'Použité sloty' })}>
+                  {Array.from({ length: candidateSidebar?.slotsLimit ?? 5 }).map((_, index) => {
+                    const slotsRemaining = candidateSidebar?.slotsRemaining ?? candidateSidebar?.slotsLimit ?? 5;
+                    const isUsed = index >= slotsRemaining;
+                    return (
+                      <span
+                        key={index}
+                        className={cn(
+                          'h-2.5 flex-1 rounded-full transition-colors duration-300',
+                          isUsed
+                            ? candidateLight ? 'bg-slate-200' : 'bg-white/12'
+                            : 'bg-[#0f95ac]',
+                        )}
+                      />
+                    );
+                  })}
                 </div>
+
+                {/* Redeem slot button */}
                 <button
                   type="button"
                   onClick={candidateSidebar?.onRedeemSlot}
@@ -220,15 +242,24 @@ export const SidebarV2: React.FC<{
                     ? t('rebuild.sidebar.redeeming_slot', { defaultValue: 'Měním...' })
                     : t('rebuild.sidebar.get_next_slot', { defaultValue: 'Získat další slot' })}
                 </button>
-                <div className={cn('mt-2 text-[11px] font-semibold', candidateLight ? 'text-slate-500' : 'text-white/55')}>
-                  {t('rebuild.sidebar.karma_progress', {
-                    defaultValue: '{{balance}} / {{cost}} Karma',
-                    balance: candidateSidebar?.karmaBalance ?? 0,
-                    cost: candidateSidebar?.nextSlotCost ?? 250,
-                  })}
+
+                {/* Karma progress bar */}
+                <div className="mt-2.5">
+                  <div className="flex items-center gap-1 mb-1">
+                    <Star size={11} className={cn('shrink-0', candidateLight ? 'text-amber-500' : 'text-amber-400')} />
+                    <span className={cn('text-[10px] font-bold', candidateLight ? 'text-slate-500' : 'text-slate-400')}>
+                      {t('rebuild.sidebar.karma_progress', {
+                        defaultValue: '{{balance}} / {{cost}} Karma',
+                        balance: candidateSidebar?.karmaBalance ?? 0,
+                        cost: candidateSidebar?.nextSlotCost ?? 250,
+                      })}
+                    </span>
+                  </div>
+                  <KarmaBar balance={candidateSidebar?.karmaBalance ?? 0} maxKarma={candidateSidebar?.nextSlotCost ?? 250} />
                 </div>
               </div>
 
+              {/* Referral button */}
               <button
                 type="button"
                 onClick={candidateSidebar?.onOpenReferral}
@@ -250,56 +281,7 @@ export const SidebarV2: React.FC<{
                 </span>
               </button>
 
-              <button
-                type="button"
-                onClick={() => onNavigate('mentor', '/candidate/insights#mentor')}
-                className={cn(
-                  'group relative flex w-full items-center gap-2 overflow-hidden rounded-[20px] px-3 py-2.5 text-left transition duration-300',
-                  candidateLight
-                    ? 'border border-[#cceff4] bg-white shadow-[0_20px_48px_-32px_rgba(20,141,160,0.42)] ring-1 ring-[#12afcb]/10 hover:-translate-y-0.5 hover:border-[#12afcb]/45 hover:shadow-[0_28px_58px_-34px_rgba(20,141,160,0.58)]'
-                    : 'border border-[#12afcb]/35 bg-white/[0.06] shadow-[0_18px_44px_-30px_rgba(18,175,203,0.45)] hover:-translate-y-0.5 hover:bg-white/[0.09]',
-                )}
-              >
-                <div aria-hidden className={cn(
-                  'pointer-events-none absolute inset-x-0 top-0 h-1',
-                  candidateLight
-                    ? 'bg-[#12afcb]'
-                    : 'bg-[#37c7e2]',
-                )} />
-                <div className="relative flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-[18px]">
-                  <div className="absolute inset-0 rounded-[16px]" />
-                  <div className={cn(
-                    'absolute inset-0 rounded-[20px]',
-                    candidateLight
-                      ? 'bg-[#e9fbfd] shadow-[0_18px_30px_-22px_rgba(20,141,160,0.5)] ring-1 ring-[#12afcb]/18'
-                      : 'bg-[#12afcb]/12 shadow-[0_18px_34px_-20px_rgba(4,10,22,0.62)] ring-1 ring-white/10',
-                  )} />
-                  <img src="/shami.png" alt="Shami" className="relative h-9 w-9 object-contain rounded-xl shadow-sm transition duration-300 group-hover:scale-105" />
-                </div>
-                <div className="relative min-w-0">
-                  <div className="mb-1 flex items-center gap-1.5">
-                    <span className={cn(
-                      'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em]',
-                      candidateLight ? 'bg-[#e8f8fb] text-[#087f95]' : 'bg-[#12afcb]/16 text-[#7ce8ff]',
-                    )}>
-                      <Sparkles size={10} /> Shami
-                    </span>
-                  </div>
-                  <div className={cn('pr-7 text-[15px] font-bold leading-5', candidateLight ? 'text-[color:var(--shell-text-primary)]' : 'text-white')}>
-                    {t('rebuild.nav.chat_with_shaman', { defaultValue: 'Chat with Shami' })}
-                  </div>
-                  <div className={cn('mt-1 max-h-10 overflow-hidden text-[11px] leading-4', candidateLight ? 'text-[color:var(--dashboard-text-muted)]' : 'text-white/62')}>
-                    {t('rebuild.nav.shami_profile_hint', { defaultValue: 'Pomůže doplnit profil a vybrat další krok.' })}
-                  </div>
-                  <div className={cn(
-                    'absolute right-0 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full transition-transform duration-300 group-hover:-translate-y-[55%] group-hover:translate-x-0.5',
-                    candidateLight ? 'bg-[#12afcb] text-white shadow-[0_14px_24px_-18px_rgba(18,175,203,0.7)]' : 'bg-white/10 text-white/72',
-                  )}>
-                    <ArrowUpRight size={14} />
-                  </div>
-                </div>
-              </button>
-
+              {/* Theme toggle */}
               <div className={cn(
                 'flex items-center justify-center rounded-[22px] border p-2',
                 candidateLight

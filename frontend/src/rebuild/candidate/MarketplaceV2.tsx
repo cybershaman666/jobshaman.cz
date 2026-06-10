@@ -28,8 +28,16 @@ import {
   Sparkles,
   Flame,
   Check,
+  Users,
+  Building2,
+  Stethoscope,
+  Hammer,
+  Truck,
+  Heart,
+  ShoppingBag,
+  LandPlot,
+  UtensilsCrossed,
 } from 'lucide-react';
-import { DashboardLayoutV2 } from '../ui/DashboardLayoutV2';
 import { Role, CandidatePreferenceProfile, MarketplaceFilters, MarketplaceSection } from '../models';
 import { DialogueSummary, UserProfile, TaxProfile, TransportMode } from '../../types';
 import { 
@@ -68,7 +76,7 @@ const isDefaultPragueCoordinates = (coordinates?: { lat: number; lon: number } |
 
 const isRemoteRole = (role: Role): boolean => String(role.workModel || '').toLowerCase().includes('remote');
 const RECOMMENDATION_PAGE_SIZE = 24;
-const MARKETPLACE_FEED_PAGE_SIZE = 50;
+const MARKETPLACE_FEED_PAGE_SIZE = 25;
 type MarketplaceFocus = 'all' | 'immediate' | 'curated';
 type RoleCandidate = { role: Role; distanceKm: number };
 export type RoleClusterId = 'management' | 'operations' | 'business' | 'digital' | 'services' | 'other';
@@ -97,9 +105,9 @@ const roleSearchText = (role: Role): string => normalizeProfileText([
 const CLUSTER_KEYWORDS: Record<RoleClusterId, string[]> = {
   management: ['manager', 'manazer', 'management', 'project', 'projekt', 'operations manager', 'provozni', 'program', 'delivery', 'vedouci', 'lead', 'koordinator'],
   operations: ['operations', 'provoz', 'frontline', 'logistics', 'logistika', 'warehouse', 'sklad', 'construction', 'stavba', 'vyroba', 'operator'],
-  business: ['sales', 'obchod', 'business', 'finance', 'financ', 'account', 'administrativa', 'office', 'people', 'hr', 'legal', 'marketing'],
+  business: ['sales', 'obchod', 'business', 'finance', 'financ', 'account', 'administrativa', 'office', 'people', 'hr', 'legal', 'marketing', 'administrative', 'administrativ'],
   digital: ['engineering', 'developer', 'vyvojar', 'software', 'product', 'design', 'data', 'analyst', 'ux', 'ui', 'digital', 'it'],
-  services: ['care', 'pece', 'education', 'vzdelav', 'health', 'zdrav', 'customer', 'zakaznick', 'service', 'sluzby', 'support'],
+  services: ['care', 'pece', 'education', 'vzdelav', 'health', 'zdrav', 'customer', 'zakaznick', 'service', 'sluzby', 'support', 'hospitality', 'pohostinstvi', 'travel', 'cestovni', 'hotel', 'gastronomy', 'gastronomie', 'kuchar', 'cook', 'waiter', 'catering'],
   other: [],
 };
 
@@ -173,8 +181,6 @@ const pickWildRoleIds = (feed: RoleCandidate[]): Set<string> => {
   return ids;
 };
 
-// SearchFiltersModal and associated helpers moved to MarketplaceSearchFilters.tsx
-
 const formatRoleSalary = (role: Role, fallback: string, language?: string) => {
   if (role.salaryFrom <= 0 && role.salaryTo <= 0) return fallback;
   const locale = language === 'cs' ? 'cs-CZ' : 'en-GB';
@@ -190,6 +196,25 @@ const roleFamilyIcon = (clusterId: RoleClusterId) => {
   if (clusterId === 'management') return Briefcase;
   if (clusterId === 'operations') return Grid2X2;
   return Palette;
+};
+
+// Role-family icons with colors for category grid
+const CATEGORY_META: Record<string, { icon: React.ElementType; bg: string; text: string }> = {
+  engineering: { icon: Code2, bg: 'bg-blue-100', text: 'text-blue-600' },
+  design: { icon: Palette, bg: 'bg-purple-100', text: 'text-purple-600' },
+  product: { icon: Briefcase, bg: 'bg-indigo-100', text: 'text-indigo-600' },
+  operations: { icon: Grid2X2, bg: 'bg-amber-100', text: 'text-amber-600' },
+  sales: { icon: Megaphone, bg: 'bg-green-100', text: 'text-green-600' },
+  care: { icon: Heart, bg: 'bg-rose-100', text: 'text-rose-600' },
+  frontline: { icon: Users, bg: 'bg-teal-100', text: 'text-teal-600' },
+  marketing: { icon: ShoppingBag, bg: 'bg-pink-100', text: 'text-pink-600' },
+  finance: { icon: Wallet, bg: 'bg-emerald-100', text: 'text-emerald-600' },
+  people: { icon: Building2, bg: 'bg-cyan-100', text: 'text-cyan-600' },
+  education: { icon: GraduationCap, bg: 'bg-sky-100', text: 'text-sky-600' },
+  health: { icon: Stethoscope, bg: 'bg-red-100', text: 'text-red-600' },
+  construction: { icon: Hammer, bg: 'bg-orange-100', text: 'text-orange-600' },
+  logistics: { icon: Truck, bg: 'bg-yellow-100', text: 'text-yellow-600' },
+  legal: { icon: LandPlot, bg: 'bg-violet-100', text: 'text-violet-600' },
 };
 
 const JobFeedCard: React.FC<{
@@ -405,26 +430,12 @@ const MarketplaceSchema: React.FC<{ roles: Role[]; t: any }> = ({ roles, t }) =>
 // Mockup-aligned helpers + card components
 // ---------------------------------------------------------------------------
 
-type DifficultyLevel = 'low' | 'medium' | 'high';
-
 const hashString = (value: string): number => {
   let hash = 0;
   for (let index = 0; index < value.length; index += 1) {
     hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
   }
   return hash;
-};
-
-const getRoleDifficulty = (role: Role): DifficultyLevel => {
-  if (role.level === 'Junior') return 'low';
-  if (role.level === 'Senior' || role.level === 'Lead') return 'high';
-  return 'medium';
-};
-
-const DIFFICULTY_META: Record<DifficultyLevel, { key: string; fallback: string; dots: number; dotClass: string; textClass: string }> = {
-  low: { key: 'rebuild.marketplace.difficulty_low', fallback: 'Nízká', dots: 1, dotClass: 'bg-emerald-500', textClass: 'text-emerald-600 dark:text-emerald-400' },
-  medium: { key: 'rebuild.marketplace.difficulty_medium', fallback: 'Střední', dots: 2, dotClass: 'bg-amber-500', textClass: 'text-amber-600 dark:text-amber-400' },
-  high: { key: 'rebuild.marketplace.difficulty_high', fallback: 'Vysoká', dots: 3, dotClass: 'bg-rose-500', textClass: 'text-rose-600 dark:text-rose-400' },
 };
 
 const getMatchPercent = (role: Role): number => {
@@ -494,17 +505,6 @@ const formatNetSalary = (role: Role, taxProfile: TaxProfile | undefined, t: Mark
   return { value: `${net.toLocaleString('cs-CZ')} ${suffix}`, hasValue: true };
 };
 
-const DifficultyDots: React.FC<{ level: DifficultyLevel }> = ({ level }) => {
-  const meta = DIFFICULTY_META[level];
-  return (
-    <span className="inline-flex items-center gap-1" aria-hidden="true">
-      {[0, 1, 2].map((index) => (
-        <span key={index} className={cn('h-1.5 w-1.5 rounded-full', index < meta.dots ? meta.dotClass : 'bg-slate-200 dark:bg-slate-700')} />
-      ))}
-    </span>
-  );
-};
-
 const CompanyLogoBadge: React.FC<{ role: Role; className?: string }> = ({ role, className }) => (
   <span className={cn('flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white text-[#0f95ac] ring-1 ring-slate-200/70 dark:bg-slate-800 dark:ring-slate-700', className)}>
     {role.companyLogo ? (
@@ -527,8 +527,6 @@ const FeaturedOpportunityCard: React.FC<{
   const role = candidate.role;
   const matchPercent = getMatchPercent(role);
   const hot = isHotRole(role);
-  const difficulty = getRoleDifficulty(role);
-  const difficultyMeta = DIFFICULTY_META[difficulty];
   const slots = getRoleSlots(role);
   const salary = formatNetSalary(role, preferences.taxProfile, t);
   const cover = role.heroImage || role.companyCoverImage || '';
@@ -536,7 +534,6 @@ const FeaturedOpportunityCard: React.FC<{
   const infoRows: Array<{ icon: React.ElementType; label: string }> = [
     { icon: Wallet, label: salary.hasValue ? `${salary.value} ${t('rebuild.marketplace.net_suffix', { defaultValue: 'čistého' })}` : salary.value },
     { icon: MapPin, label: formatCommuteLabel(role, candidate.distanceKm, preferences.transportMode, t, true) },
-    { icon: Gauge, label: t('rebuild.marketplace.difficulty_label', { defaultValue: '{{level}} náročnost', level: t(difficultyMeta.key, { defaultValue: difficultyMeta.fallback }) }) },
     { icon: ArrowUpDown, label: formatSlotsLabel(slots, t) },
   ];
 
@@ -628,6 +625,7 @@ const CompanyInterestCard: React.FC<{
 
       <button type="button" onClick={onOpen} className="group relative mt-4 block h-40 w-full overflow-hidden rounded-2xl bg-slate-900">
         {poster ? <img src={poster} alt="" className="h-full w-full object-cover opacity-90 transition group-hover:scale-105" loading="lazy" /> : <div className="h-full w-full bg-gradient-to-br from-slate-700 to-slate-900" />}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
         <span className="absolute inset-0 flex items-center justify-center">
           <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#12afcb] text-white shadow-lg transition group-hover:scale-110">
             <Play size={20} className="ml-0.5 fill-white" />
@@ -678,48 +676,41 @@ const MarketplaceListRow: React.FC<{
 }> = ({ candidate, preferences, onOpen, t }) => {
   const role = candidate.role;
   const matchPercent = getMatchPercent(role);
-  const difficulty = getRoleDifficulty(role);
-  const difficultyMeta = DIFFICULTY_META[difficulty];
   const slots = getRoleSlots(role);
   const salary = formatNetSalary(role, preferences.taxProfile, t);
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl bg-white px-4 py-3.5 shadow-[0_10px_30px_-30px_rgba(15,23,42,0.28)] ring-1 ring-slate-200/60 transition hover:bg-[#f9fdfe] hover:ring-[#12afcb]/30 dark:bg-slate-900 dark:ring-slate-800 dark:hover:bg-slate-800/60 lg:flex-row lg:items-center lg:gap-4">
-      <div className="flex min-w-0 flex-1 items-center gap-3">
-        <CompanyLogoBadge role={role} className="h-10 w-10" />
+    <div className="flex flex-col gap-3 rounded-2xl bg-white px-4 py-3.5 shadow-[0_10px_30px_-30px_rgba(15,23,42,0.28)] ring-1 ring-slate-200/60 transition hover:bg-[#f9fdfe] hover:ring-[#12afcb]/30 dark:bg-slate-900 dark:ring-slate-800 dark:hover:bg-slate-800/60 lg:grid lg:grid-cols-[1fr_auto_120px_90px_80px_auto_auto] lg:items-center">
+      <div className="flex min-w-0 items-center gap-3">
+        <CompanyLogoBadge role={role} className="h-10 w-10 shrink-0" />
         <div className="min-w-0">
           <div className="truncate text-[14px] font-black text-slate-950 dark:text-slate-100">{role.title}</div>
           <div className="truncate text-[12px] font-semibold text-slate-500">{role.companyName}</div>
         </div>
       </div>
 
-      <span className={cn('inline-flex w-fit items-center rounded-full px-2.5 py-1 text-[11px] font-black', getMatchBadgeClass(matchPercent))}>
+      <span className={cn('inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-[11px] font-black', getMatchBadgeClass(matchPercent))}>
         {t('rebuild.marketplace.percent_match', { defaultValue: '{{percent}}% match', percent: matchPercent })}
       </span>
 
-      <div className="hidden min-w-[110px] lg:block">
+      <div className="text-right">
         <div className="text-[13px] font-black text-slate-900 dark:text-slate-100">{salary.value}</div>
         {salary.hasValue ? <div className="text-[10px] font-semibold text-slate-400">{t('rebuild.marketplace.net_suffix', { defaultValue: 'čistého' })}</div> : null}
       </div>
 
-      <div className="hidden min-w-[90px] lg:block">
+      <div className="text-center">
         <div className="truncate text-[13px] font-bold text-slate-700 dark:text-slate-200">{role.location?.split(',')[0] || '—'}</div>
         <div className="text-[10px] font-semibold text-slate-400">{role.workModel}</div>
       </div>
 
-      <div className="hidden min-w-[64px] items-center gap-1.5 text-[13px] font-bold text-slate-700 dark:text-slate-200 lg:flex">
-        <Clock3 size={14} className="text-slate-400" />
-        {formatCommuteLabel(role, candidate.distanceKm, preferences.transportMode, t)}
+      <div className="flex items-center gap-1 justify-center text-[13px] font-bold text-slate-700 dark:text-slate-200">
+        <Clock3 size={14} className="shrink-0 text-slate-400" />
+        <span className="truncate">{formatCommuteLabel(role, candidate.distanceKm, preferences.transportMode, t)}</span>
       </div>
 
-      <div className="hidden min-w-[92px] items-center gap-2 lg:flex">
-        <span className={cn('text-[12px] font-black', difficultyMeta.textClass)}>{t(difficultyMeta.key, { defaultValue: difficultyMeta.fallback })}</span>
-        <DifficultyDots level={difficulty} />
-      </div>
+      <div className="text-center text-[12px] font-semibold text-slate-500">{formatSlotsLabel(slots, t)}</div>
 
-      <div className="hidden min-w-[110px] text-[12px] font-semibold text-slate-500 xl:block">{formatSlotsLabel(slots, t)}</div>
-
-      <button type="button" onClick={onOpen} className="inline-flex h-9 shrink-0 items-center justify-center rounded-lg bg-[#eef8fb] px-4 text-[12px] font-black text-[#0f95ac] transition hover:bg-[#12afcb] hover:text-white dark:bg-cyan-950/40 dark:text-cyan-300">
+      <button type="button" onClick={onOpen} className="inline-flex h-9 shrink-0 items-center justify-center rounded-lg bg-[#eef8fb] px-4 text-[12px] font-black text-[#0f95ac] transition hover:bg-[#12afcb] hover:text-white dark:bg-cyan-950/40 dark:text-cyan-300 justify-self-end">
         {t('rebuild.marketplace.view', { defaultValue: 'Zobrazit' })}
       </button>
     </div>
@@ -817,7 +808,6 @@ export const MarketplaceV2: React.FC<{
   const [focusMode, setFocusMode] = React.useState<MarketplaceFocus>('all');
   const [filtersOpen, setFiltersOpen] = React.useState(false);
   const [activeCategoryId, setActiveCategoryId] = React.useState<RoleClusterId | null>(null);
-  const [difficultyFilter, setDifficultyFilter] = React.useState<'all' | DifficultyLevel>('all');
   const [sortMode, setSortMode] = React.useState<'relevance' | 'salary' | 'distance'>('relevance');
   const [aiQuery, setAiQuery] = React.useState(searchValue);
   const [aiBusy, setAiBusy] = React.useState(false);
@@ -830,10 +820,8 @@ export const MarketplaceV2: React.FC<{
   const runAiSearch = React.useCallback(async (rawQuery: string) => {
     const query = rawQuery.trim();
     if (!query) {
-      // Empty query — clear the AI-applied state and reset filters.
       onSearchChange('');
       onResetFilters();
-      setDifficultyFilter('all');
       setAiNotice(null);
       return;
     }
@@ -841,10 +829,7 @@ export const MarketplaceV2: React.FC<{
     try {
       const parsed: ParsedSearchFilters = await parseNaturalLanguageQuery(query, currentLanguage || 'cs');
       onFiltersChange((current) => applyParsedFilters(parsed, current));
-      // Feed only the extracted role keyword into the free-text search so the
-      // strict token match doesn't filter everything out on long NL phrases.
       onSearchChange(parsed.targetRole || '');
-      if (parsed.difficulty && parsed.difficulty !== 'all') setDifficultyFilter(parsed.difficulty);
       setVisibleRecommendationCount(RECOMMENDATION_PAGE_SIZE);
       const chips = [
         parsed.targetRole,
@@ -852,7 +837,6 @@ export const MarketplaceV2: React.FC<{
         parsed.roleFamily !== 'all' ? parsed.roleFamily : '',
         parsed.remoteOnly ? t('rebuild.marketplace.work_arrangement_remote', { defaultValue: 'Remote' }) : '',
         parsed.minSalary > 0 ? `${parsed.minSalary.toLocaleString('cs-CZ')}+ ${CURRENCY_SUFFIX.CZK}` : '',
-        parsed.difficulty && parsed.difficulty !== 'all' ? t(DIFFICULTY_META[parsed.difficulty].key, { defaultValue: DIFFICULTY_META[parsed.difficulty].fallback }) : '',
       ].filter(Boolean);
       setAiNotice(
         chips.length > 0
@@ -884,23 +868,15 @@ export const MarketplaceV2: React.FC<{
   const effectiveCoordinates = React.useMemo(() => {
     const staticCoordinates = getStaticCoordinates(preferences.address || '');
     const currentCoordinates = preferences.coordinates || null;
-
     if (staticCoordinates && (!currentCoordinates || isDefaultPragueCoordinates(currentCoordinates))) {
       return staticCoordinates;
     }
-
     if (staticCoordinates && currentCoordinates) {
-      const addressDriftKm = getDistance(
-        staticCoordinates.lat,
-        staticCoordinates.lon,
-        currentCoordinates.lat,
-        currentCoordinates.lon,
-      );
+      const addressDriftKm = getDistance(staticCoordinates.lat, staticCoordinates.lon, currentCoordinates.lat, currentCoordinates.lon);
       if (addressDriftKm > Math.max(50, preferences.searchRadiusKm * 1.5)) {
         return staticCoordinates;
       }
     }
-
     return currentCoordinates || staticCoordinates;
   }, [preferences.address, preferences.coordinates, preferences.searchRadiusKm]);
 
@@ -934,67 +910,47 @@ export const MarketplaceV2: React.FC<{
   const commuteFilterActive = filters.enableCommuteFilter !== false;
 
   const rolesWithDistance = React.useMemo(() => {
-    if (!effectiveCoordinates) {
-      return visibleRoles.map((role) => ({ role, distanceKm: Infinity }));
-    }
-
+    if (!effectiveCoordinates) return visibleRoles.map((role) => ({ role, distanceKm: Infinity }));
     const userLat = effectiveCoordinates.lat;
     const userLon = effectiveCoordinates.lon;
-
     const withDistance = visibleRoles.map((role) => ({
       role,
       distanceKm: getDistance(userLat, userLon, role.coordinates.lat, role.coordinates.lng),
     }));
-
-    if (!commuteFilterActive && !filters.city.trim()) {
-      return withDistance;
-    }
-
+    if (!commuteFilterActive && !filters.city.trim()) return withDistance;
     return withDistance.sort((a, b) => {
-      // Secondary sort by curated vs imported
       if (Math.abs(a.distanceKm - b.distanceKm) < 1) {
         if (a.role.source === 'curated' && b.role.source === 'imported') return -1;
         if (a.role.source === 'imported' && b.role.source === 'curated') return 1;
       }
-
       return a.distanceKm - b.distanceKm;
     });
   }, [commuteFilterActive, filters.city, visibleRoles, effectiveCoordinates]);
+
   const loadedCatalogCandidates = React.useMemo(() => {
     return roles.map((role) => {
       if (!effectiveCoordinates) return { role, distanceKm: Infinity };
-      return {
-        role,
-        distanceKm: getDistance(effectiveCoordinates.lat, effectiveCoordinates.lon, role.coordinates.lat, role.coordinates.lng),
-      };
+      return { role, distanceKm: getDistance(effectiveCoordinates.lat, effectiveCoordinates.lon, role.coordinates.lat, role.coordinates.lng) };
     });
   }, [effectiveCoordinates, roles]);
+
   const nearbyRoles = React.useMemo(() => (
     commuteFilterActive ? rolesWithDistance.filter(({ role, distanceKm }) => (
-      Number.isFinite(distanceKm)
-      && distanceKm <= localRadiusKm
-      && !isRemoteRole(role)
+      Number.isFinite(distanceKm) && distanceKm <= localRadiusKm && !isRemoteRole(role)
     )) : []
   ), [commuteFilterActive, localRadiusKm, rolesWithDistance]);
 
   const featuredCandidate = nearbyRoles[0] || null;
   const featuredRole = featuredCandidate?.role || null;
+
   const scopedRecommendationCandidates = React.useMemo(() => {
     const localRoleIds = new Set(nearbyRoles.map(({ role }) => role.id));
     const base = rolesWithDistance
       .filter(({ role }) => !featuredRole || role.id !== featuredRole.id)
       .filter(({ role, distanceKm }) => (
-        !commuteFilterActive
-        || filters.city.trim().length > 0
-        || isRemoteRole(role)
-        || !Number.isFinite(distanceKm)
-        || (Number.isFinite(distanceKm) && distanceKm <= localRadiusKm)
+        !commuteFilterActive || filters.city.trim().length > 0 || isRemoteRole(role) || !Number.isFinite(distanceKm) || (Number.isFinite(distanceKm) && distanceKm <= localRadiusKm)
       ));
-
-    if (!commuteFilterActive && !filters.city.trim()) {
-      return diversifyCandidatesByLocation(base);
-    }
-
+    if (!commuteFilterActive && !filters.city.trim()) return diversifyCandidatesByLocation(base);
     return base.sort((a, b) => {
       const aLocalBoost = localRoleIds.has(a.role.id) ? -2 : 0;
       const bLocalBoost = localRoleIds.has(b.role.id) ? -2 : 0;
@@ -1008,133 +964,57 @@ export const MarketplaceV2: React.FC<{
       return a.distanceKm - b.distanceKm;
     });
   }, [commuteFilterActive, featuredRole, filters.city, localRadiusKm, nearbyRoles, rolesWithDistance]);
+
   const visibleRecommendedCandidates = scopedRecommendationCandidates.slice(0, visibleRecommendationCount);
   const gridCandidates = commuteFilterActive ? visibleRecommendedCandidates : visibleRecommendedCandidates.slice(1);
+
   const profileRelevanceText = React.useMemo(() => normalizeProfileText([
-    searchValue,
-    filters.targetRole,
-    userProfile.jobTitle,
-    userProfile.preferences?.desired_role,
-    userProfile.preferences?.searchProfile?.targetRole,
-    userProfile.preferences?.searchProfile?.inferredTargetRole,
-    userProfile.cvAiText,
-    userProfile.cvText,
-    preferences.story,
+    searchValue, filters.targetRole, userProfile.jobTitle, userProfile.preferences?.desired_role,
+    userProfile.preferences?.searchProfile?.targetRole, userProfile.preferences?.searchProfile?.inferredTargetRole,
+    userProfile.cvAiText, userProfile.cvText, preferences.story,
   ].join(' ')), [filters.targetRole, preferences.story, searchValue, userProfile.cvAiText, userProfile.cvText, userProfile.jobTitle, userProfile.preferences]);
+
   const catalogSections = React.useMemo(() => {
-    const buckets: Record<RoleClusterId, RoleCandidate[]> = {
-      management: [],
-      operations: [],
-      business: [],
-      digital: [],
-      services: [],
-      other: [],
-    };
-
-    gridCandidates.forEach((candidate) => {
-      buckets[getRoleClusterId(candidate.role)].push(candidate);
-    });
-
-    const definitions: Array<{
-      id: keyof typeof buckets;
-      title: string;
-      description: string;
-    }> = [
-      {
-        id: 'management',
-        title: t('rebuild.marketplace.cluster_management', { defaultValue: 'Projektové a provozní řízení' }),
-        description: t('rebuild.marketplace.cluster_management_desc', { defaultValue: 'Manažerské, koordinační a projektové role, kde se řeší lidé, procesy a dodání výsledku.' }),
-      },
-      {
-        id: 'operations',
-        title: t('rebuild.marketplace.cluster_operations', { defaultValue: 'Výroba, provoz a logistika' }),
-        description: t('rebuild.marketplace.cluster_operations_desc', { defaultValue: 'Role v terénu, provozu, skladech, stavbě a každodenním řízení práce.' }),
-      },
-      {
-        id: 'business',
-        title: t('rebuild.marketplace.cluster_business', { defaultValue: 'Obchod, administrativa a finance' }),
-        description: t('rebuild.marketplace.cluster_business_desc', { defaultValue: 'Pozice pro práci s klienty, čísly, procesy, lidmi a podporou firmy.' }),
-      },
-      {
-        id: 'digital',
-        title: t('rebuild.marketplace.cluster_digital', { defaultValue: 'Technologie, produkt a design' }),
-        description: t('rebuild.marketplace.cluster_digital_desc', { defaultValue: 'Digitální a produktové role od vývoje po UX, data a systémovou práci.' }),
-      },
-      {
-        id: 'services',
-        title: t('rebuild.marketplace.cluster_services', { defaultValue: 'Služby, péče a vzdělávání' }),
-        description: t('rebuild.marketplace.cluster_services_desc', { defaultValue: 'Práce s lidmi, péče, zákaznický kontext, školení a veřejně prospěšné role.' }),
-      },
-      {
-        id: 'other',
-        title: t('rebuild.marketplace.cluster_other', { defaultValue: 'Další příbuzné možnosti' }),
-        description: t('rebuild.marketplace.cluster_other_desc', { defaultValue: 'Nabídky, které se nevešly do hlavních bloků, ale pořád stojí za rychlé projití.' }),
-      },
+    const buckets: Record<RoleClusterId, RoleCandidate[]> = { management: [], operations: [], business: [], digital: [], services: [], other: [] };
+    gridCandidates.forEach((candidate) => { buckets[getRoleClusterId(candidate.role)].push(candidate); });
+    const definitions: Array<{ id: keyof typeof buckets; title: string; description: string }> = [
+      { id: 'management', title: t('rebuild.marketplace.cluster_management', { defaultValue: 'Projektové a provozní řízení' }), description: '' },
+      { id: 'operations', title: t('rebuild.marketplace.cluster_operations', { defaultValue: 'Výroba, provoz a logistika' }), description: '' },
+      { id: 'business', title: t('rebuild.marketplace.cluster_business', { defaultValue: 'Obchod, administrativa a finance' }), description: '' },
+      { id: 'digital', title: t('rebuild.marketplace.cluster_digital', { defaultValue: 'Technologie, produkt a design' }), description: '' },
+      { id: 'services', title: t('rebuild.marketplace.cluster_services', { defaultValue: 'Služby, péče a vzdělávání' }), description: '' },
+      { id: 'other', title: t('rebuild.marketplace.cluster_other', { defaultValue: 'Další příbuzné možnosti' }), description: '' },
     ];
-
     return definitions
-      .map((definition) => ({
-        ...definition,
-        relevance: getProfileClusterPreference(profileRelevanceText, definition.id),
-        candidates: buckets[definition.id]
-          .map((candidate) => ({
-            ...candidate,
-            profileScore: getRoleProfileScore(candidate, profileRelevanceText, definition.id, commuteFilterActive),
-          }))
-          .sort((left, right) => right.profileScore - left.profileScore),
-      }))
-      .filter((section) => section.candidates.length > 0)
-      .sort((left, right) => {
-        if (right.relevance !== left.relevance) return right.relevance - left.relevance;
-        const rightTop = right.candidates[0]?.profileScore || 0;
-        const leftTop = left.candidates[0]?.profileScore || 0;
-        if (rightTop !== leftTop) return rightTop - leftTop;
-        return right.candidates.length - left.candidates.length;
-      });
+      .map((d) => ({ ...d, relevance: getProfileClusterPreference(profileRelevanceText, d.id), candidates: buckets[d.id].map((c) => ({ ...c, profileScore: getRoleProfileScore(c, profileRelevanceText, d.id, commuteFilterActive) })).sort((a, b) => b.profileScore - a.profileScore) }))
+      .filter((s) => s.candidates.length > 0)
+      .sort((a, b) => { if (b.relevance !== a.relevance) return b.relevance - a.relevance; const rt = b.candidates[0]?.profileScore || 0; const lt = a.candidates[0]?.profileScore || 0; if (rt !== lt) return rt - lt; return b.candidates.length - a.candidates.length; });
   }, [commuteFilterActive, gridCandidates, profileRelevanceText, t]);
-  const activeCategorySection = React.useMemo(
-    () => catalogSections.find((section) => section.id === activeCategoryId) || null,
-    [activeCategoryId, catalogSections],
-  );
-  React.useEffect(() => {
-    setVisibleRecommendationCount(RECOMMENDATION_PAGE_SIZE);
-    setActiveCategoryId(null);
-  }, [filters, focusMode, localRadiusKm, preferences.address, searchValue]);
+
+  const activeCategorySection = React.useMemo(() => catalogSections.find((s) => s.id === activeCategoryId) || null, [activeCategoryId, catalogSections]);
+
+  React.useEffect(() => { setVisibleRecommendationCount(RECOMMENDATION_PAGE_SIZE); setActiveCategoryId(null); }, [filters, focusMode, localRadiusKm, preferences.address, searchValue]);
 
   const activeFilterCount = [
-    searchValue.trim(),
-    filters.city.trim(),
-    filters.roleFamily !== 'all',
-    filters.remoteOnly || filters.workArrangement !== 'all',
-    filters.crossBorder !== preferences.borderSearchEnabled,
-    (filters.enableCommuteFilter !== false) !== preferences.commuteFilterEnabled,
-    filters.enableCommuteFilter && filters.radiusKm !== preferences.searchRadiusKm,
-    filters.minSalary > 0,
-    filters.curatedOnly,
-    ...filters.benefits,
+    searchValue.trim(), filters.city.trim(), filters.roleFamily !== 'all', filters.remoteOnly || filters.workArrangement !== 'all',
+    filters.crossBorder !== preferences.borderSearchEnabled, (filters.enableCommuteFilter !== false) !== preferences.commuteFilterEnabled,
+    filters.enableCommuteFilter && filters.radiusKm !== preferences.searchRadiusKm, filters.minSalary > 0, filters.curatedOnly, ...filters.benefits,
   ].filter(Boolean).length;
+
   const baseFeedCandidates = React.useMemo(() => {
-    const primary = activeCategorySection
-      ? activeCategorySection.candidates
-      : scopedRecommendationCandidates;
+    const primary = activeCategorySection ? activeCategorySection.candidates : scopedRecommendationCandidates;
     const merged = new Map<string, RoleCandidate>();
-    primary.forEach((candidate) => merged.set(candidate.role.id, candidate));
-    if (!activeCategorySection) {
-      loadedCatalogCandidates.forEach((candidate) => {
-        if (!merged.has(candidate.role.id)) merged.set(candidate.role.id, candidate);
-      });
-    }
+    primary.forEach((c) => merged.set(c.role.id, c));
+    if (!activeCategorySection) loadedCatalogCandidates.forEach((c) => { if (!merged.has(c.role.id)) merged.set(c.role.id, c); });
     return Array.from(merged.values());
   }, [activeCategorySection, loadedCatalogCandidates, scopedRecommendationCandidates]);
-  const candidateAvatar = userProfile.photo || undefined;
 
-  // Featured "best opportunities" — top relevance-ranked roles.
+  const candidateAvatar = userProfile.photo || undefined;
   const featuredCandidates = React.useMemo(() => {
     const source = scopedRecommendationCandidates.length > 0 ? scopedRecommendationCandidates : baseFeedCandidates;
     return source.slice(0, 8);
   }, [baseFeedCandidates, scopedRecommendationCandidates]);
 
-  // Companies that want to meet you — distinct companies from the recommendation pool.
   const companyCards = React.useMemo(() => {
     const seen = new Set<string>();
     const cards: Array<{ role: Role; matchPercent: number }> = [];
@@ -1148,382 +1028,288 @@ export const MarketplaceV2: React.FC<{
     return cards;
   }, [scopedRecommendationCandidates]);
 
-  // Similar roles strip — distinct from the featured set.
   const similarCandidates = React.useMemo(() => {
     const featuredIds = new Set(featuredCandidates.map(({ role }) => role.id));
     return scopedRecommendationCandidates.filter(({ role }) => !featuredIds.has(role.id)).slice(0, 10);
   }, [featuredCandidates, scopedRecommendationCandidates]);
 
-  // Marketplace list — difficulty filter + sort applied on top of the merged feed.
   const marketplaceFiltered = React.useMemo(() => {
-    const filtered = difficultyFilter === 'all'
-      ? baseFeedCandidates
-      : baseFeedCandidates.filter(({ role }) => getRoleDifficulty(role) === difficultyFilter);
+    const filtered = [...baseFeedCandidates];
     const sorted = [...filtered];
-    if (sortMode === 'salary') {
-      sorted.sort((a, b) => Math.max(b.role.salaryFrom || 0, b.role.salaryTo || 0) - Math.max(a.role.salaryFrom || 0, a.role.salaryTo || 0));
-    } else if (sortMode === 'distance') {
-      sorted.sort((a, b) => a.distanceKm - b.distanceKm);
-    }
+    if (sortMode === 'salary') sorted.sort((a, b) => Math.max(b.role.salaryFrom || 0, b.role.salaryTo || 0) - Math.max(a.role.salaryFrom || 0, a.role.salaryTo || 0));
+    else if (sortMode === 'distance') sorted.sort((a, b) => a.distanceKm - b.distanceKm);
     return sorted;
-  }, [baseFeedCandidates, difficultyFilter, sortMode]);
+  }, [baseFeedCandidates, sortMode]);
+
   const marketplaceVisible = marketplaceFiltered.slice(0, visibleRecommendationCount);
   const hasMoreFeedCandidates = visibleRecommendationCount < marketplaceFiltered.length;
 
-  // Location dropdown options derived from the loaded catalog.
   const cityOptions = React.useMemo<DropdownOption[]>(() => {
     const counts = new Map<string, number>();
-    roles.forEach((role) => {
-      const city = (role.location || '').split(',')[0].trim();
-      if (city) counts.set(city, (counts.get(city) || 0) + 1);
-    });
+    roles.forEach((role) => { const city = (role.location || '').split(',')[0].trim(); if (city) counts.set(city, (counts.get(city) || 0) + 1); });
     const top = Array.from(counts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([city]) => ({ value: city, label: city }));
     return [{ value: 'all', label: t('rebuild.marketplace.location_all', { defaultValue: 'Všechny lokality' }) }, ...top];
   }, [roles, t]);
 
   const categoryTiles = catalogSections.slice(0, 6).map((section) => ({
-    id: section.id,
-    title: section.title,
-    count: section.candidates.length,
-    Icon: roleFamilyIcon(section.id),
+    id: section.id, title: section.title, count: section.candidates.length, Icon: roleFamilyIcon(section.id),
   }));
+
+  // Role-family based category tiles for richer browsing
+  const roleFamilyTiles = React.useMemo(() => {
+    const counts = new Map<string, number>();
+    roles.forEach((role) => { const family = role.roleFamily || 'other'; counts.set(family, (counts.get(family) || 0) + 1); });
+    const allFamilies = getRoleFamilyOptions(t).filter(o => o.value !== 'all');
+    return allFamilies
+      .map(({ value, label }) => ({ id: value, title: label, count: counts.get(value) || 0 }))
+      .filter(tile => tile.count > 0)
+      .slice(0, 15);
+  }, [roles, t]);
+
   const handleFeedLoadMore = React.useCallback(() => {
-    if (hasMoreFeedCandidates) {
-      setVisibleRecommendationCount((current) => Math.min(current + MARKETPLACE_FEED_PAGE_SIZE, marketplaceFiltered.length));
-      return;
-    }
-    if (hasMore && onLoadMore && !loading) {
-      setVisibleRecommendationCount((current) => current + MARKETPLACE_FEED_PAGE_SIZE);
-      onLoadMore();
-    }
+    if (hasMoreFeedCandidates) { setVisibleRecommendationCount((c) => Math.min(c + MARKETPLACE_FEED_PAGE_SIZE, marketplaceFiltered.length)); return; }
+    if (hasMore && onLoadMore && !loading) { setVisibleRecommendationCount((c) => c + MARKETPLACE_FEED_PAGE_SIZE); onLoadMore(); }
   }, [marketplaceFiltered.length, hasMore, hasMoreFeedCandidates, loading, onLoadMore]);
 
   React.useEffect(() => {
     const sentinel = loadMoreSentinelRef.current;
-    if (!sentinel) return undefined;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry?.isIntersecting) return;
-        if (autoLoadTimerRef.current !== null) return;
-        autoLoadTimerRef.current = window.setTimeout(() => {
-          autoLoadTimerRef.current = null;
-          if (hasMoreFeedCandidates) {
-            setVisibleRecommendationCount((current) => Math.min(current + MARKETPLACE_FEED_PAGE_SIZE, marketplaceFiltered.length));
-          }
-        }, 180);
-      },
-      { root: null, rootMargin: '520px 0px 760px', threshold: 0.01 },
-    );
-
-    observer.observe(sentinel);
-    return () => {
-      observer.disconnect();
-      if (autoLoadTimerRef.current !== null) {
-        window.clearTimeout(autoLoadTimerRef.current);
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry?.isIntersecting) return;
+      if (autoLoadTimerRef.current !== null) return;
+      autoLoadTimerRef.current = window.setTimeout(() => {
         autoLoadTimerRef.current = null;
-      }
-    };
+        if (hasMoreFeedCandidates) setVisibleRecommendationCount((c) => Math.min(c + MARKETPLACE_FEED_PAGE_SIZE, marketplaceFiltered.length));
+      }, 180);
+    }, { root: null, rootMargin: '520px 0px 760px', threshold: 0.01 });
+    observer.observe(sentinel);
+    return () => { observer.disconnect(); if (autoLoadTimerRef.current !== null) { window.clearTimeout(autoLoadTimerRef.current); autoLoadTimerRef.current = null; } };
   }, [marketplaceFiltered.length, hasMoreFeedCandidates]);
 
   return (
-    <>
+    <div className="space-y-10 scroll-smooth pb-12">
+      <MarketplaceSchema roles={visibleRoles} t={t} />
       <SearchFiltersModal
-        open={filtersOpen}
-        filters={filters}
-        searchValue={searchValue}
-        onClose={() => setFiltersOpen(false)}
-        onApply={() => setFiltersOpen(false)}
-        onReset={onResetFilters}
-        onSearchChange={onSearchChange}
-        onFiltersChange={onFiltersChange}
-        t={t}
+        open={filtersOpen} filters={filters} searchValue={searchValue}
+        onClose={() => setFiltersOpen(false)} onApply={() => setFiltersOpen(false)}
+        onReset={onResetFilters} onSearchChange={onSearchChange} onFiltersChange={onFiltersChange} t={t}
       />
-      <DashboardLayoutV2
-        userRole="candidate"
-        navItems={navItems}
-        activeItemId="work"
-        onNavigate={(_id, path) => { if (path) navigate(path); }}
-        userProfile={userProfile}
-        onSignOut={onSignOut}
-        onCompanySwitch={onCompanySwitch}
-        currentLanguage={currentLanguage}
-        onLanguageChange={onLanguageChange}
-        title={t('rebuild.marketplace.header_title', { defaultValue: 'Marketplace práce' })}
-        subtitle={t('rebuild.marketplace.header_subtitle', { defaultValue: 'Procházej nabídky, uprav filtry a otevírej jen ty role, které dávají smysl.' })}
-        t={t}
-        aiSearchValue={aiQuery}
-        onAiSearchChange={(val) => setAiQuery(val)}
-        onAiSearchSubmit={() => { void runAiSearch(aiQuery); }}
-        aiSearchBusy={aiBusy}
-        onFiltersOpen={() => setFiltersOpen(true)}
-        activeFilterCount={activeFilterCount}
-        actionRegion={
-          <button type="button" onClick={() => setFiltersOpen(true)} className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-white/86 text-[#08788a] shadow-[0_14px_34px_-28px_rgba(15,23,42,0.4)] ring-1 ring-slate-900/[0.06] transition hover:bg-[#f7fcfd] dark:bg-slate-900 dark:text-cyan-300 dark:ring-white/10" aria-label={t('rebuild.marketplace.open_search', { defaultValue: 'Otevřít vyhledávání' })}>
-            <SlidersHorizontal size={16} />
-            {activeFilterCount ? <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#12afcb] px-1 text-[10px] font-black text-white">{activeFilterCount}</span> : null}
+
+      {/* AI search bar */}
+      <div className="rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200/70 dark:bg-slate-800/60 dark:ring-slate-700">
+        <form onSubmit={(e) => { e.preventDefault(); void runAiSearch(aiQuery); }} className="flex items-center gap-3">
+          <Search size={18} className="shrink-0 text-[#0f95ac]" />
+          <input
+            value={aiQuery}
+            onChange={(e) => setAiQuery(e.target.value)}
+            placeholder={t('rebuild.marketplace.ai_search_placeholder', { defaultValue: 'Hledat podle role, skillu, firmy…' })}
+            className="flex-1 bg-transparent text-[14px] font-semibold text-slate-800 outline-none placeholder:text-slate-400 dark:text-slate-100"
+          />
+          {aiQuery ? (
+            <button type="button" onClick={() => { setAiQuery(''); void runAiSearch(''); }} className="shrink-0 text-[12px] font-bold text-slate-400 hover:text-slate-600">×</button>
+          ) : null}
+          <button type="submit" disabled={aiBusy} className="shrink-0 rounded-xl bg-[#12afcb] px-4 py-1.5 text-[12px] font-black text-white transition hover:bg-[#0f95ac] disabled:opacity-70">
+            {aiBusy ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+            <span className="ml-1 hidden sm:inline">{t('rebuild.marketplace.ai_search_button', { defaultValue: 'Hledat' })}</span>
           </button>
-        }
-      >
-        <MarketplaceSchema roles={visibleRoles} t={t} />
-        <div className="space-y-10 scroll-smooth pb-12">
-          {/* AI notice */}
-          {aiNotice ? (
-            <div className="flex items-center gap-2 px-1 text-[12px] font-bold text-[#0f95ac]">
-              <BrainCircuit size={14} className="shrink-0" />
-              <span className="truncate">{aiNotice}</span>
-              <button type="button" onClick={onResetFilters} className="ml-auto shrink-0 text-[11px] font-bold text-slate-400 hover:text-slate-600">{t('rebuild.marketplace.reset', { defaultValue: 'Zrušit' })}</button>
-            </div>
-          ) : null}
+        </form>
+      </div>
 
-          {/* Section 1 — Best opportunities */}
-          {featuredCandidates.length > 0 ? (
-            <section className="space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <h2 className="flex items-center gap-1.5 text-lg font-bold text-slate-950 dark:text-slate-100">
-                    {t('rebuild.marketplace.best_opportunities', { defaultValue: 'Tvé nejlepší příležitosti' })}
-                    <Sparkles size={15} className="text-[#12afcb]" />
-                  </h2>
-                  <p className="text-xs font-medium text-slate-500">{t('rebuild.marketplace.based_on_profile', { defaultValue: 'Na základě tvého profilu a preferencí' })}</p>
-                </div>
-                <div className="flex items-center gap-1">
-                  <button type="button" onClick={() => scrollByCards(featuredScrollRef, -1)} className="hidden h-8 w-8 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-200/70 transition hover:text-[#0f95ac] dark:bg-slate-900 dark:ring-slate-800 sm:flex" aria-label={t('rebuild.marketplace.scroll_back', { defaultValue: 'Posunout zpět' })}>
-                    <ChevronRight size={15} className="rotate-180" />
-                  </button>
-                  <button type="button" onClick={() => scrollByCards(featuredScrollRef, 1)} className="hidden h-8 w-8 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-200/70 transition hover:text-[#0f95ac] dark:bg-slate-900 dark:ring-slate-800 sm:flex" aria-label={t('rebuild.marketplace.scroll_more', { defaultValue: 'Posunout dál' })}>
-                    <ChevronRight size={15} />
-                  </button>
-                </div>
-              </div>
-              <div ref={featuredScrollRef} className="-mx-1 flex snap-x gap-4 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {featuredCandidates.map((candidate) => (
-                  <FeaturedOpportunityCard
-                    key={candidate.role.id}
-                    candidate={candidate}
-                    preferences={preferences}
-                    candidateAvatar={candidateAvatar}
-                    saved={savedRoleIds?.includes(String(candidate.role.id)) || false}
-                    onOpen={() => navigate(getRolePath(candidate.role))}
-                    onToggleSaved={() => onToggleSavedRole?.(candidate.role.id)}
-                    t={t}
-                  />
-                ))}
-              </div>
-            </section>
-          ) : null}
-
-          {/* Section 2 — Companies that want to meet you */}
-          {companyCards.length > 0 ? (
-            <section className="space-y-4">
-              <div className="flex items-end justify-between gap-4 px-1">
-                <div>
-                  <h2 className="text-[22px] font-black tracking-normal text-slate-950 dark:text-slate-100">{t('rebuild.marketplace.companies_interested', { defaultValue: 'Firmy, které tě chtějí poznat' })}</h2>
-                  <p className="mt-1 text-sm font-medium text-slate-500">{t('rebuild.marketplace.companies_interested_sub', { defaultValue: 'Firmy, které vidí potenciál ve tvém profilu' })}</p>
-                </div>
-                <button type="button" onClick={() => navigate('/candidate/handshake')} className="text-[13px] font-black text-[#0f95ac] hover:underline">{t('rebuild.marketplace.show_all', { defaultValue: 'Zobrazit všechny' })}</button>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {companyCards.map(({ role, matchPercent }) => (
-                  <CompanyInterestCard
-                    key={role.id}
-                    role={role}
-                    matchPercent={matchPercent}
-                    saved={savedRoleIds?.includes(String(role.id)) || false}
-                    onOpen={() => navigate(getRolePath(role))}
-                    onToggleSaved={() => onToggleSavedRole?.(role.id)}
-                    t={t}
-                  />
-                ))}
-              </div>
-            </section>
-          ) : null}
-
-          {/* Section 3 — Similar roles */}
-          {similarCandidates.length > 0 ? (
-            <section className="space-y-4">
-              <div className="flex items-end justify-between gap-4 px-1">
-                <div>
-                  <h2 className="text-lg font-bold text-slate-950 dark:text-slate-100">{t('rebuild.marketplace.similar_to_interest', { defaultValue: 'Podobné jako to, co tě zajímá' })}</h2>
-                  <p className="text-xs font-medium text-slate-500">{t('rebuild.marketplace.similar_sub', { defaultValue: 'Role a firmy v podobném zaměření' })}</p>
-                </div>
-                <div className="flex items-center gap-1">
-                  <button type="button" onClick={() => scrollByCards(similarScrollRef, -1)} className="hidden h-8 w-8 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-200/70 transition hover:text-[#0f95ac] dark:bg-slate-900 dark:ring-slate-800 sm:flex" aria-label={t('rebuild.marketplace.scroll_back', { defaultValue: 'Posunout zpět' })}>
-                    <ChevronRight size={15} className="rotate-180" />
-                  </button>
-                  <button type="button" onClick={() => scrollByCards(similarScrollRef, 1)} className="hidden h-8 w-8 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-200/70 transition hover:text-[#0f95ac] dark:bg-slate-900 dark:ring-slate-800 sm:flex" aria-label={t('rebuild.marketplace.scroll_more', { defaultValue: 'Posunout dál' })}>
-                    <ChevronRight size={15} />
-                  </button>
-                </div>
-              </div>
-              <div ref={similarScrollRef} className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {similarCandidates.map((candidate) => (
-                  <SimilarRoleCard
-                    key={candidate.role.id}
-                    role={candidate.role}
-                    matchPercent={getMatchPercent(candidate.role)}
-                    Icon={roleFamilyIcon(getRoleClusterId(candidate.role))}
-                    onOpen={() => navigate(getRolePath(candidate.role))}
-                    t={t}
-                  />
-                ))}
-              </div>
-            </section>
-          ) : null}
-
-          {/* Section 4 — Discover by category */}
-          {categoryTiles.length > 0 ? (
-            <section className="space-y-4">
-              <div className="flex items-end justify-between gap-4 px-1">
-                <h2 className="text-[22px] font-black tracking-normal text-slate-950 dark:text-slate-100">{t('rebuild.marketplace.discover_by_category', { defaultValue: 'Objevuj podle kategorií' })}</h2>
-                <button type="button" onClick={() => setActiveCategoryId(null)} className="text-[13px] font-black text-[#0f95ac] hover:underline">{t('rebuild.marketplace.show_all', { defaultValue: 'Zobrazit všechny' })}</button>
-              </div>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-                {categoryTiles.map(({ id, title, count, Icon }) => (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => {
-                      setActiveCategoryId(id);
-                      setVisibleRecommendationCount(RECOMMENDATION_PAGE_SIZE);
-                      document.getElementById('marketplace-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }}
-                    aria-pressed={activeCategoryId === id}
-                    className={cn(
-                      'flex flex-col items-start gap-3 rounded-2xl bg-white p-4 text-left shadow-[0_14px_40px_-36px_rgba(15,23,42,0.3)] ring-1 transition hover:-translate-y-0.5 hover:shadow-[0_22px_52px_-32px_rgba(15,23,42,0.34)] dark:bg-slate-900',
-                      activeCategoryId === id ? 'ring-2 ring-[#12afcb]/40' : 'ring-slate-200/60 dark:ring-slate-800',
-                    )}
-                  >
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#eef8fb] text-[#0f95ac] dark:bg-cyan-950/50 dark:text-cyan-300">
-                      {loadingCategoryId === id ? <Loader2 size={18} className="animate-spin" /> : <Icon size={18} />}
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block truncate text-[13px] font-black text-slate-950 dark:text-slate-100">{title}</span>
-                      <span className="mt-0.5 block text-[11px] font-semibold text-slate-500">{t('rebuild.marketplace.position_count', { defaultValue: '{{count}} pozic', count })}</span>
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </section>
-          ) : null}
-
-          {/* Section 5 — Marketplace list */}
-          <section id="marketplace-list" className="space-y-4">
-            <div className="px-1">
-              <h2 className="text-[22px] font-black tracking-normal text-slate-950 dark:text-slate-100">{t('rebuild.nav.marketplace', { defaultValue: 'Marketplace' })}</h2>
-              <p className="mt-1 text-sm font-medium text-slate-500">{t('rebuild.marketplace.all_active', { defaultValue: 'Všechny aktivní příležitosti' })}</p>
-            </div>
-
-            <div className="flex flex-col gap-3 rounded-2xl bg-white/70 p-3 ring-1 ring-slate-200/60 dark:bg-slate-900/60 dark:ring-slate-800 lg:flex-row lg:items-center">
-              <div className="flex flex-1 items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 ring-1 ring-slate-200/70 focus-within:ring-2 focus-within:ring-[#12afcb]/40 dark:bg-slate-800/60 dark:ring-slate-700">
-                <Search size={16} className="shrink-0 text-slate-400" />
-                <input
-                  value={aiQuery}
-                  onChange={(event) => setAiQuery(event.target.value)}
-                  onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); void runAiSearch(aiQuery); } }}
-                  placeholder={t('rebuild.marketplace.search_in_marketplace', { defaultValue: 'Hledat v marketplace…' })}
-                  className="w-full bg-transparent text-[13px] font-semibold text-slate-800 outline-none placeholder:text-slate-400 dark:text-slate-100"
-                />
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <FilterDropdown
-                  label={t('rebuild.marketplace.field', { defaultValue: 'Obor' })}
-                  value={filters.roleFamily}
-                  options={getRoleFamilyOptions(t).map((option) => ({ value: option.value, label: option.label }))}
-                  onSelect={(value) => onFiltersChange((current) => ({ ...current, roleFamily: value as MarketplaceFilters['roleFamily'] }))}
-                />
-                <FilterDropdown
-                  label={t('rebuild.marketplace.location', { defaultValue: 'Lokalita' })}
-                  value={filters.city || 'all'}
-                  options={cityOptions}
-                  onSelect={(value) => onFiltersChange((current) => ({ ...current, city: value === 'all' ? '' : value }))}
-                />
-                <FilterDropdown
-                  label={t('rebuild.marketplace.salary', { defaultValue: 'Mzda' })}
-                  value={String(filters.minSalary || 'all')}
-                  options={[
-                    { value: 'all', label: t('rebuild.marketplace.salary_any', { defaultValue: 'Libovolná mzda' }) },
-                    { value: '30000', label: '30 000+' },
-                    { value: '45000', label: '45 000+' },
-                    { value: '60000', label: '60 000+' },
-                    { value: '80000', label: '80 000+' },
-                  ]}
-                  onSelect={(value) => onFiltersChange((current) => ({ ...current, minSalary: value === 'all' ? 0 : Number(value) }))}
-                />
-                <FilterDropdown
-                  label={t('rebuild.marketplace.difficulty', { defaultValue: 'Náročnost' })}
-                  value={difficultyFilter}
-                  options={[
-                    { value: 'all', label: t('rebuild.marketplace.difficulty_any', { defaultValue: 'Libovolná' }) },
-                    { value: 'low', label: t('rebuild.marketplace.difficulty_low', { defaultValue: 'Nízká' }) },
-                    { value: 'medium', label: t('rebuild.marketplace.difficulty_medium', { defaultValue: 'Střední' }) },
-                    { value: 'high', label: t('rebuild.marketplace.difficulty_high', { defaultValue: 'Vysoká' }) },
-                  ]}
-                  onSelect={(value) => setDifficultyFilter(value as 'all' | DifficultyLevel)}
-                />
-                <FilterDropdown
-                  label={t('rebuild.marketplace.sort', { defaultValue: 'Řazení' })}
-                  value={sortMode}
-                  align="right"
-                  options={[
-                    { value: 'relevance', label: t('rebuild.marketplace.sort_relevance', { defaultValue: 'Nejrelevantnější' }) },
-                    { value: 'salary', label: t('rebuild.marketplace.sort_salary', { defaultValue: 'Nejvyšší mzda' }) },
-                    { value: 'distance', label: t('rebuild.marketplace.sort_distance', { defaultValue: 'Nejbližší' }) },
-                  ]}
-                  onSelect={(value) => setSortMode(value as 'relevance' | 'salary' | 'distance')}
-                />
-              </div>
-            </div>
-
-            {marketplaceVisible.length > 0 ? (
-              <div className="space-y-2">
-                {marketplaceVisible.map((candidate) => (
-                  <MarketplaceListRow
-                    key={candidate.role.id}
-                    candidate={candidate}
-                    preferences={preferences}
-                    onOpen={() => navigate(getRolePath(candidate.role))}
-                    t={t}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-white/70 p-8 text-center text-sm font-semibold text-slate-500 dark:border-slate-700 dark:bg-slate-900/70">
-                {t('rebuild.marketplace.no_results', { defaultValue: 'Žádné nabídky neodpovídají tvému hledání. Zkus upravit filtry nebo dotaz.' })}
-              </div>
-            )}
-
-            <div className="flex flex-col items-center gap-3">
-              <div ref={loadMoreSentinelRef} className="h-2 w-full" aria-hidden="true" />
-              {hasMoreFeedCandidates ? (
-                <button type="button" onClick={handleFeedLoadMore} className="inline-flex h-11 items-center gap-2 rounded-xl bg-white px-6 text-[13px] font-black text-[#0f95ac] shadow-sm ring-1 ring-slate-200/70 transition hover:bg-[#f1fbfd] dark:bg-slate-900 dark:text-cyan-300 dark:ring-slate-800">
-                  {t('rebuild.marketplace.show_more_offers', { defaultValue: 'Zobrazit více nabídek' })}
-                  <ChevronDown size={15} />
-                </button>
-              ) : null}
-              {!hasMoreFeedCandidates && hasMore && onLoadMore ? (
-                <button type="button" onClick={handleFeedLoadMore} disabled={loading} className="inline-flex h-11 items-center gap-2 rounded-xl bg-white px-6 text-[13px] font-black text-slate-700 shadow-sm ring-1 ring-slate-200/70 transition hover:bg-white disabled:cursor-wait disabled:opacity-70 dark:bg-slate-900 dark:text-slate-200 dark:ring-slate-800">
-                  {loading ? <Loader2 size={15} className="animate-spin" /> : null}
-                  {loading ? t('rebuild.marketplace.loading_catalog', { defaultValue: 'Načítám katalog' }) : t('rebuild.marketplace.load_next_from_db', { defaultValue: 'Načíst dalších {{count}} z databáze', count: MARKETPLACE_FEED_PAGE_SIZE })}
-                  <span className="text-slate-400">{roles.length.toLocaleString('cs-CZ')} / {totalCount.toLocaleString('cs-CZ')}</span>
-                </button>
-              ) : null}
-            </div>
-          </section>
-
-          {/* CTA */}
-          <section className="flex flex-col gap-5 rounded-[28px] bg-[linear-gradient(135deg,#0f4f73,#0f95ac)] p-6 text-white shadow-[0_24px_68px_-42px_rgba(15,149,172,0.62)] sm:flex-row sm:items-center sm:justify-between sm:p-8">
-            <div>
-              <h2 className="text-[22px] font-black tracking-normal">{t('rebuild.marketplace.cta_talent_title', { defaultValue: 'Hledáš lepší fit pro svůj další krok?' })}</h2>
-              <p className="mt-2 text-sm font-medium text-cyan-50/85">{t('rebuild.marketplace.cta_talent_copy', { defaultValue: 'Uprav svůj profil a nech Jobshaman seřadit nabídky podle reality.' })}</p>
-            </div>
-            <button type="button" onClick={() => navigate('/candidate/profile')} className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-white px-5 text-sm font-black text-[#0f4f73] shadow-sm transition hover:bg-cyan-50">
-              {t('rebuild.marketplace.update_profile', { defaultValue: 'Upravit profil' })}
-              <ArrowRight size={16} />
-            </button>
-          </section>
+      {/* AI notice */}
+      {aiNotice ? (
+        <div className="flex items-center gap-2 px-1 text-[12px] font-bold text-[#0f95ac]">
+          <BrainCircuit size={14} className="shrink-0" />
+          <span className="truncate">{aiNotice}</span>
+          <button type="button" onClick={onResetFilters} className="ml-auto shrink-0 text-[11px] font-bold text-slate-400 hover:text-slate-600">{t('rebuild.marketplace.reset', { defaultValue: 'Zrušit' })}</button>
         </div>
-      </DashboardLayoutV2>
-    </>
+      ) : null}
+
+      {/* Section 1 — Best opportunities */}
+      {featuredCandidates.length > 0 ? (
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <h2 className="flex items-center gap-1.5 text-lg font-bold text-slate-950 dark:text-slate-100">
+                {t('rebuild.marketplace.best_opportunities', { defaultValue: 'Tvé nejlepší příležitosti' })}
+                <Sparkles size={15} className="text-[#12afcb]" />
+              </h2>
+              <p className="text-xs font-medium text-slate-500">{t('rebuild.marketplace.based_on_profile', { defaultValue: 'Na základě tvého profilu a preferencí' })}</p>
+            </div>
+            <div className="flex items-center gap-1">
+              <button type="button" onClick={() => scrollByCards(featuredScrollRef, -1)} className="hidden h-8 w-8 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-200/70 transition hover:text-[#0f95ac] dark:bg-slate-900 dark:ring-slate-800 sm:flex" aria-label={t('rebuild.marketplace.scroll_back', { defaultValue: 'Posunout zpět' })}>
+                <ChevronRight size={15} className="rotate-180" />
+              </button>
+              <button type="button" onClick={() => scrollByCards(featuredScrollRef, 1)} className="hidden h-8 w-8 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-200/70 transition hover:text-[#0f95ac] dark:bg-slate-900 dark:ring-slate-800 sm:flex" aria-label={t('rebuild.marketplace.scroll_more', { defaultValue: 'Posunout dál' })}>
+                <ChevronRight size={15} />
+              </button>
+            </div>
+          </div>
+          <div ref={featuredScrollRef} className="-mx-1 flex snap-x gap-4 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {featuredCandidates.map((candidate) => (
+              <FeaturedOpportunityCard
+                key={candidate.role.id} candidate={candidate} preferences={preferences} candidateAvatar={candidateAvatar}
+                saved={savedRoleIds?.includes(String(candidate.role.id)) || false}
+                onOpen={() => navigate(getRolePath(candidate.role))}
+                onToggleSaved={() => onToggleSavedRole?.(candidate.role.id)} t={t}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {/* Section 2 — Companies that want to meet you */}
+      {companyCards.length > 0 ? (
+        <section className="space-y-4">
+          <div className="flex items-end justify-between gap-4 px-1">
+            <div>
+              <h2 className="text-lg font-bold text-slate-950 dark:text-slate-100">{t('rebuild.marketplace.companies_interested', { defaultValue: 'Firmy, které tě chtějí poznat' })}</h2>
+              <p className="text-xs font-medium text-slate-500">{t('rebuild.marketplace.companies_interested_sub', { defaultValue: 'Firmy, které vidí potenciál ve tvém profilu' })}</p>
+            </div>
+            <button type="button" onClick={() => navigate('/candidate/handshake')} className="text-[12px] font-bold text-[#0f95ac] hover:underline">{t('rebuild.marketplace.show_all', { defaultValue: 'Zobrazit všechny' })}</button>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {companyCards.map(({ role, matchPercent }) => (
+              <CompanyInterestCard key={role.id} role={role} matchPercent={matchPercent}
+                saved={savedRoleIds?.includes(String(role.id)) || false}
+                onOpen={() => navigate(getRolePath(role))} onToggleSaved={() => onToggleSavedRole?.(role.id)} t={t}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {/* Section 3 — Similar roles */}
+      {similarCandidates.length > 0 ? (
+        <section className="space-y-4">
+          <div className="flex items-end justify-between gap-4 px-1">
+            <div>
+              <h2 className="text-lg font-bold text-slate-950 dark:text-slate-100">{t('rebuild.marketplace.similar_to_interest', { defaultValue: 'Podobné jako to, co tě zajímá' })}</h2>
+              <p className="text-xs font-medium text-slate-500">{t('rebuild.marketplace.similar_sub', { defaultValue: 'Role a firmy v podobném zaměření' })}</p>
+            </div>
+            <div className="flex items-center gap-1">
+              <button type="button" onClick={() => scrollByCards(similarScrollRef, -1)} className="hidden h-8 w-8 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-200/70 transition hover:text-[#0f95ac] dark:bg-slate-900 dark:ring-slate-800 sm:flex" aria-label={t('rebuild.marketplace.scroll_back', { defaultValue: 'Posunout zpět' })}>
+                <ChevronRight size={15} className="rotate-180" />
+              </button>
+              <button type="button" onClick={() => scrollByCards(similarScrollRef, 1)} className="hidden h-8 w-8 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-200/70 transition hover:text-[#0f95ac] dark:bg-slate-900 dark:ring-slate-800 sm:flex" aria-label={t('rebuild.marketplace.scroll_more', { defaultValue: 'Posunout dál' })}>
+                <ChevronRight size={15} />
+              </button>
+            </div>
+          </div>
+          <div ref={similarScrollRef} className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {similarCandidates.map((candidate) => (
+              <SimilarRoleCard key={candidate.role.id} role={candidate.role} matchPercent={getMatchPercent(candidate.role)}
+                Icon={roleFamilyIcon(getRoleClusterId(candidate.role))} onOpen={() => navigate(getRolePath(candidate.role))} t={t}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {/* Section 4 — Discover by role family (colored icons) */}
+      {roleFamilyTiles.length > 0 ? (
+        <section className="space-y-3">
+          <div className="flex items-end justify-between gap-4 px-1">
+            <h2 className="text-lg font-bold text-slate-950 dark:text-slate-100">{t('rebuild.marketplace.discover_by_category', { defaultValue: 'Objevuj podle oborů' })}</h2>
+          </div>
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-8">
+            {roleFamilyTiles.map((tile) => {
+              const meta = CATEGORY_META[tile.id] || { icon: Palette, bg: 'bg-slate-100', text: 'text-slate-600' };
+              const Icon = meta.icon;
+              return (
+                <button
+                  key={tile.id} type="button"
+                  onClick={() => { onFiltersChange((current) => ({ ...current, roleFamily: tile.id as any })); }}
+                  className="group flex flex-col items-center gap-1.5 rounded-2xl bg-white p-2.5 text-center ring-1 ring-slate-200/60 transition hover:-translate-y-0.5 hover:shadow-sm dark:bg-slate-900 dark:ring-slate-800"
+                >
+                  <span className={cn('flex h-8 w-8 items-center justify-center rounded-lg', meta.bg, meta.text)}>
+                    <Icon size={15} />
+                  </span>
+                  <span className="block truncate text-[10px] font-bold text-slate-950 dark:text-slate-100 w-full">{tile.title}</span>
+                  <span className="block text-[9px] font-semibold text-slate-400">{tile.count}</span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
+
+      {/* Section 5 — Marketplace list */}
+      <section id="marketplace-list" className="space-y-4">
+        <div className="flex items-end justify-between gap-4 px-1">
+          <div>
+            <h2 className="text-lg font-bold text-slate-950 dark:text-slate-100">{t('rebuild.nav.marketplace', { defaultValue: 'Marketplace' })}</h2>
+            <p className="text-xs font-medium text-slate-500">{t('rebuild.marketplace.all_active', { defaultValue: 'Všechny aktivní příležitosti' })}</p>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3 rounded-2xl bg-white/70 p-3 ring-1 ring-slate-200/60 dark:bg-slate-900/60 dark:ring-slate-800 lg:flex-row lg:items-center">
+          <div className="flex flex-1 items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 ring-1 ring-slate-200/70 focus-within:ring-2 focus-within:ring-[#12afcb]/40 dark:bg-slate-800/60 dark:ring-slate-700">
+            <Search size={16} className="shrink-0 text-slate-400" />
+            <input
+              value={aiQuery}
+              onChange={(event) => setAiQuery(event.target.value)}
+              onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); void runAiSearch(aiQuery); } }}
+              placeholder={t('rebuild.marketplace.search_in_marketplace', { defaultValue: 'Hledat v marketplace…' })}
+              className="w-full bg-transparent text-[13px] font-semibold text-slate-800 outline-none placeholder:text-slate-400 dark:text-slate-100"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <FilterDropdown label={t('rebuild.marketplace.field', { defaultValue: 'Obor' })} value={filters.roleFamily}
+              options={getRoleFamilyOptions(t).map((o) => ({ value: o.value, label: o.label }))}
+              onSelect={(v) => onFiltersChange((c) => ({ ...c, roleFamily: v as MarketplaceFilters['roleFamily'] }))} />
+            <FilterDropdown label={t('rebuild.marketplace.location', { defaultValue: 'Lokalita' })} value={filters.city || 'all'} options={cityOptions}
+              onSelect={(v) => onFiltersChange((c) => ({ ...c, city: v === 'all' ? '' : v }))} />
+            <FilterDropdown label={t('rebuild.marketplace.salary', { defaultValue: 'Mzda' })} value={String(filters.minSalary || 'all')}
+              options={[{ value: 'all', label: t('rebuild.marketplace.salary_any', { defaultValue: 'Libovolná' }) }, { value: '30000', label: '30 000+' }, { value: '45000', label: '45 000+' }, { value: '60000', label: '60 000+' }, { value: '80000', label: '80 000+' }]}
+              onSelect={(v) => onFiltersChange((c) => ({ ...c, minSalary: v === 'all' ? 0 : Number(v) }))} />
+            <FilterDropdown label={t('rebuild.marketplace.sort', { defaultValue: 'Řazení' })} value={sortMode} align="right"
+              options={[{ value: 'relevance', label: t('rebuild.marketplace.sort_relevance', { defaultValue: 'Nejrelevantnější' }) }, { value: 'salary', label: t('rebuild.marketplace.sort_salary', { defaultValue: 'Nejvyšší mzda' }) }, { value: 'distance', label: t('rebuild.marketplace.sort_distance', { defaultValue: 'Nejbližší' }) }]}
+              onSelect={(v) => setSortMode(v as 'relevance' | 'salary' | 'distance')} />
+          </div>
+        </div>
+
+        {marketplaceVisible.length > 0 ? (
+          <div className="space-y-2">
+            {marketplaceVisible.map((candidate) => (
+              <MarketplaceListRow key={candidate.role.id} candidate={candidate} preferences={preferences}
+                onOpen={() => navigate(getRolePath(candidate.role))} t={t} />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-white/70 p-8 text-center text-sm font-semibold text-slate-500 dark:border-slate-700 dark:bg-slate-900/70">
+            {t('rebuild.marketplace.no_results', { defaultValue: 'Žádné nabídky neodpovídají tvému hledání. Zkus upravit filtry nebo dotaz.' })}
+          </div>
+        )}
+
+        <div className="flex flex-col items-center gap-3">
+          <div ref={loadMoreSentinelRef} className="h-2 w-full" aria-hidden="true" />
+          {hasMoreFeedCandidates ? (
+            <button type="button" onClick={handleFeedLoadMore} className="inline-flex h-11 items-center gap-2 rounded-xl bg-white px-6 text-[13px] font-black text-[#0f95ac] shadow-sm ring-1 ring-slate-200/70 transition hover:bg-[#f1fbfd] dark:bg-slate-900 dark:text-cyan-300 dark:ring-slate-800">
+              {t('rebuild.marketplace.show_more_offers', { defaultValue: 'Zobrazit více nabídek' })}
+              <ChevronDown size={15} />
+            </button>
+          ) : null}
+          {!hasMoreFeedCandidates && hasMore && onLoadMore ? (
+            <button type="button" onClick={handleFeedLoadMore} disabled={loading} className="inline-flex h-11 items-center gap-2 rounded-xl bg-white px-6 text-[13px] font-black text-slate-700 shadow-sm ring-1 ring-slate-200/70 transition hover:bg-white disabled:cursor-wait disabled:opacity-70 dark:bg-slate-900 dark:text-slate-200 dark:ring-slate-800">
+              {loading ? <Loader2 size={15} className="animate-spin" /> : null}
+              {loading ? t('rebuild.marketplace.loading_catalog', { defaultValue: 'Načítám katalog' }) : t('rebuild.marketplace.load_next_from_db', { defaultValue: 'Načíst dalších {{count}} z databáze', count: MARKETPLACE_FEED_PAGE_SIZE })}
+              <span className="text-slate-400">{roles.length.toLocaleString('cs-CZ')} / {totalCount.toLocaleString('cs-CZ')}</span>
+            </button>
+          ) : null}
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="flex flex-col gap-5 rounded-[28px] bg-[linear-gradient(135deg,#0f4f73,#0f95ac)] p-6 text-white shadow-[0_24px_68px_-42px_rgba(15,149,172,0.62)] sm:flex-row sm:items-center sm:justify-between sm:p-8">
+        <div>
+          <h2 className="text-[22px] font-black tracking-normal">{t('rebuild.marketplace.cta_talent_title', { defaultValue: 'Hledáš lepší fit pro svůj další krok?' })}</h2>
+          <p className="mt-2 text-sm font-medium text-cyan-50/85">{t('rebuild.marketplace.cta_talent_copy', { defaultValue: 'Uprav svůj profil a nech Jobshaman seřadit nabídky podle reality.' })}</p>
+        </div>
+        <button type="button" onClick={() => navigate('/candidate/profile')} className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-white px-5 text-sm font-black text-[#0f4f73] shadow-sm transition hover:bg-cyan-50">
+          {t('rebuild.marketplace.update_profile', { defaultValue: 'Upravit profil' })}
+          <ArrowRight size={16} />
+        </button>
+      </section>
+    </div>
   );
 };

@@ -106,6 +106,8 @@ import {
   usePersistentState,
 } from './state';
 import { AppBackdrop } from './ui/RebuildChrome';
+import { ShamiFloatingIcon } from './shared/ShamiFloatingIcon';
+import { ShamiFloatingChat } from './shared/ShamiFloatingChat';
 import { DashboardLayoutV2 } from './ui/DashboardLayoutV2';
 import { type RoleClusterId } from './candidate/MarketplaceV2';
 import type { CandidateSidebarSummary } from './ui/SidebarV2';
@@ -272,6 +274,7 @@ const JobshamanRebuildApp: React.FC = () => {
   const [companyLookupRetry, setCompanyLookupRetry] = React.useState(0);
   const [checkoutBusyTier, setCheckoutBusyTier] = React.useState<'starter' | 'growth' | 'professional' | null>(null);
   const [candidatePremiumBusy, setCandidatePremiumBusy] = React.useState(false);
+  const [shamiChatOpen, setShamiChatOpen] = React.useState(false);
   const pendingCheckoutTierRef = React.useRef<'starter' | 'growth' | 'professional' | null>(null);
   React.useEffect(() => {
     if (!preferences.address && !userProfile.isLoggedIn) {
@@ -1161,7 +1164,7 @@ const JobshamanRebuildApp: React.FC = () => {
     };
   }, [candidateDialogueCapacity, handleRedeemSlot, karmaSlotRedeeming, karmaSummary, preferences.address, userProfile.bio, userProfile.isLoggedIn, userProfile.jobTitle, userProfile.name, userProfile.skills]);
 
-  const renderCandidateWorkspace = (content: React.ReactNode, extra?: { actionRegion?: React.ReactNode; title?: string; subtitle?: string; searchValue?: string; onSearchChange?: (val: string) => void; }) => (
+  const renderCandidateWorkspace = (content: React.ReactNode, extra?: { actionRegion?: React.ReactNode; title?: string; subtitle?: string; searchValue?: string; onSearchChange?: (val: string) => void; aiSearchValue?: string; onAiSearchChange?: (val: string) => void; onAiSearchSubmit?: () => void; aiSearchBusy?: boolean; onFiltersOpen?: () => void; activeFilterCount?: number; }) => (
     <DashboardLayoutV2
       userRole="candidate"
       navItems={candidateWorkspaceNavItems}
@@ -1178,7 +1181,12 @@ const JobshamanRebuildApp: React.FC = () => {
       searchValue={extra?.searchValue}
       onSearchChange={extra?.onSearchChange}
       actionRegion={extra?.actionRegion}
-      
+      aiSearchValue={extra?.aiSearchValue}
+      onAiSearchChange={extra?.onAiSearchChange}
+      onAiSearchSubmit={extra?.onAiSearchSubmit}
+      aiSearchBusy={extra?.aiSearchBusy}
+      onFiltersOpen={extra?.onFiltersOpen}
+      activeFilterCount={extra?.activeFilterCount}
       t={t}
     >
       {content}
@@ -2467,6 +2475,17 @@ const JobshamanRebuildApp: React.FC = () => {
           </div>
         ) : null}
         </React.Suspense>
+
+        {/* Floating Shami chat assistant */}
+        <ShamiFloatingIcon
+          isOpen={shamiChatOpen}
+          onClick={() => setShamiChatOpen((prev) => !prev)}
+        />
+        <ShamiFloatingChat
+          isOpen={shamiChatOpen}
+          onClose={() => setShamiChatOpen(false)}
+          navigate={navigate}
+        />
       </div>
       <CookieBanner />
     </RebuildThemeProvider>
